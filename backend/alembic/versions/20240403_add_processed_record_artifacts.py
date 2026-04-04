@@ -8,7 +8,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = "rev_20240403_record_artifacts"
@@ -18,21 +17,21 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "processed_records",
-        sa.Column(
-            "scaled_data",
-            postgresql.JSONB(astext_type=sa.Text()),
-            nullable=True,
-        ),
+    op.execute(
+        sa.text(
+            """
+            ALTER TABLE IF EXISTS processed_records
+            ADD COLUMN IF NOT EXISTS scaled_data JSONB
+            """
+        )
     )
-    op.add_column(
-        "processed_records",
-        sa.Column(
-            "component_scores",
-            postgresql.JSONB(astext_type=sa.Text()),
-            nullable=True,
-        ),
+    op.execute(
+        sa.text(
+            """
+            ALTER TABLE IF EXISTS processed_records
+            ADD COLUMN IF NOT EXISTS component_scores JSONB
+            """
+        )
     )
 
 

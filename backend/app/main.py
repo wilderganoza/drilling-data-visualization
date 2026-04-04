@@ -35,31 +35,6 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 
-def seed_default_user():
-    """Create default admin user if no users exist."""
-    from app.db.session import db_manager
-    from app.db.models import User
-    from app.core.security import get_password_hash
-
-    try:
-        session = next(db_manager.get_session())
-        user_count = session.query(User).count()
-        if user_count == 0:
-            default_user = User(
-                username="wilder.ganoza",
-                hashed_password=get_password_hash("blossom7896"),
-                full_name="Wilder Ganoza",
-                is_active=True,
-                is_admin=True
-            )
-            session.add(default_user)
-            session.commit()
-            logger.info("Default admin user created: wilder.ganoza")
-        session.close()
-    except Exception as e:
-        logger.error(f"Error seeding default user: {e}")
-
-
 @app.on_event("startup")
 async def startup_event():
     logger.info(f"Starting {settings.APP_NAME} v{settings.APP_VERSION}")
@@ -71,7 +46,6 @@ async def startup_event():
     try:
         db_manager.initialize()
         logger.info("Database connections initialized successfully")
-        seed_default_user()
     except Exception as e:
         logger.error(f"Failed to initialize database connections: {e}")
         logger.warning("Application will continue but database endpoints may not work")
