@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+/* === Design System === */
+:root {
+  /* Invariable colors (both themes) */
+  --radius: 8px;
+  --color-primary: #4a7cff;
+  --color-primary-hover: #3a6aee;
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+
+  /* Chart colors (8-color palette) */
+  --color-chart-1: #4a7cff;
+  --color-chart-2: #34d399;
+  --color-chart-3: #fbbf24;
+  --color-chart-4: #f87171;
+  --color-chart-5: #a78bfa;
+  --color-chart-6: #f472b6;
+  --color-chart-7: #38bdf8;
+  --color-chart-8: #fb923c;
+}
+
+/* Dark theme (default) */
+:root,
+[data-theme="dark"] {
+  --color-bg: #0f1117;
+  --color-surface: #1a1d27;
+  --color-surface-hover: #232733;
+  --color-border: #2a2e3a;
+  --color-border-focus: #4a7cff;
+  --color-text: #e4e6ed;
+  --color-text-muted: #8b8fa3;
+  --shadow: 0 2px 8px rgba(0,0,0,0.3);
+  --color-chart-line: #ffffff;
+  --color-chart-axis: #8b8fa3;
+  --color-tooltip-bg: #1a1d27;
+  --color-tooltip-border: #2a2e3a;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --color-bg: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f0f2f5;
+  --color-border: #e1e4e8;
+  --color-border-focus: #4a7cff;
+  --color-text: #1a1d27;
+  --color-text-muted: #6b7280;
+  --shadow: 0 2px 8px rgba(0,0,0,0.08);
+  --color-chart-line: #1a1d27;
+  --color-chart-axis: #6b7280;
+  --color-tooltip-bg: #ffffff;
+  --color-tooltip-border: #e1e4e8;
+}
+
+/* Legacy variable mapping for backward compatibility */
+:root {
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --hover: var(--color-surface-hover);
+  --border: var(--color-border);
+  --border-focus: var(--color-border-focus);
+  --text-primary: var(--color-text);
+  --text-muted: var(--color-text-muted);
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --danger: var(--color-danger);
+  --radius-lg: 12px;
+}
+
+/* Map Tailwind gray/blue classes to design system colors */
+@theme {
+  --color-gray-100: #e4e6ed;
+  --color-gray-200: #e4e6ed;
+  --color-gray-300: #8b8fa3;
+  --color-gray-400: #8b8fa3;
+  --color-gray-500: #8b8fa3;
+  --color-gray-600: #2a2e3a;
+  --color-gray-700: #2a2e3a;
+  --color-gray-800: #1a1d27;
+  --color-gray-900: #1a1d27;
+  --color-gray-950: #0f1117;
+  --color-blue-500: #4a7cff;
+  --color-blue-600: #4a7cff;
+  --color-blue-700: #3a6aee;
+  --color-blue-800: #3a6aee;
+  --color-red-300: #f87171;
+  --color-red-400: #f87171;
+  --color-red-500: #f87171;
+  --color-red-600: #f87171;
+  --color-red-700: #dc2626;
+  --color-red-900: rgba(248, 113, 113, 0.1);
+  --color-green-500: #34d399;
+  --color-yellow-500: #fbbf24;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

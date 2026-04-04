@@ -1,0 +1,256 @@
+/* Additional component styles following Subsurface Production Allocation design system */
+
+/* Status Messages */
+.status-message {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-message.success {
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  color: var(--color-success);
+}
+
+.status-message.error {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: var(--color-danger);
+}
+
+.status-message.warning {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  color: var(--color-warning);
+}
+
+.status-message.info {
+  background: rgba(74, 124, 255, 0.1);
+  border: 1px solid rgba(74, 124, 255, 0.3);
+  color: var(--color-primary);
+}
+
+/* Data Tables */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.data-table th {
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table tbody tr {
+  transition: background-color 0.12s;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-surface-hover);
+}
+
+.data-table tbody tr.active {
+  background: rgba(74, 124, 255, 0.12);
+}
+
+/* Wells Table (specific variant) */
+.wells-table th,
+.wells-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  text-align: center;
+}
+
+.wells-table thead {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.wells-table tbody tr:hover {
+  background: rgba(74, 124, 255, 0.08);
+}
+
+/* File Uploader */
+.file-uploader {
+  border: 2px dashed var(--color-border);
+  border-radius: 12px;
+  padding: 40px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.file-uploader:hover {
+  border-color: var(--color-primary);
+  background: rgba(74, 124, 255, 0.04);
+}
+
+.file-uploader.dragging {
+  border-color: var(--color-primary);
+  background: rgba(74, 124, 255, 0.08);
+  box-shadow: 0 0 0 4px rgba(74, 124, 255, 0.1);
+}
+
+.file-uploader.has-file {
+  border-color: var(--color-success);
+  background: rgba(52, 211, 153, 0.04);
+}
+
+.file-uploader-icon {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.file-uploader-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.file-uploader-formats {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.file-uploader-filename {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-success);
+  background: rgba(52, 211, 153, 0.1);
+  padding: 4px 14px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* Step Indicator */
+.step-indicator {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+}
+
+.step-indicator .step {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+  transition: background 0.2s;
+}
+
+.step-indicator .step.active {
+  background: var(--color-primary);
+}
+
+.step-indicator .step.done {
+  background: var(--color-success);
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+/* Utility Classes */
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-danger { color: var(--color-danger); }
+.text-primary { color: var(--color-primary); }
+.text-muted { color: var(--color-text-muted); }
+
+.bg-success { background: rgba(52, 211, 153, 0.1); }
+.bg-warning { background: rgba(251, 191, 36, 0.1); }
+.bg-danger { background: rgba(248, 113, 113, 0.1); }
+.bg-primary { background: rgba(74, 124, 255, 0.1); }
+
+/* Transitions */
+.transition-fast { transition: all 0.12s; }
+.transition-normal { transition: all 0.15s; }
+.transition-slow { transition: all 0.2s; }
+
+/* Fix for select elements in light theme */
+[data-theme="light"] select {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="light"] select option {
+  background-color: var(--color-surface) !important;
+  color: var(--color-text) !important;
+}
+
+[data-theme="light"] input {
+  background-color: var(--color-bg) !important;
+  color: var(--color-text) !important;
+}
+
+/* Fix for table headers in light theme */
+[data-theme="light"] .data-table th,
+[data-theme="light"] .wells-table th {
+  background: var(--color-surface-hover) !important;
+  color: var(--color-text) !important;
+}
+
+[data-theme="light"] .data-table tbody tr:hover,
+[data-theme="light"] .wells-table tbody tr:hover {
+  background: var(--color-surface-hover) !important;
+}
+
+/* Fix for headings in light theme - use pure black for maximum contrast */
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4,
+[data-theme="light"] h5,
+[data-theme="light"] h6 {
+  color: #000000 !important;
+}
+
+/* Fix for labels and strong text */
+[data-theme="light"] label,
+[data-theme="light"] strong {
+  color: #111827 !important;
+}
+
+/* Fix for paragraphs and general text content */
+[data-theme="light"] p,
+[data-theme="light"] span,
+[data-theme="light"] div {
+  color: #111827;
+}
+
+/* Ensure table cells have good contrast */
+[data-theme="light"] td,
+[data-theme="light"] th {
+  color: #111827 !important;
+}

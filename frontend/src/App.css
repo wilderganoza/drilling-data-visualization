@@ -1,0 +1,19 @@
+/* App-level styles - design system utilities */
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+}
+
+/* Status colors */
+.success { color: var(--success); }
+.warning { color: var(--warning); }
+.error { color: var(--danger); }
+
+.info {
+  color: var(--text-muted);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
