@@ -137,15 +137,27 @@ class OutlierDetectionService:
                 raise OutlierDetectionError(
                     f"Dataset {replace_dataset_id} not found for replacement"
                 )
-            self.datasets_repo.delete_records(replace_dataset_id)
-            existing.well_id = request.well_id
-            existing.name = dataset_name
-            existing.description = request.description
-            existing.pipeline_config = pipeline_config
-            existing.metrics = None
-            existing.status = "processing"
-            self.session.add(existing)
-            self.session.flush()
+            try:
+                # Remove records via ORM so the delete-orphan cascade stays
+                # consistent with the session state before we flush updates
+                # on the dataset row itself.
+                existing.records.clear()
+                self.session.flush()
+                existing.well_id = request.well_id
+                existing.name = dataset_name
+                existing.description = request.description
+                existing.pipeline_config = pipeline_config
+                existing.metrics = None
+                existing.record_count = None
+                existing.status = "processing"
+                self.session.add(existing)
+                self.session.flush()
+            except Exception as exc:
+                self.session.rollback()
+                logger.exception("Failed to prepare dataset for replacement")
+                raise OutlierDetectionError(
+                    f"Failed to replace dataset {replace_dataset_id}: {exc}"
+                ) from exc
             dataset = existing
         else:
             dataset = self.datasets_repo.create_dataset(
