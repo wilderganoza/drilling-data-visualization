@@ -31,12 +31,12 @@ export interface UpdateUserRequest {
 }
 
 export const getUsers = async (): Promise<UserListResponse> => {
-  const response = await apiClient.get<UserListResponse>('/users');
+  const response = await apiClient.get<UserListResponse>('/users/');
   return response.data;
 };
 
 export const createUser = async (data: CreateUserRequest): Promise<UserResponse> => {
-  const response = await apiClient.post<UserResponse>('/users', data);
+  const response = await apiClient.post<UserResponse>('/users/', data);
   return response.data;
 };
 
