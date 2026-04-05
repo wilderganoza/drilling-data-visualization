@@ -71,6 +71,13 @@ export interface OutlierDetectionResponse {
   dataset: ProcessedDatasetDetail;
 }
 
+export interface OutlierPreviewResponse {
+  metrics: PipelineMetrics;
+  component_labels: string[] | null;
+  components: number[][];
+  is_outlier: boolean[];
+}
+
 export interface ProcessedRecordData {
   source_record_id: number | null;
   is_outlier: boolean;
@@ -149,4 +156,11 @@ export const getProcessedDatasetData = async (
 
 export const deleteProcessedDataset = async (datasetId: number): Promise<void> => {
   await apiClient.delete(`${basePath}/datasets/${datasetId}`);
+};
+
+export const previewOutlierDetection = async (
+  payload: OutlierDetectionRequest,
+): Promise<OutlierPreviewResponse> => {
+  const response = await apiClient.post<OutlierPreviewResponse>(`${basePath}/preview`, payload);
+  return response.data;
 };

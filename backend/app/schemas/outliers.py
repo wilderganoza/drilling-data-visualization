@@ -117,6 +117,13 @@ class OutlierDetectionResponse(BaseModel):
     dataset: ProcessedDatasetDetail
 
 
+class OutlierPreviewResponse(BaseModel):
+    metrics: PipelineMetrics
+    component_labels: Optional[List[str]] = None
+    components: List[List[float]] = Field(default_factory=list)
+    is_outlier: List[bool] = Field(default_factory=list)
+
+
 class ProcessedRecordData(BaseModel):
     source_record_id: Optional[int]
     is_outlier: bool

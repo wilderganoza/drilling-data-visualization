@@ -13,6 +13,7 @@ from app.db.models import User
 from app.schemas.outliers import (
     OutlierDetectionRequest,
     OutlierDetectionResponse,
+    OutlierPreviewResponse,
     ProcessedDataResponse,
     ProcessedDatasetDetail,
     ProcessedDatasetSummary,
@@ -55,6 +56,30 @@ async def run_outlier_detection(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to execute pipeline: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.post(
+    "/preview",
+    response_model=OutlierPreviewResponse,
+    summary="Run the pipeline without persisting (preview metrics and scatter)",
+)
+async def preview_outlier_detection(
+    request: OutlierDetectionRequest,
+    service: OutlierDetectionService = Depends(get_outlier_service),
+    current_user: User = Depends(get_current_user),
+) -> OutlierPreviewResponse:
+    _ = current_user
+    try:
+        return service.preview_pipeline(request)
+    except OutlierDetectionError as exc:
+        logger.error("Outlier preview error: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover
+        logger.exception("Unexpected error running outlier preview")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to execute preview: {type(exc).__name__}: {exc}",
         ) from exc
 
 

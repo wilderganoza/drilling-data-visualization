@@ -16,7 +16,7 @@ import {
   useOutlierDatasetData,
   useRunOutlierDetection,
 } from '../hooks/useOutlierDetection';
-import { getProcessedDataset } from '../api/endpoints/outliers';
+import { getProcessedDataset, previewOutlierDetection } from '../api/endpoints/outliers';
 import type {
   OutlierDetectionRequest,
   OutlierMethod,
@@ -201,6 +201,14 @@ type OutlierPreviewRow = {
   components?: number[];
 };
 
+type OutlierPreviewMetrics = {
+  totalRecords: number;
+  droppedRecords: number;
+  processedRecords: number;
+  outlierRecords: number;
+  outlierPercentage: number;
+};
+
 type OutlierPreviewData = {
   method: OutlierMethod;
   rows: OutlierPreviewRow[];
@@ -209,6 +217,7 @@ type OutlierPreviewData = {
   threshold?: number;
   contamination?: number;
   componentLabels?: string[];
+  metrics?: OutlierPreviewMetrics;
 };
 
 type AsyncStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -1201,7 +1210,7 @@ export const OutlierDetection: React.FC = () => {
   }, [canCalculatePca, pcaConfig, sampleRows, scalingConfig.method, selectedVariables]);
 
   const handleCalculateOutlierPreview = useCallback(() => {
-    if (!canCalculateOutlier) {
+    if (!canCalculateOutlier || !appliedWellId) {
       setOutlierPreview({
         status: 'error',
         data: null,
@@ -1210,24 +1219,71 @@ export const OutlierDetection: React.FC = () => {
       return;
     }
 
+    const allowedOutlierParams: Record<OutlierMethod, string[]> = {
+      isolation_forest: ['contamination', 'n_estimators'],
+      dbscan: ['eps', 'min_samples'],
+      local_outlier_factor: ['n_neighbors', 'contamination'],
+      zscore: ['threshold'],
+      iqr: ['multiplier'],
+    };
+    const allowed = new Set(allowedOutlierParams[outlierConfig.method] ?? []);
+    const filteredParams = Object.fromEntries(
+      Object.entries(outlierConfig.params ?? {}).filter(([k]) => allowed.has(k)),
+    );
+
+    const payload: OutlierDetectionRequest = {
+      well_id: appliedWellId,
+      variables: selectedVariables,
+      scaling: scalingConfig,
+      pca: { ...pcaConfig, enabled: true },
+      outlier: { ...outlierConfig, params: filteredParams, mark_outliers: true },
+    };
+
     setOutlierPreview({ status: 'loading', data: null, error: null });
 
-    try {
-      const scalingData = buildScalingPreviewData(sampleRows, selectedVariables, scalingConfig.method);
-      const pcaData = buildPcaPreviewData(scalingData, pcaConfig);
-      const data = buildOutlierPreviewData(scalingData, outlierConfig, pcaData);
-      setOutlierPreview({ status: 'ready', data, error: null });
-      setOutlierScatterX(0);
-      setOutlierScatterY((data.componentLabels?.length ?? 0) > 1 ? 1 : 0);
-      setOutlierScatterPlotted(false);
-    } catch (error) {
-      setOutlierPreview({
-        status: 'error',
-        data: null,
-        error: error instanceof Error ? error.message : 'Failed to calculate outlier preview.',
+    previewOutlierDetection(payload)
+      .then((response) => {
+        const rows: OutlierPreviewRow[] = response.components.map((components, idx) => ({
+          index: idx + 1,
+          score: 0,
+          isOutlier: response.is_outlier[idx] ?? false,
+          raw: {},
+          scaled: {},
+          components,
+        }));
+        const data: OutlierPreviewData = {
+          method: outlierConfig.method,
+          rows,
+          totalRows: response.metrics.processed_records,
+          outlierCount: response.metrics.outlier_records,
+          componentLabels: response.component_labels ?? undefined,
+          metrics: {
+            totalRecords: response.metrics.total_records,
+            droppedRecords: response.metrics.dropped_records,
+            processedRecords: response.metrics.processed_records,
+            outlierRecords: response.metrics.outlier_records,
+            outlierPercentage: response.metrics.outlier_percentage,
+          },
+        };
+        setOutlierPreview({ status: 'ready', data, error: null });
+        setOutlierScatterX(0);
+        setOutlierScatterY((data.componentLabels?.length ?? 0) > 1 ? 1 : 0);
+        setOutlierScatterPlotted(false);
+      })
+      .catch((error) => {
+        const detail = (error as any)?.response?.data?.detail;
+        setOutlierPreview({
+          status: 'error',
+          data: null,
+          error:
+            typeof detail === 'string'
+              ? detail
+              : error instanceof Error
+                ? error.message
+                : 'Failed to calculate outlier preview.',
+        });
       });
-    }
-  }, [canCalculateOutlier, outlierConfig, pcaConfig, sampleRows, scalingConfig.method, selectedVariables]);
+  }, [canCalculateOutlier, appliedWellId, outlierConfig, pcaConfig, scalingConfig, selectedVariables]);
 
   useEffect(() => {
     setScalingPreviewPage(1);
@@ -2922,33 +2978,35 @@ export const OutlierDetection: React.FC = () => {
 
                 {outlierPreview.status === 'ready' && outlierPreview.data && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-xs">
                       <div className="rounded-md border border-[var(--color-border)] px-3 py-2">
                         <p style={{ color: 'var(--color-text-muted)' }}>Total Rows</p>
                         <p style={{ color: 'var(--color-text)' }} className="font-semibold">
-                          {formatNumber(outlierPreview.data.totalRows, 0)}
+                          {formatNumber(outlierPreview.data.metrics?.totalRecords ?? null, 0)}
                         </p>
                       </div>
                       <div className="rounded-md border border-[var(--color-border)] px-3 py-2">
-                        <p style={{ color: 'var(--color-text-muted)' }}>Outliers</p>
-                        <p style={{ color: 'var(--color-danger, #ef4444)' }} className="font-semibold">
-                          {formatNumber(outlierPreview.data.outlierCount, 0)}
-                        </p>
-                      </div>
-                      <div className="rounded-md border border-[var(--color-border)] px-3 py-2">
-                        <p style={{ color: 'var(--color-text-muted)' }}>Clean Rows</p>
-                        <p style={{ color: 'var(--color-primary)' }} className="font-semibold">
-                          {formatNumber(outlierPreview.data.totalRows - outlierPreview.data.outlierCount, 0)}
-                        </p>
-                      </div>
-                      <div className="rounded-md border border-[var(--color-border)] px-3 py-2">
-                        <p style={{ color: 'var(--color-text-muted)' }}>Outlier Rate</p>
+                        <p style={{ color: 'var(--color-text-muted)' }}>Removed Rows with NaN</p>
                         <p style={{ color: 'var(--color-text)' }} className="font-semibold">
-                          {formatPercent(
-                            outlierPreview.data.totalRows > 0
-                              ? (outlierPreview.data.outlierCount / outlierPreview.data.totalRows) * 100
-                              : 0,
-                          )}
+                          {formatNumber(outlierPreview.data.metrics?.droppedRecords ?? null, 0)}
+                        </p>
+                      </div>
+                      <div className="rounded-md border border-[var(--color-border)] px-3 py-2">
+                        <p style={{ color: 'var(--color-text-muted)' }}>Processed Rows</p>
+                        <p style={{ color: 'var(--color-primary)' }} className="font-semibold">
+                          {formatNumber(outlierPreview.data.metrics?.processedRecords ?? null, 0)}
+                        </p>
+                      </div>
+                      <div className="rounded-md border border-[var(--color-border)] px-3 py-2">
+                        <p style={{ color: 'var(--color-text-muted)' }}>Outliers Removed</p>
+                        <p style={{ color: 'var(--color-danger, #ef4444)' }} className="font-semibold">
+                          {formatNumber(outlierPreview.data.metrics?.outlierRecords ?? null, 0)}
+                        </p>
+                      </div>
+                      <div className="rounded-md border border-[var(--color-border)] px-3 py-2">
+                        <p style={{ color: 'var(--color-text-muted)' }}>Removed (%)</p>
+                        <p style={{ color: 'var(--color-text)' }} className="font-semibold">
+                          {formatPercent(outlierPreview.data.metrics?.outlierPercentage ?? 0)}
                         </p>
                       </div>
                     </div>
@@ -3362,9 +3420,10 @@ export const OutlierDetection: React.FC = () => {
                       <div style={{ color: 'var(--color-text)' }}>
                         <p className="font-semibold mb-1">Metrics</p>
                         <ul className="space-y-1 text-[var(--color-text-muted)]">
-                          <li>Total rows: {formatNumber(datasetDetail.metrics?.total_records ?? null, 0)}</li>
-                          <li>Processed rows: {formatNumber(datasetDetail.metrics?.processed_records ?? null, 0)}</li>
-                          <li>Outliers removed: {formatNumber(datasetDetail.metrics?.outlier_records ?? null, 0)}</li>
+                          <li>Total Rows: {formatNumber(datasetDetail.metrics?.total_records ?? null, 0)}</li>
+                          <li>Removed Rows with NaN: {formatNumber(datasetDetail.metrics?.dropped_records ?? null, 0)}</li>
+                          <li>Processed Rows: {formatNumber(datasetDetail.metrics?.processed_records ?? null, 0)}</li>
+                          <li>Outliers Removed: {formatNumber(datasetDetail.metrics?.outlier_records ?? null, 0)}</li>
                           <li>Removed (%): {formatNumber(datasetDetail.metrics?.outlier_percentage ?? null)}%</li>
                           <li>
                             Variables: {datasetDetail.metrics?.variables?.length

@@ -32,6 +32,7 @@ from app.schemas.outliers import (
     OutlierDetectionRequest,
     OutlierDetectionResponse,
     OutlierMethod,
+    OutlierPreviewResponse,
     PCAConfig,
     PipelineMetrics,
     ProcessedDataResponse,
@@ -200,9 +201,9 @@ class OutlierDetectionService:
 
             metrics = PipelineMetrics(
                 total_records=total_records,
-                processed_records=inlier_count,
+                processed_records=numeric_records,
                 outlier_records=outlier_count,
-                outlier_percentage=(outlier_count / total_records * 100) if total_records else 0.0,
+                outlier_percentage=(outlier_count / numeric_records * 100) if numeric_records else 0.0,
                 variables=request.variables,
                 dropped_records=dropped_due_to_nan,
                 scaled_feature_labels=list(numeric_df.columns),
@@ -229,6 +230,81 @@ class OutlierDetectionService:
 
         detail = self._to_detail(refreshed_dataset)
         return OutlierDetectionResponse(dataset=detail)
+
+    def preview_pipeline(self, request: OutlierDetectionRequest) -> OutlierPreviewResponse:
+        """Run the same sklearn-based pipeline without persisting results.
+
+        Used by the frontend preview so the metrics shown during configuration
+        always match the metrics of a persisted case.
+        """
+        logger.info(
+            "Preview outlier detection: well_id=%s, variables=%s, method=%s",
+            request.well_id,
+            request.variables,
+            request.outlier.method,
+        )
+
+        raw_records = self._fetch_raw_data(request)
+        if not raw_records:
+            raise OutlierDetectionError("No data available for the selected well")
+
+        df = pd.DataFrame(raw_records)
+        available_columns = set(df.columns)
+        missing = [col for col in request.variables if col not in available_columns]
+        if missing:
+            raise OutlierDetectionError(
+                f"Variables not found in dataset: {', '.join(missing)}"
+            )
+
+        numeric_df = self._prepare_numeric_dataframe(df, request.variables)
+        total_records = len(df)
+        numeric_records = len(numeric_df)
+        dropped_due_to_nan = total_records - numeric_records
+        if numeric_records == 0:
+            raise OutlierDetectionError("All selected variables contain non-numeric data")
+
+        scaled_array = self._apply_scaling(numeric_df.values, request.scaling)
+        (
+            feature_array,
+            feature_labels,
+            explained_variance,
+            explained_variance_ratio,
+        ) = self._apply_pca(scaled_array, request.pca, request.variables)
+        outlier_mask = self._detect_outliers(feature_array, request.outlier)
+
+        outlier_count = int(outlier_mask.sum())
+
+        metrics = PipelineMetrics(
+            total_records=total_records,
+            processed_records=numeric_records,
+            outlier_records=outlier_count,
+            outlier_percentage=(outlier_count / numeric_records * 100) if numeric_records else 0.0,
+            variables=request.variables,
+            dropped_records=dropped_due_to_nan,
+            scaled_feature_labels=list(numeric_df.columns),
+            pca_component_labels=feature_labels if request.pca.enabled else None,
+            explained_variance=explained_variance,
+            explained_variance_ratio=explained_variance_ratio,
+        )
+
+        # Return PCA components (or scaled features when PCA disabled) so the
+        # frontend scatter plot visualizes the same feature space the model saw.
+        component_matrix = feature_array if request.pca.enabled else scaled_array
+        component_labels = (
+            feature_labels if request.pca.enabled else list(numeric_df.columns)
+        )
+        components = [
+            [float(v) if np.isfinite(v) else 0.0 for v in row]
+            for row in component_matrix.tolist()
+        ]
+        is_outlier = [bool(v) for v in outlier_mask.tolist()]
+
+        return OutlierPreviewResponse(
+            metrics=metrics,
+            component_labels=component_labels,
+            components=components,
+            is_outlier=is_outlier,
+        )
 
     def list_datasets(self, well_id: int) -> List[ProcessedDatasetSummary]:
         datasets = self.datasets_repo.list_by_well(well_id)
