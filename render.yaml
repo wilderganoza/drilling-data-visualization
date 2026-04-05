@@ -20,9 +20,8 @@ services:
       - key: PYTHON_VERSION
         value: "3.12.0"
 
-  - type: web
-    name: drilling-data-visualization-frontend
-    runtime: static
+staticSites:
+  - name: drilling-data-visualization-frontend
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
