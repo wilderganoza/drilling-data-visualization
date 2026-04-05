@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState, useCallback } from 'react';
+﻿import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { Layout } from '../components/layout/Layout';
 import {
@@ -1110,6 +1110,13 @@ export const OutlierDetection: React.FC = () => {
     page: 1,
     pageSize: densityPreviewLimit,
   });
+  const {
+    data: hydrationDatasetData,
+  } = useOutlierDatasetData(selectedDatasetId, {
+    includeOutliers: true,
+    page: 1,
+    pageSize: 5000,
+  });
 
   const selectedWell = useMemo(() => wells.find((well) => well.id === selectedWellId) ?? null, [wells, selectedWellId]);
 
@@ -1367,6 +1374,153 @@ export const OutlierDetection: React.FC = () => {
   useEffect(() => {
     setPreviewPage(1);
   }, [selectedDatasetId, includeOutliersPreview]);
+
+  // Hydrate scaling/PCA/outlier preview panels directly from the saved
+  // dataset whenever an existing case is loaded. The dataset already holds
+  // raw + scaled + component + is_outlier values, so we don't need to hit
+  // the preview endpoints (which would re-run sklearn and can time out on
+  // larger wells). Each case is hydrated only once — afterwards, config
+  // changes revert individual previews to idle and the user recalculates.
+  const hydratedDatasetIdRef = useRef<number | null>(null);
+  useEffect(() => {
+    hydratedDatasetIdRef.current = null;
+  }, [selectedDatasetId]);
+  useEffect(() => {
+    if (!selectedDatasetId || !datasetDetail || !hydrationDatasetData) {
+      return;
+    }
+    if (hydratedDatasetIdRef.current === selectedDatasetId) {
+      return;
+    }
+    const metrics = datasetDetail.metrics ?? {};
+    const variables = (metrics.variables as string[] | undefined) ?? selectedVariables;
+    if (variables.length === 0) {
+      return;
+    }
+    const componentLabels = (metrics.pca_component_labels as string[] | undefined) ?? [];
+    const records = hydrationDatasetData.records ?? [];
+
+    // Scaling preview rows
+    const scalingRows: ScalingPreviewRow[] = records.map((record, idx) => {
+      const raw: Record<string, number | null> = {};
+      const scaled: Record<string, number | null> = {};
+      const data = (record.data ?? {}) as Record<string, unknown>;
+      const scaledMap = (record.scaled ?? {}) as Record<string, unknown>;
+      variables.forEach((variable) => {
+        const rawVal = data[variable];
+        raw[variable] = typeof rawVal === 'number' && Number.isFinite(rawVal) ? rawVal : null;
+        const scaledVal = scaledMap[variable];
+        scaled[variable] = typeof scaledVal === 'number' && Number.isFinite(scaledVal) ? scaledVal : null;
+      });
+      return {
+        index: record.source_record_id ?? idx,
+        raw,
+        scaled,
+      };
+    });
+
+    setScalingPreview((prev) => {
+      if (prev.status !== 'idle') return prev;
+      return {
+        status: 'ready',
+        data: {
+          rows: scalingRows,
+          stats: {},
+          totalRows: scalingRows.length,
+          variableOrder: variables,
+          rawMatrix: [],
+          scaledMatrix: [],
+          numericRowIndices: [],
+        },
+        error: null,
+      };
+    });
+
+    // PCA preview
+    if (componentLabels.length > 0) {
+      const explainedVariance = (metrics.explained_variance as number[] | undefined) ?? [];
+      const explainedVarianceRatio = (metrics.explained_variance_ratio as number[] | undefined) ?? [];
+      const scores = records.map((record, idx) => {
+        const components = (record.components ?? {}) as Record<string, unknown>;
+        const vector = componentLabels.map((label) => {
+          const value = components[label];
+          return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+        });
+        return { index: record.source_record_id ?? idx, components: vector };
+      });
+      setPcaPreview((prev) => {
+        if (prev.status !== 'idle') return prev;
+        return {
+          status: 'ready',
+          data: {
+            componentLabels,
+            explainedVariance,
+            explainedVarianceRatio,
+            scores,
+          },
+          error: null,
+        };
+      });
+    }
+
+    // Outlier preview
+    const outlierRows: OutlierPreviewRow[] = records.map((record, idx) => {
+      const raw: Record<string, number | null> = {};
+      const scaled: Record<string, number | null> = {};
+      const data = (record.data ?? {}) as Record<string, unknown>;
+      const scaledMap = (record.scaled ?? {}) as Record<string, unknown>;
+      variables.forEach((variable) => {
+        const rawVal = data[variable];
+        raw[variable] = typeof rawVal === 'number' && Number.isFinite(rawVal) ? rawVal : null;
+        const scaledVal = scaledMap[variable];
+        scaled[variable] = typeof scaledVal === 'number' && Number.isFinite(scaledVal) ? scaledVal : null;
+      });
+      const componentsMap = (record.components ?? {}) as Record<string, unknown>;
+      const componentsVector = componentLabels.map((label) => {
+        const value = componentsMap[label];
+        return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+      });
+      return {
+        index: record.source_record_id ?? idx,
+        score: 0,
+        isOutlier: Boolean(record.is_outlier),
+        raw,
+        scaled,
+        components: componentsVector.length ? componentsVector : undefined,
+      };
+    });
+    const outlierCount = outlierRows.filter((row) => row.isOutlier).length;
+    const totalRecords = (metrics.total_records as number | undefined) ?? outlierRows.length;
+    const droppedRecords = (metrics.dropped_records as number | undefined) ?? 0;
+    const processedRecords = (metrics.processed_records as number | undefined) ?? outlierRows.length;
+    const outlierRecords = (metrics.outlier_records as number | undefined) ?? outlierCount;
+    const outlierPercentage = (metrics.outlier_percentage as number | undefined)
+      ?? (processedRecords > 0 ? (outlierRecords / processedRecords) * 100 : 0);
+
+    setOutlierPreview((prev) => {
+      if (prev.status !== 'idle') return prev;
+      return {
+        status: 'ready',
+        data: {
+          method: outlierConfig.method,
+          rows: outlierRows,
+          totalRows: outlierRows.length,
+          outlierCount,
+          componentLabels: componentLabels.length ? componentLabels : undefined,
+          metrics: {
+            totalRecords,
+            droppedRecords,
+            processedRecords,
+            outlierRecords,
+            outlierPercentage,
+          },
+        },
+        error: null,
+      };
+    });
+
+    hydratedDatasetIdRef.current = selectedDatasetId;
+  }, [selectedDatasetId, datasetDetail, hydrationDatasetData, selectedVariables, outlierConfig.method]);
 
   const hasPcaMetrics = Boolean(datasetDetail?.metrics?.pca_component_labels?.length);
 
