@@ -124,6 +124,30 @@ class OutlierPreviewResponse(BaseModel):
     is_outlier: List[bool] = Field(default_factory=list)
 
 
+class ScalingPreviewRowData(BaseModel):
+    index: int
+    raw: Dict[str, Optional[float]]
+    scaled: Dict[str, Optional[float]]
+
+
+class ScalingPreviewResponse(BaseModel):
+    variables: List[str]
+    total_rows: int
+    rows: List[ScalingPreviewRowData]
+
+
+class PcaPreviewScore(BaseModel):
+    index: int
+    components: List[float]
+
+
+class PcaPreviewResponse(BaseModel):
+    component_labels: List[str]
+    explained_variance: List[float]
+    explained_variance_ratio: List[float]
+    scores: List[PcaPreviewScore]
+
+
 class ProcessedRecordData(BaseModel):
     source_record_id: Optional[int]
     is_outlier: bool

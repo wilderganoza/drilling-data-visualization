@@ -34,6 +34,8 @@ from app.schemas.outliers import (
     OutlierMethod,
     OutlierPreviewResponse,
     PCAConfig,
+    PcaPreviewResponse,
+    PcaPreviewScore,
     PipelineMetrics,
     ProcessedDataResponse,
     ProcessedDatasetDetail,
@@ -41,6 +43,8 @@ from app.schemas.outliers import (
     ProcessedRecordData,
     ScalingConfig,
     ScalingMethod,
+    ScalingPreviewResponse,
+    ScalingPreviewRowData,
 )
 
 logger = get_logger(__name__)
@@ -304,6 +308,95 @@ class OutlierDetectionService:
             component_labels=component_labels,
             components=components,
             is_outlier=is_outlier,
+        )
+
+    def preview_scaling(self, request: OutlierDetectionRequest) -> ScalingPreviewResponse:
+        """Return raw and sklearn-scaled values per row for the wizard preview."""
+        raw_records = self._fetch_raw_data(request)
+        if not raw_records:
+            raise OutlierDetectionError("No data available for the selected well")
+
+        df = pd.DataFrame(raw_records)
+        available_columns = set(df.columns)
+        missing = [col for col in request.variables if col not in available_columns]
+        if missing:
+            raise OutlierDetectionError(
+                f"Variables not found in dataset: {', '.join(missing)}"
+            )
+
+        numeric_df = self._prepare_numeric_dataframe(df, request.variables)
+        if numeric_df.empty:
+            raise OutlierDetectionError("All selected variables contain non-numeric data")
+
+        scaled_array = self._apply_scaling(numeric_df.values, request.scaling)
+
+        rows: List[ScalingPreviewRowData] = []
+        for pos, (source_idx, series) in enumerate(numeric_df.iterrows()):
+            raw_map: Dict[str, Optional[float]] = {}
+            scaled_map: Dict[str, Optional[float]] = {}
+            for col_idx, variable in enumerate(request.variables):
+                raw_val = series.get(variable)
+                raw_map[variable] = (
+                    float(raw_val) if raw_val is not None and np.isfinite(raw_val) else None
+                )
+                scaled_val = scaled_array[pos, col_idx]
+                scaled_map[variable] = (
+                    float(scaled_val) if np.isfinite(scaled_val) else None
+                )
+            rows.append(
+                ScalingPreviewRowData(
+                    index=int(source_idx) + 1,
+                    raw=raw_map,
+                    scaled=scaled_map,
+                )
+            )
+
+        return ScalingPreviewResponse(
+            variables=request.variables,
+            total_rows=len(rows),
+            rows=rows,
+        )
+
+    def preview_pca(self, request: OutlierDetectionRequest) -> PcaPreviewResponse:
+        """Return sklearn PCA scores and explained variance for the wizard preview."""
+        raw_records = self._fetch_raw_data(request)
+        if not raw_records:
+            raise OutlierDetectionError("No data available for the selected well")
+
+        df = pd.DataFrame(raw_records)
+        available_columns = set(df.columns)
+        missing = [col for col in request.variables if col not in available_columns]
+        if missing:
+            raise OutlierDetectionError(
+                f"Variables not found in dataset: {', '.join(missing)}"
+            )
+
+        numeric_df = self._prepare_numeric_dataframe(df, request.variables)
+        if numeric_df.empty:
+            raise OutlierDetectionError("All selected variables contain non-numeric data")
+
+        scaled_array = self._apply_scaling(numeric_df.values, request.scaling)
+
+        pca_config = request.pca if request.pca.enabled else PCAConfig(enabled=True)
+        (
+            feature_array,
+            feature_labels,
+            explained_variance,
+            explained_variance_ratio,
+        ) = self._apply_pca(scaled_array, pca_config, request.variables)
+
+        scores: List[PcaPreviewScore] = []
+        for pos, source_idx in enumerate(numeric_df.index.tolist()):
+            row_vals = [
+                float(v) if np.isfinite(v) else 0.0 for v in feature_array[pos].tolist()
+            ]
+            scores.append(PcaPreviewScore(index=int(source_idx) + 1, components=row_vals))
+
+        return PcaPreviewResponse(
+            component_labels=feature_labels,
+            explained_variance=explained_variance or [],
+            explained_variance_ratio=explained_variance_ratio or [],
+            scores=scores,
         )
 
     def list_datasets(self, well_id: int) -> List[ProcessedDatasetSummary]:

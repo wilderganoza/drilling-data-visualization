@@ -14,9 +14,11 @@ from app.schemas.outliers import (
     OutlierDetectionRequest,
     OutlierDetectionResponse,
     OutlierPreviewResponse,
+    PcaPreviewResponse,
     ProcessedDataResponse,
     ProcessedDatasetDetail,
     ProcessedDatasetSummary,
+    ScalingPreviewResponse,
 )
 from app.services.outlier_detection import (
     OutlierDetectionError,
@@ -56,6 +58,54 @@ async def run_outlier_detection(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to execute pipeline: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.post(
+    "/scaling-preview",
+    response_model=ScalingPreviewResponse,
+    summary="Preview sklearn-scaled values for the selected variables",
+)
+async def preview_scaling(
+    request: OutlierDetectionRequest,
+    service: OutlierDetectionService = Depends(get_outlier_service),
+    current_user: User = Depends(get_current_user),
+) -> ScalingPreviewResponse:
+    _ = current_user
+    try:
+        return service.preview_scaling(request)
+    except OutlierDetectionError as exc:
+        logger.error("Scaling preview error: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover
+        logger.exception("Unexpected error running scaling preview")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to execute scaling preview: {type(exc).__name__}: {exc}",
+        ) from exc
+
+
+@router.post(
+    "/pca-preview",
+    response_model=PcaPreviewResponse,
+    summary="Preview sklearn PCA scores and explained variance",
+)
+async def preview_pca(
+    request: OutlierDetectionRequest,
+    service: OutlierDetectionService = Depends(get_outlier_service),
+    current_user: User = Depends(get_current_user),
+) -> PcaPreviewResponse:
+    _ = current_user
+    try:
+        return service.preview_pca(request)
+    except OutlierDetectionError as exc:
+        logger.error("PCA preview error: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover
+        logger.exception("Unexpected error running PCA preview")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to execute PCA preview: {type(exc).__name__}: {exc}",
         ) from exc
 
 

@@ -16,7 +16,12 @@ import {
   useOutlierDatasetData,
   useRunOutlierDetection,
 } from '../hooks/useOutlierDetection';
-import { getProcessedDataset, previewOutlierDetection } from '../api/endpoints/outliers';
+import {
+  getProcessedDataset,
+  previewOutlierDetection,
+  previewPca,
+  previewScaling,
+} from '../api/endpoints/outliers';
 import type {
   OutlierDetectionRequest,
   OutlierMethod,
@@ -1129,7 +1134,7 @@ export const OutlierDetection: React.FC = () => {
 
   const canCalculateScaling = Boolean(appliedWellId) && selectedVariables.length > 0 && sampleRows.length > 0;
   const handleCalculateScalingPreview = useCallback(() => {
-    if (!canCalculateScaling) {
+    if (!canCalculateScaling || !appliedWellId) {
       setScalingPreview({
         status: 'error',
         data: null,
@@ -1141,20 +1146,46 @@ export const OutlierDetection: React.FC = () => {
       return;
     }
 
+    const payload: OutlierDetectionRequest = {
+      well_id: appliedWellId,
+      variables: selectedVariables,
+      scaling: scalingConfig,
+    };
+
     setScalingPreview({ status: 'loading', data: null, error: null });
 
-    try {
-      const data = buildScalingPreviewData(sampleRows, selectedVariables, scalingConfig.method);
-      setScalingPreview({ status: 'ready', data, error: null });
-      setScalingPreviewPage(1);
-    } catch (error) {
-      setScalingPreview({
-        status: 'error',
-        data: null,
-        error: error instanceof Error ? error.message : 'Failed to calculate scaling preview.',
+    previewScaling(payload)
+      .then((response) => {
+        const data: ScalingPreviewData = {
+          rows: response.rows.map((row) => ({
+            index: row.index,
+            raw: row.raw,
+            scaled: row.scaled,
+          })),
+          stats: {},
+          totalRows: response.total_rows,
+          variableOrder: response.variables,
+          rawMatrix: [],
+          scaledMatrix: [],
+          numericRowIndices: [],
+        };
+        setScalingPreview({ status: 'ready', data, error: null });
+        setScalingPreviewPage(1);
+      })
+      .catch((error) => {
+        const detail = (error as any)?.response?.data?.detail;
+        setScalingPreview({
+          status: 'error',
+          data: null,
+          error:
+            typeof detail === 'string'
+              ? detail
+              : error instanceof Error
+                ? error.message
+                : 'Failed to calculate scaling preview.',
+        });
       });
-    }
-  }, [canCalculateScaling, sampleRows, selectedVariables, scalingConfig.method]);
+  }, [canCalculateScaling, appliedWellId, selectedVariables, scalingConfig]);
 
   const scalingPreviewRows = useMemo(() => {
     if (scalingPreview.status !== 'ready' || !scalingPreview.data) {
@@ -1182,7 +1213,7 @@ export const OutlierDetection: React.FC = () => {
   const isOutlierCalculating = outlierPreview.status === 'loading';
 
   const handleCalculatePcaPreview = useCallback(() => {
-    if (!canCalculatePca) {
+    if (!canCalculatePca || !appliedWellId) {
       setPcaPreview({
         status: 'error',
         data: null,
@@ -1191,23 +1222,45 @@ export const OutlierDetection: React.FC = () => {
       return;
     }
 
+    const payload: OutlierDetectionRequest = {
+      well_id: appliedWellId,
+      variables: selectedVariables,
+      scaling: scalingConfig,
+      pca: { ...pcaConfig, enabled: true },
+    };
+
     setPcaPreview({ status: 'loading', data: null, error: null });
 
-    try {
-      const scalingData = buildScalingPreviewData(sampleRows, selectedVariables, scalingConfig.method);
-      const data = buildPcaPreviewData(scalingData, pcaConfig);
-      setPcaPreview({ status: 'ready', data, error: null });
-      setPcaScatterX(0);
-      setPcaScatterY(data.componentLabels.length > 1 ? 1 : 0);
-      setPcaScatterPlotted(false);
-    } catch (error) {
-      setPcaPreview({
-        status: 'error',
-        data: null,
-        error: error instanceof Error ? error.message : 'Failed to calculate PCA preview.',
+    previewPca(payload)
+      .then((response) => {
+        const data: PcaPreviewData = {
+          componentLabels: response.component_labels,
+          explainedVariance: response.explained_variance,
+          explainedVarianceRatio: response.explained_variance_ratio,
+          scores: response.scores.map((score) => ({
+            index: score.index,
+            components: score.components,
+          })),
+        };
+        setPcaPreview({ status: 'ready', data, error: null });
+        setPcaScatterX(0);
+        setPcaScatterY(data.componentLabels.length > 1 ? 1 : 0);
+        setPcaScatterPlotted(false);
+      })
+      .catch((error) => {
+        const detail = (error as any)?.response?.data?.detail;
+        setPcaPreview({
+          status: 'error',
+          data: null,
+          error:
+            typeof detail === 'string'
+              ? detail
+              : error instanceof Error
+                ? error.message
+                : 'Failed to calculate PCA preview.',
+        });
       });
-    }
-  }, [canCalculatePca, pcaConfig, sampleRows, scalingConfig.method, selectedVariables]);
+  }, [canCalculatePca, appliedWellId, pcaConfig, scalingConfig, selectedVariables]);
 
   const handleCalculateOutlierPreview = useCallback(() => {
     if (!canCalculateOutlier || !appliedWellId) {

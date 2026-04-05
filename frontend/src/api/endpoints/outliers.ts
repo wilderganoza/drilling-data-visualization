@@ -78,6 +78,30 @@ export interface OutlierPreviewResponse {
   is_outlier: boolean[];
 }
 
+export interface ScalingPreviewRowData {
+  index: number;
+  raw: Record<string, number | null>;
+  scaled: Record<string, number | null>;
+}
+
+export interface ScalingPreviewResponse {
+  variables: string[];
+  total_rows: number;
+  rows: ScalingPreviewRowData[];
+}
+
+export interface PcaPreviewScore {
+  index: number;
+  components: number[];
+}
+
+export interface PcaPreviewResponse {
+  component_labels: string[];
+  explained_variance: number[];
+  explained_variance_ratio: number[];
+  scores: PcaPreviewScore[];
+}
+
 export interface ProcessedRecordData {
   source_record_id: number | null;
   is_outlier: boolean;
@@ -162,5 +186,19 @@ export const previewOutlierDetection = async (
   payload: OutlierDetectionRequest,
 ): Promise<OutlierPreviewResponse> => {
   const response = await apiClient.post<OutlierPreviewResponse>(`${basePath}/preview`, payload);
+  return response.data;
+};
+
+export const previewScaling = async (
+  payload: OutlierDetectionRequest,
+): Promise<ScalingPreviewResponse> => {
+  const response = await apiClient.post<ScalingPreviewResponse>(`${basePath}/scaling-preview`, payload);
+  return response.data;
+};
+
+export const previewPca = async (
+  payload: OutlierDetectionRequest,
+): Promise<PcaPreviewResponse> => {
+  const response = await apiClient.post<PcaPreviewResponse>(`${basePath}/pca-preview`, payload);
   return response.data;
 };
