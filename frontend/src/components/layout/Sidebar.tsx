@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAppStore } from '../../store/appStore';
+import { Link, useLocation } from 'react-router-dom';
 
 interface NavItem {
   name: string;
@@ -10,7 +11,8 @@ interface NavItem {
 
 export const Sidebar: React.FC = () => {
   const { sidebarOpen } = useAppStore();
-  const currentPath = window.location.pathname;
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   const navItems: NavItem[] = [
     {
@@ -120,9 +122,9 @@ export const Sidebar: React.FC = () => {
     >
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => (
-          <a
+          <Link
             key={item.path}
-            href={item.path}
+            to={item.path}
             className="flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors"
             style={{
               borderRadius: '6px',
@@ -144,7 +146,7 @@ export const Sidebar: React.FC = () => {
           >
             {item.icon}
             <span>{item.name}</span>
-          </a>
+          </Link>
         ))}
       </nav>
     </aside>
