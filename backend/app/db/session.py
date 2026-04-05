@@ -37,6 +37,8 @@ class DatabaseManager:
 
         # Ensure optional artifact columns exist for processed outlier results.
         # These are required to persist scaled values and PCA component scores.
+        # Also ensure id sequences exist for all core tables (may be missing
+        # after data migration from another database).
         with self._engine.begin() as conn:
             conn.execute(
                 text(
@@ -55,20 +57,18 @@ class DatabaseManager:
                 )
             )
 
-        # Ensure id sequences exist for all core tables (may be missing after
-        # data migration from another database).
-        for tbl in ("users", "wells", "processed_datasets", "processed_records"):
-            seq = f"{tbl}_id_seq"
-            conn.execute(text(f"CREATE SEQUENCE IF NOT EXISTS {seq}"))
-            conn.execute(text(
-                f"ALTER TABLE IF EXISTS {tbl} "
-                f"ALTER COLUMN id SET DEFAULT nextval('{seq}')"
-            ))
-            conn.execute(text(f"ALTER SEQUENCE {seq} OWNED BY {tbl}.id"))
-            conn.execute(text(
-                f"SELECT setval('{seq}', COALESCE("
-                f"(SELECT MAX(id) FROM {tbl}), 0) + 1, false)"
-            ))
+            for tbl in ("users", "wells", "processed_datasets", "processed_records"):
+                seq = f"{tbl}_id_seq"
+                conn.execute(text(f"CREATE SEQUENCE IF NOT EXISTS {seq}"))
+                conn.execute(text(
+                    f"ALTER TABLE IF EXISTS {tbl} "
+                    f"ALTER COLUMN id SET DEFAULT nextval('{seq}')"
+                ))
+                conn.execute(text(f"ALTER SEQUENCE {seq} OWNED BY {tbl}.id"))
+                conn.execute(text(
+                    f"SELECT setval('{seq}', COALESCE("
+                    f"(SELECT MAX(id) FROM {tbl}), 0) + 1, false)"
+                ))
 
         # Reflect existing tables (wells, well_data) for dynamic column access
         self._metadata = MetaData()
