@@ -1,6 +1,11 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const PROD_API_BASE_URL = 'https://drilling-data-visualization-api.onrender.com/api/v1';
+const DEV_API_BASE_URL = 'http://localhost:8000/api/v1';
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? PROD_API_BASE_URL : DEV_API_BASE_URL);
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

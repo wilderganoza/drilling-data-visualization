@@ -25,6 +25,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
         "https://drilling-frontend.onrender.com",
+        "https://drilling-data-visualization-frontend.onrender.com",
     ],
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",  # Allow any localhost port in development
     allow_credentials=True,
