@@ -3492,8 +3492,7 @@ export const OutlierDetection: React.FC = () => {
                                       const numeric = Array.isArray(value)
                                         ? Number(value[0] ?? 0)
                                         : Number(value ?? 0);
-                                      const label = nameParam === 'preDensityPct' ? 'Pre-clean' : 'Post-clean';
-                                      return [`${numeric.toFixed(2)}%`, label];
+                                      return [`${numeric.toFixed(2)}%`, nameParam];
                                     }}
                                     labelFormatter={(label) => `Value: ${formatNumber(Number(label), 2)}`}
                                   />
