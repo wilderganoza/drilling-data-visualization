@@ -3,7 +3,9 @@ import {
   deleteProcessedDataset,
   getProcessedDataset,
   getProcessedDatasetData,
+  listAllProcessedDatasets,
   listProcessedDatasets,
+  rerunOutlierDetection,
   runOutlierDetection,
   OutlierDetectionRequest,
   OutlierDetectionResponse,
@@ -73,10 +75,39 @@ export const useOutlierDatasetData = (
 
 export const useRunOutlierDetection = () => {
   const queryClient = useQueryClient();
-  return useMutation<OutlierDetectionResponse, Error, OutlierDetectionRequest>({
-    mutationFn: (payload) => runOutlierDetection(payload),
+  return useMutation<
+    OutlierDetectionResponse,
+    Error,
+    { payload: OutlierDetectionRequest; replaceDatasetId?: number | null }
+  >({
+    mutationFn: ({ payload, replaceDatasetId }) =>
+      replaceDatasetId
+        ? rerunOutlierDetection(replaceDatasetId, payload)
+        : runOutlierDetection(payload),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: [...DATASET_LIST_KEY, response.dataset.well_id] });
+      queryClient.invalidateQueries({ queryKey: ['outliers', 'datasets-all'] });
+      queryClient.invalidateQueries({ queryKey: ['outliers', 'dataset', response.dataset.id] });
+      queryClient.invalidateQueries({ queryKey: ['outliers', 'dataset-data'] });
+    },
+  });
+};
+
+export const useAllOutlierDatasets = () => {
+  return useQuery<ProcessedDatasetSummary[]>({
+    queryKey: ['outliers', 'datasets-all'],
+    queryFn: () => listAllProcessedDatasets(),
+    staleTime: 60 * 1000,
+  });
+};
+
+export const useDeleteOutlierDatasetById = () => {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, number>({
+    mutationFn: (datasetId) => deleteProcessedDataset(datasetId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['outliers', 'datasets-all'] });
+      queryClient.invalidateQueries({ queryKey: DATASET_LIST_KEY });
     },
   });
 };

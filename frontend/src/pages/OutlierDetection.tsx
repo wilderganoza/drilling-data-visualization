@@ -1451,16 +1451,25 @@ export const OutlierDetection: React.FC = () => {
       include_columns: autoIncludedColumns,
     };
 
-    runOutlierDetectionMutation.mutate(payload, {
-      onSuccess: (response) => {
-        addToast(`Dataset "${response.dataset.name}" created successfully.`, 'success');
-        setSelectedDatasetId(response.dataset.id);
-        setCurrentStepIndex(0);
+    const isReplacing = selectedDatasetId !== null;
+    runOutlierDetectionMutation.mutate(
+      { payload, replaceDatasetId: selectedDatasetId },
+      {
+        onSuccess: (response) => {
+          addToast(
+            isReplacing
+              ? `Dataset "${response.dataset.name}" updated successfully.`
+              : `Dataset "${response.dataset.name}" created successfully.`,
+            'success',
+          );
+          setSelectedDatasetId(response.dataset.id);
+          setCurrentStepIndex(0);
+        },
+        onError: (error) => {
+          addToast(error.message || 'Failed to run outlier detection.', 'error');
+        },
       },
-      onError: (error) => {
-        addToast(error.message || 'Failed to run outlier detection.', 'error');
-      },
-    });
+    );
   };
 
   const currentStep = wizardSteps[currentStepIndex];

@@ -55,6 +55,44 @@ async def run_outlier_detection(
         raise HTTPException(status_code=500, detail="Failed to execute pipeline") from exc
 
 
+@router.put(
+    "/datasets/{dataset_id}",
+    response_model=OutlierDetectionResponse,
+    summary="Re-run pipeline replacing an existing dataset in place",
+)
+async def rerun_outlier_detection(
+    dataset_id: int,
+    request: OutlierDetectionRequest,
+    service: OutlierDetectionService = Depends(get_outlier_service),
+    current_user: User = Depends(get_current_user),
+) -> OutlierDetectionResponse:
+    try:
+        return service.run_pipeline(
+            request,
+            created_by=current_user.id,
+            replace_dataset_id=dataset_id,
+        )
+    except OutlierDetectionError as exc:
+        logger.error("Outlier pipeline error: %s", exc)
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # pragma: no cover
+        logger.exception("Unexpected error re-running outlier pipeline")
+        raise HTTPException(status_code=500, detail="Failed to execute pipeline") from exc
+
+
+@router.get(
+    "/datasets-all",
+    response_model=List[ProcessedDatasetSummary],
+    summary="List all processed datasets across wells",
+)
+async def list_all_processed_datasets(
+    service: OutlierDetectionService = Depends(get_outlier_service),
+    current_user: User = Depends(get_current_user),  # noqa: B008
+) -> List[ProcessedDatasetSummary]:
+    _ = current_user
+    return service.list_all_datasets()
+
+
 @router.get(
     "/datasets",
     response_model=List[ProcessedDatasetSummary],

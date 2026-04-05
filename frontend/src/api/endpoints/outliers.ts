@@ -99,6 +99,22 @@ export const runOutlierDetection = async (
   return response.data;
 };
 
+export const rerunOutlierDetection = async (
+  datasetId: number,
+  payload: OutlierDetectionRequest,
+): Promise<OutlierDetectionResponse> => {
+  const response = await apiClient.put<OutlierDetectionResponse>(
+    `${basePath}/datasets/${datasetId}`,
+    payload,
+  );
+  return response.data;
+};
+
+export const listAllProcessedDatasets = async (): Promise<ProcessedDatasetSummary[]> => {
+  const response = await apiClient.get<ProcessedDatasetSummary[]>(`${basePath}/datasets-all`);
+  return response.data;
+};
+
 export const listProcessedDatasets = async (
   wellId: number,
 ): Promise<ProcessedDatasetSummary[]> => {

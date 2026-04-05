@@ -10,6 +10,7 @@ import { Login } from './pages/Login';
 import { UserManagement } from './pages/UserManagement';
 import { AuthGuard } from './components/auth/AuthGuard';
 import { OutlierDetection } from './pages/OutlierDetection';
+import { Cases } from './pages/Cases';
 
 export const router = createBrowserRouter([
   {
@@ -55,6 +56,10 @@ export const router = createBrowserRouter([
   {
     path: '/outliers',
     element: <AuthGuard><OutlierDetection /></AuthGuard>,
+  },
+  {
+    path: '/cases',
+    element: <AuthGuard><Cases /></AuthGuard>,
   },
   {
     path: '/users',

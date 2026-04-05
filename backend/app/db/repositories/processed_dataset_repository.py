@@ -92,6 +92,10 @@ class ProcessedDatasetRepository:
         )
         return list(self.session.execute(stmt).scalars().all())
 
+    def list_all(self) -> List[ProcessedDataset]:
+        stmt = select(ProcessedDataset).order_by(ProcessedDataset.created_at.desc())
+        return list(self.session.execute(stmt).scalars().all())
+
     def delete_dataset(self, dataset_id: int) -> int:
         stmt = delete(ProcessedDataset).where(ProcessedDataset.id == dataset_id)
         result = self.session.execute(stmt)

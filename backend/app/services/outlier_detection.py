@@ -65,8 +65,13 @@ class OutlierDetectionService:
         request: OutlierDetectionRequest,
         *,
         created_by: Optional[int] = None,
+        replace_dataset_id: Optional[int] = None,
     ) -> OutlierDetectionResponse:
-        """Execute the pipeline and persist results."""
+        """Execute the pipeline and persist results.
+
+        When ``replace_dataset_id`` is provided, the existing dataset is
+        updated in place (records replaced, config/metrics overwritten).
+        """
         logger.info(
             "Running outlier detection: well_id=%s, variables=%s, method=%s",
             request.well_id,
@@ -126,15 +131,32 @@ class OutlierDetectionService:
             "include_columns": include_columns,
         }
 
-        dataset = self.datasets_repo.create_dataset(
-            well_id=request.well_id,
-            name=dataset_name,
-            description=request.description,
-            pipeline_config=pipeline_config,
-            metrics=None,
-            created_by=created_by,
-            status="processing",
-        )
+        if replace_dataset_id is not None:
+            existing = self.datasets_repo.get_by_id(replace_dataset_id)
+            if existing is None:
+                raise OutlierDetectionError(
+                    f"Dataset {replace_dataset_id} not found for replacement"
+                )
+            self.datasets_repo.delete_records(replace_dataset_id)
+            existing.well_id = request.well_id
+            existing.name = dataset_name
+            existing.description = request.description
+            existing.pipeline_config = pipeline_config
+            existing.metrics = None
+            existing.status = "processing"
+            self.session.add(existing)
+            self.session.flush()
+            dataset = existing
+        else:
+            dataset = self.datasets_repo.create_dataset(
+                well_id=request.well_id,
+                name=dataset_name,
+                description=request.description,
+                pipeline_config=pipeline_config,
+                metrics=None,
+                created_by=created_by,
+                status="processing",
+            )
 
         try:
             storage_columns = list(dict.fromkeys(request.variables + include_columns))
@@ -185,6 +207,10 @@ class OutlierDetectionService:
 
     def list_datasets(self, well_id: int) -> List[ProcessedDatasetSummary]:
         datasets = self.datasets_repo.list_by_well(well_id)
+        return [self._to_summary(ds) for ds in datasets]
+
+    def list_all_datasets(self) -> List[ProcessedDatasetSummary]:
+        datasets = self.datasets_repo.list_all()
         return [self._to_summary(ds) for ds in datasets]
 
     def get_dataset(self, dataset_id: int) -> Optional[ProcessedDatasetDetail]:
