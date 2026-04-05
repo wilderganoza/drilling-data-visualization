@@ -8,6 +8,7 @@ import {
   CardTitle,
   Button,
   PageHeader,
+  InlineLoader,
 } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import {
@@ -1452,23 +1453,13 @@ export const OutlierDetection: React.FC = () => {
     if (!hydratingFromCase) {
       return;
     }
-    if (!canCalculateScaling || sampleRows.length === 0 || selectedVariables.length === 0) {
-      return;
-    }
-
-    handleCalculateScalingPreview();
-    handleCalculatePcaPreview();
-    handleCalculateOutlierPreview();
+    // When loading an existing case we do NOT re-run the preview endpoints:
+    // the saved dataset already contains raw + scaled + component + outlier data,
+    // and re-running would duplicate work (and can exceed the request timeout
+    // on larger wells). The user can still click "Calculate preview" on any
+    // step after tweaking configuration.
     setHydratingFromCase(false);
-  }, [
-    hydratingFromCase,
-    canCalculateScaling,
-    sampleRows,
-    selectedVariables,
-    handleCalculateScalingPreview,
-    handleCalculatePcaPreview,
-    handleCalculateOutlierPreview,
-  ]);
+  }, [hydratingFromCase]);
 
   const handleToggleVariable = (variable: string) => {
     setSelectedVariables((prev) =>
@@ -1949,7 +1940,7 @@ export const OutlierDetection: React.FC = () => {
               </div>
               <div className="space-y-1 text-xs">
                 {wellsLoading && (
-                  <p style={{ color: 'var(--color-text-muted)' }}>Loading wells...</p>
+                  <InlineLoader message="Loading wells…" />
                 )}
                 {!wellsLoading && wells.length === 0 && !wellsError && (
                   <p style={{ color: 'var(--color-text-muted)' }}>
@@ -2417,7 +2408,7 @@ export const OutlierDetection: React.FC = () => {
                   onClick={handleCalculateScalingPreview}
                   disabled={!canCalculateScaling || isScalingCalculating}
                 >
-                  {isScalingCalculating ? 'Calculating...' : 'Calculate preview'}
+                  {isScalingCalculating ? 'Calculating…' : 'Calculate preview'}
                 </Button>
                 {!canCalculateScaling && (
                   <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
@@ -2455,7 +2446,7 @@ export const OutlierDetection: React.FC = () => {
                 )}
 
                 {scalingPreview.status === 'loading' && (
-                  <p className="text-sm text-[var(--color-text-muted)]">Calculating scaled preview...</p>
+                  <InlineLoader message="Calculating scaled preview… this can take up to a minute." />
                 )}
 
                 {scalingPreview.status === 'error' && scalingPreview.error && (
@@ -2559,6 +2550,12 @@ export const OutlierDetection: React.FC = () => {
                     No numeric data available for the selected variables in the current sample.
                   </p>
                 )}
+
+                {scalingPreview.status === 'idle' && appliedWellId && selectedVariables.length > 0 && selectedDatasetId && (
+                  <p className="text-sm text-[var(--color-text-muted)]">
+                    Saved case loaded. Click <strong>Calculate preview</strong> to regenerate with the current configuration, or jump to <strong>Review &amp; run</strong> to inspect the persisted results.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -2628,7 +2625,7 @@ export const OutlierDetection: React.FC = () => {
                   onClick={handleCalculatePcaPreview}
                   disabled={!canCalculatePca || isPcaCalculating}
                 >
-                  {isPcaCalculating ? 'Calculating...' : 'Calculate preview'}
+                  {isPcaCalculating ? 'Calculating…' : 'Calculate preview'}
                 </Button>
                 {!canCalculatePca && (
                   <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
@@ -2638,6 +2635,11 @@ export const OutlierDetection: React.FC = () => {
                 {pcaPreview.status === 'ready' && pcaPreview.data && (
                   <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                     Using {formatNumber(pcaPreview.data.scores.length, 0)} rows with {pcaPreview.data.componentLabels.length} components.
+                  </span>
+                )}
+                {pcaPreview.status === 'idle' && canCalculatePca && selectedDatasetId && (
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    Saved case loaded — recalculate only if you change the configuration.
                   </span>
                 )}
               </div>
@@ -2651,6 +2653,10 @@ export const OutlierDetection: React.FC = () => {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
+                  {pcaPreview.status === 'loading' && (
+                    <InlineLoader message="Calculating PCA preview… this can take up to a minute." />
+                  )}
+
                   {pcaPreview.status === 'error' && pcaPreview.error && (
                     <p className="text-sm" style={{ color: 'var(--color-danger, #ef4444)' }}>
                       {pcaPreview.error}
@@ -3011,6 +3017,11 @@ export const OutlierDetection: React.FC = () => {
                     Load a well and select variables before calculating outlier preview.
                   </span>
                 )}
+                {outlierPreview.status === 'idle' && canCalculateOutlier && selectedDatasetId && (
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                    Saved case loaded — recalculate only if you change the configuration.
+                  </span>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -3022,6 +3033,10 @@ export const OutlierDetection: React.FC = () => {
                 </CardHeader>
                 <CardContent>
               <div className="space-y-4">
+
+                {outlierPreview.status === 'loading' && (
+                  <InlineLoader message="Calculating outlier preview… this can take up to a minute." />
+                )}
 
                 {outlierPreview.status === 'error' && outlierPreview.error && (
                   <p className="text-sm" style={{ color: 'var(--color-danger, #ef4444)' }}>
@@ -3392,7 +3407,7 @@ export const OutlierDetection: React.FC = () => {
                     onClick={handleRunPipeline}
                     disabled={runOutlierDetectionMutation.isPending || !appliedWellId || selectedVariables.length === 0}
                   >
-                    {runOutlierDetectionMutation.isPending ? 'Processing...' : 'Run pipeline'}
+                    {runOutlierDetectionMutation.isPending ? 'Running pipeline…' : 'Run pipeline'}
                   </Button>
                 ) : (
                   <Button
@@ -3557,7 +3572,7 @@ export const OutlierDetection: React.FC = () => {
                     </Button>
                   </div>
                   {isDatasetDataLoading ? (
-                    <p className="text-sm text-[var(--color-text-muted)]">Loading data...</p>
+                    <InlineLoader message="Loading saved dataset…" />
                   ) : (
                     renderDataPreview()
                   )}
@@ -3572,9 +3587,7 @@ export const OutlierDetection: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   {isDensityDatasetLoading ? (
-                    <p className="text-sm text-[var(--color-text-muted)]">
-                      Loading cleaned rows for density comparison...
-                    </p>
+                    <InlineLoader message="Loading cleaned rows for density comparison…" />
                   ) : densityComparisons.length === 0 ? (
                     <p className="text-sm text-[var(--color-text-muted)]">
                       Density charts are available when both raw and cleaned numeric values exist for the selected variables.

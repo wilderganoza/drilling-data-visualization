@@ -21,6 +21,30 @@ export const Spinner: React.FC<SpinnerProps> = ({ size = 32, className = '' }) =
   );
 };
 
+export interface InlineLoaderProps {
+  message?: string;
+  size?: number;
+  className?: string;
+}
+
+export const InlineLoader: React.FC<InlineLoaderProps> = ({
+  message = 'Loading…',
+  size = 14,
+  className = '',
+}) => {
+  return (
+    <div
+      className={`flex items-center gap-2 text-sm ${className}`}
+      style={{ color: 'var(--color-text-muted)' }}
+      role="status"
+      aria-live="polite"
+    >
+      <Spinner size={size} />
+      <span>{message}</span>
+    </div>
+  );
+};
+
 export const SpinnerOverlay: React.FC<{ message?: string }> = ({ message }) => {
   return (
     <div

@@ -26,4 +26,4 @@ export { PageHeader } from './PageHeader';
 export { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
 
 // Exportar componentes de Spinner
-export { Spinner, SpinnerOverlay } from './Spinner';
+export { Spinner, SpinnerOverlay, InlineLoader } from './Spinner';
