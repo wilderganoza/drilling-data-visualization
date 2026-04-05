@@ -52,7 +52,10 @@ async def run_outlier_detection(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover - unexpected failures
         logger.exception("Unexpected error running outlier pipeline")
-        raise HTTPException(status_code=500, detail="Failed to execute pipeline") from exc
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to execute pipeline: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.put(
@@ -77,7 +80,10 @@ async def rerun_outlier_detection(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover
         logger.exception("Unexpected error re-running outlier pipeline")
-        raise HTTPException(status_code=500, detail="Failed to execute pipeline") from exc
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to execute pipeline: {type(exc).__name__}: {exc}",
+        ) from exc
 
 
 @router.get(

@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 import numpy as np
 import pandas as pd
 from scipy import stats
+from sqlalchemy import update as sa_update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.schema import Table
 
@@ -138,27 +139,39 @@ class OutlierDetectionService:
                     f"Dataset {replace_dataset_id} not found for replacement"
                 )
             try:
-                # Remove records via ORM so the delete-orphan cascade stays
-                # consistent with the session state before we flush updates
-                # on the dataset row itself.
-                existing.records.clear()
+                # Evict the dataset from the session so the delete-orphan
+                # cascade on its records relationship cannot fire when we
+                # subsequently modify the row via bulk SQL.
+                self.session.expunge(existing)
+                self.datasets_repo.delete_records(replace_dataset_id)
+                self.session.execute(
+                    sa_update(ProcessedDataset)
+                    .where(ProcessedDataset.id == replace_dataset_id)
+                    .values(
+                        well_id=request.well_id,
+                        name=dataset_name,
+                        description=request.description,
+                        pipeline_config=pipeline_config,
+                        metrics=None,
+                        record_count=None,
+                        status="processing",
+                        updated_at=datetime.utcnow(),
+                    )
+                )
                 self.session.flush()
-                existing.well_id = request.well_id
-                existing.name = dataset_name
-                existing.description = request.description
-                existing.pipeline_config = pipeline_config
-                existing.metrics = None
-                existing.record_count = None
-                existing.status = "processing"
-                self.session.add(existing)
-                self.session.flush()
+                dataset = self.datasets_repo.get_by_id(replace_dataset_id)
+                if dataset is None:
+                    raise OutlierDetectionError(
+                        f"Dataset {replace_dataset_id} vanished during replacement"
+                    )
+            except OutlierDetectionError:
+                raise
             except Exception as exc:
                 self.session.rollback()
                 logger.exception("Failed to prepare dataset for replacement")
                 raise OutlierDetectionError(
                     f"Failed to replace dataset {replace_dataset_id}: {exc}"
                 ) from exc
-            dataset = existing
         else:
             dataset = self.datasets_repo.create_dataset(
                 well_id=request.well_id,
