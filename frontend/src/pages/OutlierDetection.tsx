@@ -1440,6 +1440,18 @@ export const OutlierDetection: React.FC = () => {
       return;
     }
 
+    const allowedOutlierParams: Record<OutlierMethod, string[]> = {
+      isolation_forest: ['contamination', 'n_estimators'],
+      dbscan: ['eps', 'min_samples'],
+      local_outlier_factor: ['n_neighbors', 'contamination'],
+      zscore: ['threshold'],
+      iqr: ['multiplier'],
+    };
+    const allowed = new Set(allowedOutlierParams[outlierConfig.method] ?? []);
+    const filteredParams = Object.fromEntries(
+      Object.entries(outlierConfig.params ?? {}).filter(([k]) => allowed.has(k)),
+    );
+
     const payload: OutlierDetectionRequest = {
       well_id: appliedWellId!,
       dataset_name: datasetName.trim(),
@@ -1447,7 +1459,7 @@ export const OutlierDetection: React.FC = () => {
       variables: selectedVariables,
       scaling: scalingConfig,
       pca: { ...pcaConfig, enabled: true },
-      outlier: { ...outlierConfig, mark_outliers: true },
+      outlier: { ...outlierConfig, params: filteredParams, mark_outliers: true },
       include_columns: autoIncludedColumns,
     };
 
@@ -2707,7 +2719,17 @@ export const OutlierDetection: React.FC = () => {
                   </label>
                   <select
                     value={outlierConfig.method}
-                    onChange={(event) => setOutlierConfig((prev) => ({ ...prev, method: event.target.value as OutlierMethod }))}
+                    onChange={(event) => {
+                      const method = event.target.value as OutlierMethod;
+                      const defaults: Record<OutlierMethod, Record<string, unknown>> = {
+                        isolation_forest: { contamination: 0.05, n_estimators: 100 },
+                        dbscan: { eps: 0.5, min_samples: 5 },
+                        local_outlier_factor: { n_neighbors: 20, contamination: 0.1 },
+                        zscore: { threshold: 3 },
+                        iqr: { multiplier: 1.5 },
+                      };
+                      setOutlierConfig((prev) => ({ ...prev, method, params: defaults[method] }));
+                    }}
                     className="w-full px-3 py-2 text-sm focus:outline-none"
                     style={fieldStyle}
                   >
