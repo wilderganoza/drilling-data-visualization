@@ -171,10 +171,10 @@ class OutlierDetectionService:
                 status="completed",
             )
             self.session.commit()
-        except Exception:
+        except Exception as exc:
             self.session.rollback()
             logger.exception("Failed to persist processed dataset")
-            raise
+            raise OutlierDetectionError(f"Failed to persist processed dataset: {exc}") from exc
 
         refreshed_dataset = self.datasets_repo.get_by_id(dataset.id)
         if refreshed_dataset is None:
