@@ -49,7 +49,7 @@ export const Button: React.FC<ButtonProps> = ({
   const hoverStyles: Record<NonNullable<ButtonProps['variant']>, React.CSSProperties> = {
     primary: { backgroundColor: 'var(--color-primary-hover)', borderColor: 'var(--color-primary-hover)' },
     secondary: { backgroundColor: 'var(--color-surface-hover)' },
-    danger: { backgroundColor: 'rgba(248,113,113,0.1)' },
+    danger: { backgroundColor: 'rgba(248,113,113,0.12)' },
     ghost: { backgroundColor: 'var(--color-surface-hover)', color: 'var(--color-text)' },
   };
 

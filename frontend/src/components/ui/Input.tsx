@@ -36,12 +36,17 @@ export const Input: React.FC<InputProps> = ({
           border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
           borderRadius: 'var(--radius)',
           color: 'var(--text-primary)',
+          boxShadow: '0 0 0 0 rgba(0,0,0,0)',
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border-focus)';
+          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--color-primary)';
+          e.currentTarget.style.boxShadow = error
+            ? '0 0 0 2px rgba(248, 113, 113, 0.18)'
+            : '0 0 0 2px rgba(74, 124, 255, 0.18)';
         }}
         onBlur={(e) => {
           e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';
+          e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,0,0,0)';
         }}
         {...props}
       />
@@ -91,6 +96,17 @@ export const Select: React.FC<SelectProps> = ({
           border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
           borderRadius: 'var(--radius)',
           color: 'var(--color-text)',
+          boxShadow: '0 0 0 0 rgba(0,0,0,0)',
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--color-primary)';
+          e.currentTarget.style.boxShadow = error
+            ? '0 0 0 2px rgba(248, 113, 113, 0.18)'
+            : '0 0 0 2px rgba(74, 124, 255, 0.18)';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';
+          e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,0,0,0)';
         }}
         {...props}
       >

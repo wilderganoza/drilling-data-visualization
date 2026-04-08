@@ -24,10 +24,12 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <div
-      className={`rounded-ds ${paddingStyles[padding]} ${hover ? 'cursor-pointer' : ''} ${className}`}
+      className={`${paddingStyles[padding]} ${hover ? 'cursor-pointer' : ''} ${className}`}
       style={{
-        backgroundColor: 'var(--surface)',
-        border: '1px solid var(--border)',
+        backgroundColor: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 'var(--radius-lg)',
+        boxShadow: 'var(--shadow)',
       }}
       onClick={onClick}
       onMouseEnter={hover ? (e) => { e.currentTarget.style.borderColor = 'var(--text-muted)'; } : undefined}
@@ -45,7 +47,10 @@ export interface CardHeaderProps {
 
 export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = '' }) => {
   return (
-    <div className={`pb-3 mb-4 ${className}`} style={{ borderBottom: '1px solid var(--border)' }}>
+    <div
+      className={`flex items-start justify-between gap-3 pb-3 mb-4 ${className}`}
+      style={{ borderBottom: '1px solid var(--color-border)' }}
+    >
       {children}
     </div>
   );
@@ -58,7 +63,10 @@ export interface CardTitleProps {
 
 export const CardTitle: React.FC<CardTitleProps> = ({ children, className = '' }) => {
   return (
-    <h3 className={`font-semibold ${className}`} style={{ color: 'var(--text-primary)', fontSize: '20px', fontWeight: 700, lineHeight: 1.3 }}>
+    <h3
+      className={`font-semibold ${className}`}
+      style={{ color: 'var(--color-text)', fontSize: '16px', fontWeight: 600, lineHeight: 1.4 }}
+    >
       {children}
     </h3>
   );
