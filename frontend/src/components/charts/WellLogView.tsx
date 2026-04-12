@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui';
+import { Card, CardHeader, CardTitle, CardContent, SearchableSelect } from '../ui';
 import { Button } from '../ui/Button';
 import { getParameterLabel } from '../../constants/parameterLabels';
 import { downloadDataAsCSV } from '../../utils/downloadUtils';
@@ -469,34 +469,16 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
                     </button>
                   </div>
 
-                  <select
-                    className="px-3 py-2 rounded text-sm w-full mb-2 font-sans appearance-none cursor-pointer"
-                    style={{ 
-                      backgroundColor: 'var(--color-surface)',
-                      color: 'var(--color-text)',
-                      border: '1px solid var(--color-border)',
-                      backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%239CA3AF\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', 
-                      backgroundRepeat: 'no-repeat', 
-                      backgroundPosition: 'right 0.5rem center', 
-                      backgroundSize: '1.5em 1.5em', 
-                      paddingRight: '2.5rem' 
-                    }}
-                    onChange={e => {
-                      if (e.target.value) {
-                        addParameterToTrack(track.id, e.target.value);
-                        e.target.value = '';
-                      }
-                    }}
-                  >
-                    <option value="">Add parameter...</option>
-                    {availableParameters
-                      .filter(p => !track.parameters.includes(p))
-                      .map(p => (
-                        <option key={p} value={p}>
-                          {getParameterLabel(p)}
-                        </option>
-                      ))}
-                  </select>
+                  <div className="mb-2">
+                    <SearchableSelect
+                      options={availableParameters
+                        .filter(p => !track.parameters.includes(p))
+                        .map(p => ({ value: p, label: getParameterLabel(p) }))}
+                      value={null}
+                      onChange={(v) => addParameterToTrack(track.id, String(v))}
+                      placeholder="Add parameter..."
+                    />
+                  </div>
 
                   <div className="space-y-1 mb-2">
                     {track.parameters.map(param => (
@@ -514,24 +496,15 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
                     ))}
                   </div>
 
-                  <select
+                  <SearchableSelect
+                    options={[
+                      { value: 'linear', label: 'Linear' },
+                      { value: 'logarithmic', label: 'Logarithmic' },
+                    ]}
                     value={track.scaleType}
-                    onChange={e => updateTrack(track.id, { scaleType: e.target.value as 'linear' | 'logarithmic' })}
-                    className="px-3 py-2 rounded text-sm w-full font-sans appearance-none cursor-pointer"
-                    style={{ 
-                      backgroundColor: 'var(--color-surface)',
-                      color: 'var(--color-text)',
-                      border: '1px solid var(--color-border)',
-                      backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%239CA3AF\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'/%3E%3C/svg%3E")', 
-                      backgroundRepeat: 'no-repeat', 
-                      backgroundPosition: 'right 0.5rem center', 
-                      backgroundSize: '1.5em 1.5em', 
-                      paddingRight: '2.5rem' 
-                    }}
-                  >
-                    <option value="linear">Linear</option>
-                    <option value="logarithmic">Logarithmic</option>
-                  </select>
+                    onChange={(v) => updateTrack(track.id, { scaleType: v as 'linear' | 'logarithmic' })}
+                    placeholder="Scale type"
+                  />
                 </div>
               </div>
             ))}

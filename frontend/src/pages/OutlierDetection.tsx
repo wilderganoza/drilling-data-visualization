@@ -9,6 +9,7 @@ import {
   Button,
   PageHeader,
   InlineLoader,
+  SearchableSelect,
 } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import {
@@ -1137,7 +1138,7 @@ export const OutlierDetection: React.FC = () => {
     }
   }, [selectedVariables, visualizedVariable]);
 
-  const { data: datasetDetail } = useOutlierDataset(selectedDatasetId);
+  const { data: datasetDetail, isLoading: datasetDetailLoading } = useOutlierDataset(selectedDatasetId);
   const {
     data: datasetData,
     isLoading: isDatasetDataLoading,
@@ -1994,21 +1995,15 @@ export const OutlierDetection: React.FC = () => {
             <label className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
               Rows per page
             </label>
-            <select
+            <SearchableSelect
+              options={[20, 50, 100, 250, 500].map((option) => ({ value: option, label: String(option) }))}
               value={previewPageSize}
-              onChange={(event) => {
-                setPreviewPageSize(Number(event.target.value));
+              onChange={(v) => {
+                setPreviewPageSize(Number(v));
                 setPreviewPage(1);
               }}
-              className="px-2 py-1 text-xs md:text-sm focus:outline-none"
-              style={fieldStyle}
-            >
-              {[20, 50, 100, 250, 500].map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+              placeholder="Rows"
+            />
             <Button
               variant="ghost"
               size="sm"
@@ -2116,25 +2111,14 @@ export const OutlierDetection: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-4 items-end">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                    Select well
-                  </label>
-                  <select
-                    value={selectedWellId ?? ''}
-                    onChange={(event) => setSelectedWellId(event.target.value ? Number(event.target.value) : null)}
-                    className="w-full px-3 py-2 text-sm focus:outline-none"
-                    style={fieldStyle}
-                    disabled={wellsLoading || (!!wellsError && wells.length === 0)}
-                  >
-                    <option value="">-- Select well --</option>
-                    {wells.map((well) => (
-                      <option key={well.id} value={well.id}>
-                        {well.well_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label="Select well"
+                  options={wells.map((w) => ({ value: w.id, label: w.well_name }))}
+                  value={selectedWellId}
+                  onChange={(v) => setSelectedWellId(Number(v))}
+                  placeholder="Select a well..."
+                  disabled={wellsLoading || (!!wellsError && wells.length === 0)}
+                />
                 <div>
                   <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
                     Dataset name
@@ -2180,27 +2164,14 @@ export const OutlierDetection: React.FC = () => {
 
               {selectedWellId && (
                 <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-4 items-end">
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                      Load existing case
-                    </label>
-                    <select
-                      value={selectedCaseDatasetId ?? ''}
-                      onChange={(event) =>
-                        setSelectedCaseDatasetId(event.target.value ? Number(event.target.value) : null)
-                      }
-                      className="w-full px-3 py-2 text-sm focus:outline-none"
-                      style={fieldStyle}
-                      disabled={existingCasesLoading}
-                    >
-                      <option value="">-- Select clean case --</option>
-                      {(existingCases ?? []).map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name || `Dataset #${dataset.id}`}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <SearchableSelect
+                    label="Load existing case"
+                    options={(existingCases ?? []).map((d) => ({ value: d.id, label: d.name || `Dataset #${d.id}` }))}
+                    value={selectedCaseDatasetId}
+                    onChange={(v) => setSelectedCaseDatasetId(Number(v))}
+                    placeholder={existingCasesLoading ? 'Loading cases...' : 'Select clean case...'}
+                    disabled={existingCasesLoading}
+                  />
                   <div>
                     <Button
                       variant="ghost"
@@ -2341,18 +2312,13 @@ export const OutlierDetection: React.FC = () => {
                         <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                           Variable
                         </span>
-                        <select
-                          value={activeVariableDiagnostics.variable}
-                          onChange={(event) => setVisualizedVariable(event.target.value)}
-                          className="px-3 py-2 text-sm focus:outline-none"
-                          style={fieldStyle}
-                        >
-                          {selectedVariables.map((variable) => (
-                            <option key={variable} value={variable}>
-                              {getParameterLabel(variable)}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="w-56">
+                          <SearchableSelect
+                            options={selectedVariables.map((v) => ({ value: v, label: getParameterLabel(v) }))}
+                            value={activeVariableDiagnostics.variable}
+                            onChange={(v) => setVisualizedVariable(String(v))}
+                          />
+                        </div>
                       </div>
                       <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                         Count: {formatNumber(activeVariableDiagnostics.sampleSize, 0)} rows (all records)
@@ -2606,23 +2572,12 @@ export const OutlierDetection: React.FC = () => {
               <CardTitle>Step 3 - Configure scaling</CardTitle>
             </CardHeader>
             <CardContent>
-              <div>
-                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                  Scaling method
-                </label>
-                <select
-                  value={scalingConfig.method}
-                  onChange={(event) => setScalingConfig({ method: event.target.value as ScalingConfig['method'], params: {} })}
-                  className="w-full px-3 py-2 text-sm focus:outline-none"
-                  style={fieldStyle}
-                >
-                  {scalingMethods.map((method) => (
-                    <option key={method.value} value={method.value}>
-                      {method.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <SearchableSelect
+                label="Scaling method"
+                options={scalingMethods.map((m) => ({ value: m.value, label: m.label }))}
+                value={scalingConfig.method}
+                onChange={(v) => setScalingConfig({ method: String(v) as ScalingConfig['method'], params: {} })}
+              />
               <div className="flex flex-wrap items-center gap-2 mt-4">
                 <Button
                   type="button"
@@ -2720,21 +2675,16 @@ export const OutlierDetection: React.FC = () => {
                     <div className="flex flex-wrap items-center justify-between gap-3 mt-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                       <div className="flex items-center gap-2">
                         <span>Rows per page</span>
-                        <select
+                        <SearchableSelect
+                          options={[10, 20, 50, 100].map((size) => ({ value: size, label: String(size) }))}
                           value={scalingPreviewPageSize}
-                          onChange={(event) => {
-                            setScalingPreviewPageSize(Number(event.target.value));
+                          onChange={(v) => {
+                            setScalingPreviewPageSize(Number(v));
                             setScalingPreviewPage(1);
                           }}
                           disabled={!hasScalingPreview}
-                          className="px-2 py-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]"
-                        >
-                          {[10, 20, 50, 100].map((size) => (
-                            <option key={size} value={size}>
-                              {size}
-                            </option>
-                          ))}
-                        </select>
+                          placeholder="Rows"
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
@@ -2812,22 +2762,17 @@ export const OutlierDetection: React.FC = () => {
                     </p>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
-                      SVD solver
-                    </label>
-                    <select
-                      value={pcaConfig.svd_solver}
-                      onChange={(event) => setPcaConfig((prev) => ({ ...prev, svd_solver: event.target.value as PCAConfig['svd_solver'] }))}
-                      className="w-full px-2 py-1 text-sm focus:outline-none"
-                      style={fieldStyle}
-                    >
-                      <option value="auto">Auto</option>
-                      <option value="full">Full</option>
-                      <option value="arpack">ARPACK</option>
-                      <option value="randomized">Randomized</option>
-                    </select>
-                  </div>
+                  <SearchableSelect
+                    label="SVD solver"
+                    options={[
+                      { value: 'auto', label: 'Auto' },
+                      { value: 'full', label: 'Full' },
+                      { value: 'arpack', label: 'ARPACK' },
+                      { value: 'randomized', label: 'Randomized' },
+                    ]}
+                    value={pcaConfig.svd_solver}
+                    onChange={(v) => setPcaConfig((prev) => ({ ...prev, svd_solver: String(v) as PCAConfig['svd_solver'] }))}
+                  />
 
                   <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text)' }}>
                     <input
@@ -2951,37 +2896,21 @@ export const OutlierDetection: React.FC = () => {
                           </p>
                           <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                             <span>X</span>
-                            <select
-                              value={String(pcaScatterX)}
-                              onChange={(event) => {
-                                setPcaScatterX(Number(event.target.value));
-                                setPcaScatterPlotted(false);
-                              }}
-                              className="px-2 py-1 text-xs focus:outline-none"
-                              style={fieldStyle}
-                            >
-                              {pcaPreview.data.componentLabels.map((label, index) => (
-                                <option key={`x-${label}`} value={index}>
-                                  {label}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="w-36">
+                              <SearchableSelect
+                                options={pcaPreview.data.componentLabels.map((label, index) => ({ value: index, label }))}
+                                value={pcaScatterX}
+                                onChange={(v) => { setPcaScatterX(Number(v)); setPcaScatterPlotted(false); }}
+                              />
+                            </div>
                             <span>Y</span>
-                            <select
-                              value={String(pcaScatterY)}
-                              onChange={(event) => {
-                                setPcaScatterY(Number(event.target.value));
-                                setPcaScatterPlotted(false);
-                              }}
-                              className="px-2 py-1 text-xs focus:outline-none"
-                              style={fieldStyle}
-                            >
-                              {pcaPreview.data.componentLabels.map((label, index) => (
-                                <option key={`y-${label}`} value={index}>
-                                  {label}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="w-36">
+                              <SearchableSelect
+                                options={pcaPreview.data.componentLabels.map((label, index) => ({ value: index, label }))}
+                                value={pcaScatterY}
+                                onChange={(v) => { setPcaScatterY(Number(v)); setPcaScatterPlotted(false); }}
+                              />
+                            </div>
                             <Button
                               type="button"
                               variant="primary"
@@ -3062,33 +2991,22 @@ export const OutlierDetection: React.FC = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                    Outlier method
-                  </label>
-                  <select
-                    value={outlierConfig.method}
-                    onChange={(event) => {
-                      const method = event.target.value as OutlierMethod;
-                      const defaults: Record<OutlierMethod, Record<string, unknown>> = {
-                        isolation_forest: { contamination: 0.05, n_estimators: 100 },
-                        dbscan: { eps: 0.5, min_samples: 5 },
-                        local_outlier_factor: { n_neighbors: 20, contamination: 0.1 },
-                        zscore: { threshold: 3 },
-                        iqr: { multiplier: 1.5 },
-                      };
-                      setOutlierConfig((prev) => ({ ...prev, method, params: defaults[method] }));
-                    }}
-                    className="w-full px-3 py-2 text-sm focus:outline-none"
-                    style={fieldStyle}
-                  >
-                    {outlierMethods.map((method) => (
-                      <option key={method.value} value={method.value}>
-                        {method.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <SearchableSelect
+                  label="Outlier method"
+                  options={outlierMethods.map((m) => ({ value: m.value, label: m.label }))}
+                  value={outlierConfig.method}
+                  onChange={(v) => {
+                    const method = String(v) as OutlierMethod;
+                    const defaults: Record<OutlierMethod, Record<string, unknown>> = {
+                      isolation_forest: { contamination: 0.05, n_estimators: 100 },
+                      dbscan: { eps: 0.5, min_samples: 5 },
+                      local_outlier_factor: { n_neighbors: 20, contamination: 0.1 },
+                      zscore: { threshold: 3 },
+                      iqr: { multiplier: 1.5 },
+                    };
+                    setOutlierConfig((prev) => ({ ...prev, method, params: defaults[method] }));
+                  }}
+                />
 
                 {outlierConfig.method === 'isolation_forest' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3320,39 +3238,27 @@ export const OutlierDetection: React.FC = () => {
                         </p>
                         <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                           <span>X</span>
-                          <select
-                            value={String(outlierScatterX)}
-                            onChange={(event) => {
-                              setOutlierScatterX(Number(event.target.value));
+                          <SearchableSelect
+                            options={(outlierPreview.data.componentLabels ?? []).map((label, index) => ({ value: index, label }))}
+                            value={outlierScatterX}
+                            onChange={(v) => {
+                              setOutlierScatterX(Number(v));
                               setOutlierScatterPlotted(false);
                             }}
-                            className="px-2 py-1 text-xs focus:outline-none"
-                            style={fieldStyle}
                             disabled={!outlierPreview.data.componentLabels?.length}
-                          >
-                            {(outlierPreview.data.componentLabels ?? []).map((label, index) => (
-                              <option key={`ox-${label}`} value={index}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="X axis"
+                          />
                           <span>Y</span>
-                          <select
-                            value={String(outlierScatterY)}
-                            onChange={(event) => {
-                              setOutlierScatterY(Number(event.target.value));
+                          <SearchableSelect
+                            options={(outlierPreview.data.componentLabels ?? []).map((label, index) => ({ value: index, label }))}
+                            value={outlierScatterY}
+                            onChange={(v) => {
+                              setOutlierScatterY(Number(v));
                               setOutlierScatterPlotted(false);
                             }}
-                            className="px-2 py-1 text-xs focus:outline-none"
-                            style={fieldStyle}
                             disabled={!outlierPreview.data.componentLabels?.length}
-                          >
-                            {(outlierPreview.data.componentLabels ?? []).map((label, index) => (
-                              <option key={`oy-${label}`} value={index}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
+                            placeholder="Y axis"
+                          />
                           <Button
                             type="button"
                             variant="primary"
@@ -3675,7 +3581,10 @@ export const OutlierDetection: React.FC = () => {
                 <CardTitle>Dataset details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!selectedDatasetId && !datasetDetail && (
+                {selectedDatasetId && datasetDetailLoading && (
+                  <InlineLoader message="Loading dataset details..." />
+                )}
+                {!selectedDatasetId && !datasetDetail && !datasetDetailLoading && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-sm text-[var(--color-text-muted)]">Well Name</p>
@@ -3867,7 +3776,15 @@ export const OutlierDetection: React.FC = () => {
                             )}
                             <div className="h-96 mt-2">
                               <ResponsiveContainer width="100%" height="100%">
-                                <ComposedChart data={comparison.bins} margin={{ top: 28, right: 28, bottom: 56, left: 52 }}>
+                                <ComposedChart data={(() => {
+                                  if (densityViewMode === 'comparison') return comparison.bins;
+                                  // Trim bins to post-clean data range
+                                  const first = comparison.bins.findIndex(b => b.postDensityPct > 0.01);
+                                  const last = comparison.bins.length - 1 - [...comparison.bins].reverse().findIndex(b => b.postDensityPct > 0.01);
+                                  if (first < 0 || last < first) return comparison.bins;
+                                  const pad = Math.max(1, Math.round((last - first) * 0.05));
+                                  return comparison.bins.slice(Math.max(0, first - pad), Math.min(comparison.bins.length, last + pad + 1));
+                                })()} margin={{ top: 28, right: 28, bottom: 56, left: 52 }}>
                                   <CartesianGrid stroke={chartGridColor} strokeDasharray="3 3" />
                                   <XAxis
                                     dataKey="center"

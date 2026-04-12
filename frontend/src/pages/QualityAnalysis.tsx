@@ -2,21 +2,12 @@
  * Quality Analysis Page - Data quality assessment and reporting
  */
 import React, { useState } from 'react';
-import type { CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout';
-import { Card, CardContent, Button, PageHeader, InlineLoader } from '../components/ui';
+import { Card, CardContent, Button, PageHeader, InlineLoader, SearchableSelect } from '../components/ui';
 import { QualityReport } from '../components/analysis';
 import { useWell, useQualityReport } from '../hooks';
 import { useOutlierDatasets } from '../hooks/useOutlierDetection';
-
-const fieldStyle: CSSProperties = {
-  backgroundColor: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
-  borderRadius: 'var(--radius)',
-  color: 'var(--color-text)',
-  boxShadow: 'none',
-};
 
 export const QualityAnalysis: React.FC = () => {
   const { wellId } = useParams<{ wellId: string }>();
@@ -54,36 +45,17 @@ export const QualityAnalysis: React.FC = () => {
         <Card>
           <CardContent className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                Dataset
-              </label>
-              <select
-                value={selectedDatasetId === 'raw' ? 'raw' : String(selectedDatasetId)}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setSelectedDatasetId(value === 'raw' ? 'raw' : Number(value));
-                }}
-                className="w-full px-3 py-2 text-sm focus:outline-none"
-                style={fieldStyle}
+              <SearchableSelect
+                label="Dataset"
+                options={[
+                  { value: 'raw', label: 'Raw data (original)' },
+                  ...(datasets ?? []).map((d) => ({ value: d.id, label: d.name || `Dataset #${d.id}` })),
+                ]}
+                value={selectedDatasetId}
+                onChange={(v) => setSelectedDatasetId(v === 'raw' ? 'raw' : Number(v))}
                 disabled={!Number.isFinite(wellIdNum) || wellIdNum <= 0}
-              >
-                <option value="raw">Raw data (original)</option>
-                {datasets?.map((dataset) => (
-                  <option key={dataset.id} value={dataset.id}>
-                    {dataset.name || `Dataset #${dataset.id}`}
-                  </option>
-                ))}
-              </select>
-              {isDatasetsLoading && (
-                <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  Loading datasets…
-                </p>
-              )}
-              {!isDatasetsLoading && datasets && datasets.length === 0 && (
-                <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                  No processed datasets available for this well yet.
-                </p>
-              )}
+                placeholder={isDatasetsLoading ? 'Loading datasets...' : 'Select dataset'}
+              />
             </div>
 
             {selectedDatasetSummary && (

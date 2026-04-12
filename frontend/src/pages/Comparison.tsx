@@ -363,28 +363,28 @@ export const Comparison: React.FC = () => {
                             <td className="py-2 px-3" style={{ color: well.color }}>
                               {well.wellName}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {values.length.toLocaleString()}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {Math.min(...values).toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {p25.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {p50.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {p75.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {Math.max(...values).toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {mean.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-muted-cell">
+                            <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {stdDev.toFixed(2)}
                             </td>
                           </tr>
