@@ -1992,7 +1992,7 @@ export const OutlierDetection: React.FC = () => {
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+            <label className="text-xs whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>
               Rows per page
             </label>
             <SearchableSelect
@@ -2674,7 +2674,7 @@ export const OutlierDetection: React.FC = () => {
                     </table>
                     <div className="flex flex-wrap items-center justify-between gap-3 mt-3 text-xs" style={{ color: 'var(--color-text-muted)' }}>
                       <div className="flex items-center gap-2">
-                        <span>Rows per page</span>
+                        <span className="whitespace-nowrap">Rows per page</span>
                         <SearchableSelect
                           options={[10, 20, 50, 100].map((size) => ({ value: size, label: String(size) }))}
                           value={scalingPreviewPageSize}
