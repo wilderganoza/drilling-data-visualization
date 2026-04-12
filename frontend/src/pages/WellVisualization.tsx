@@ -1,7 +1,7 @@
 /**
  * Well Visualization Page - Interactive charts for drilling data analysis
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout';
 import { Card, CardHeader, CardTitle, CardContent, Button, InlineLoader } from '../components/ui';
@@ -52,14 +52,24 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
     ? Object.keys(depthChartData.data[0]).length
     : (datasetId === 'raw' ? (wellData?.total_columns ?? 0) : 0);
 
+  // Sort data by depth so line charts render left-to-right
+  const sortedData = useMemo(() => {
+    if (!depthChartData?.data) return [];
+    return [...depthChartData.data].sort((a, b) => {
+      const da = Number(a.hole_depth_feet ?? a.bit_depth_feet) || 0;
+      const db = Number(b.hole_depth_feet ?? b.bit_depth_feet) || 0;
+      return da - db;
+    });
+  }, [depthChartData]);
+
   // Transform data for ROP chart using Depth database
-  const ropData = depthChartData?.data.map((point) => ({
+  const ropData = sortedData.map((point) => ({
     depth: point.hole_depth_feet ?? point.bit_depth_feet,
     time: point.yyyy_mm_dd,
     rop: point.rate_of_penetration_ft_per_hr,
-  })) || [];
+  }));
 
-  const depthTimeData = depthChartData?.data.map((point) => {
+  const depthTimeData = sortedData.map((point) => {
     // Combinar YYYY/MM/DD con HH:MM:SS para obtener el timestamp completo
     const dateStr = point.yyyy_mm_dd ?? point['YYYY/MM/DD'];
     const timeStr = point.hh_mm_ss ?? point['HH:MM:SS'];
@@ -69,7 +79,7 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
       time: timestamp ?? point.yyyy_mm_dd,
       depth: point.bit_depth_feet ?? point['Bit Depth (feet)'],
     };
-  }) || [];
+  });
 
   const startDate = depthChartData?.data
     ? depthChartData.data
@@ -84,13 +94,13 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
         .reduce<Date | null>((min, d) => (min === null || d < min ? d : min), null)
     : null;
 
-  const multiParamData = depthChartData?.data.map((point) => ({
+  const multiParamData = sortedData.map((point) => ({
     depth: point.hole_depth_feet ?? point.bit_depth_feet,
     wob: point['Weight on Bit (klbs)'] ?? point.weight_on_bit_klbs,
     rpm: point['Rotary RPM (RPM)'] ?? point.rotary_rpm_rpm ?? point.rotary_rpm,
     pressure: point['Standpipe Pressure (psi)'] ?? point.standpipe_pressure_psi,
     hookload: point['Hook Load (klbs)'] ?? point.hook_load_klbs,
-  })) || [];
+  }));
 
   const availableParameters = [
     { key: 'wob', name: 'Weight on Bit', color: '#3B82F6', yAxisId: 'left' },
