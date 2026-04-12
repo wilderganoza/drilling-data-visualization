@@ -919,6 +919,7 @@ export const OutlierDetection: React.FC = () => {
     mark_outliers: true,
   });
   const [formErrors, setFormErrors] = useState<string[]>([]);
+  const [densityViewMode, setDensityViewMode] = useState<'comparison' | 'post'>('comparison');
 
   const appliedWell = useMemo(
     () => wells.find((well) => well.id === appliedWellId) ?? null,
@@ -931,7 +932,7 @@ export const OutlierDetection: React.FC = () => {
       ? appliedWell.total_rows
       : 100000;
 
-  const { data: depthData } = useDepthSampleData(appliedWellId ?? 0, allRowsLimit);
+  const { data: depthData, isLoading: depthLoading } = useDepthSampleData(appliedWellId ?? 0, allRowsLimit);
   const availableColumns = useMemo(() => {
     if (!depthData?.data?.length) return [] as string[];
     return Object.keys(depthData.data[0]).sort();
@@ -2240,7 +2241,10 @@ export const OutlierDetection: React.FC = () => {
                   {!appliedWellId && (
                     <p className="text-sm text-[var(--color-text-muted)]">Select and load a well to view available columns.</p>
                   )}
-                  {appliedWellId && (
+                  {appliedWellId && depthLoading && (
+                    <InlineLoader message="Loading variables..." />
+                  )}
+                  {appliedWellId && !depthLoading && (
                     <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
                       {selectableVariableColumns.map((column) => {
                         const checked = selectedVariables.includes(column);
@@ -3813,7 +3817,24 @@ export const OutlierDetection: React.FC = () => {
             {datasetDetail && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Density comparison (pre-clean vs post-clean)</CardTitle>
+                  <CardTitle>Density comparison</CardTitle>
+                  <div className="flex items-center gap-2">
+                    {(['comparison', 'post'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        className="px-3 py-1 text-xs rounded-md transition-colors"
+                        style={{
+                          backgroundColor: densityViewMode === mode ? 'var(--color-primary)' : 'transparent',
+                          color: densityViewMode === mode ? '#fff' : 'var(--color-text-muted)',
+                          border: `1px solid ${densityViewMode === mode ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                        }}
+                        onClick={() => setDensityViewMode(mode)}
+                      >
+                        {mode === 'comparison' ? 'Pre vs Post' : 'Post-clean only'}
+                      </button>
+                    ))}
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {isDensityDatasetLoading ? (
@@ -3828,20 +3849,22 @@ export const OutlierDetection: React.FC = () => {
                         <Card key={comparison.variable}>
                           <CardHeader>
                             <CardTitle>
-                              {getParameterLabel(comparison.variable)} · Pre vs Post cleaning
+                              {getParameterLabel(comparison.variable)} · {densityViewMode === 'comparison' ? 'Pre vs Post cleaning' : 'Post-clean'}
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
-                            <div className="flex items-center justify-center gap-6 text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>
-                              <span className="inline-flex items-center gap-2">
-                                <span className="inline-block h-2 w-4 rounded-sm" style={{ backgroundColor: '#f59e0b' }} />
-                                Pre-clean
-                              </span>
-                              <span className="inline-flex items-center gap-2">
-                                <span className="inline-block h-2 w-4 rounded-sm" style={{ backgroundColor: 'var(--color-primary)' }} />
-                                Post-clean
-                              </span>
-                            </div>
+                            {densityViewMode === 'comparison' && (
+                              <div className="flex items-center justify-center gap-6 text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="inline-block h-2 w-4 rounded-sm" style={{ backgroundColor: '#f59e0b' }} />
+                                  Pre-clean
+                                </span>
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="inline-block h-2 w-4 rounded-sm" style={{ backgroundColor: 'var(--color-primary)' }} />
+                                  Post-clean
+                                </span>
+                              </div>
+                            )}
                             <div className="h-96 mt-2">
                               <ResponsiveContainer width="100%" height="100%">
                                 <ComposedChart data={comparison.bins} margin={{ top: 28, right: 28, bottom: 56, left: 52 }}>
@@ -3882,15 +3905,17 @@ export const OutlierDetection: React.FC = () => {
                                     }}
                                     labelFormatter={(label) => `Value: ${formatNumber(Number(label), 2)}`}
                                   />
-                                  <Area
-                                    type="monotone"
-                                    dataKey="preDensityPct"
-                                    stroke="#f59e0b"
-                                    fill="#f59e0b"
-                                    fillOpacity={0.15}
-                                    strokeWidth={2}
-                                    name="Pre-clean"
-                                  />
+                                  {densityViewMode === 'comparison' && (
+                                    <Area
+                                      type="monotone"
+                                      dataKey="preDensityPct"
+                                      stroke="#f59e0b"
+                                      fill="#f59e0b"
+                                      fillOpacity={0.15}
+                                      strokeWidth={2}
+                                      name="Pre-clean"
+                                    />
+                                  )}
                                   <Area
                                     type="monotone"
                                     dataKey="postDensityPct"
