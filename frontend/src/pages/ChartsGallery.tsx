@@ -38,7 +38,6 @@ export const ChartsGallery: React.FC = () => {
   const [appliedYScale, setAppliedYScale] = useState<'linear' | 'log'>('linear');
   const [appliedMaxPoints, setAppliedMaxPoints] = useState<number>(1000);
   const [appliedShowTrendLine, setAppliedShowTrendLine] = useState<boolean>(false);
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   const { data: datasets, isLoading: datasetsLoading } = useOutlierDatasets(selectedWellId);
   const { data: rawDepthData, isLoading: isRawLoading } = useDepthSampleData(
@@ -65,7 +64,6 @@ export const ChartsGallery: React.FC = () => {
     setAppliedYScale(yScale);
     setAppliedMaxPoints(maxPoints);
     setAppliedShowTrendLine(showTrendLine);
-    setTimeout(() => setIsGenerating(false), 500);
   };
 
   const trackedParams = getAllParameterNames();
@@ -210,42 +208,40 @@ export const ChartsGallery: React.FC = () => {
           </Card>
         )}
 
-        {isGenerating && appliedWellId && (
+        {appliedWellId && isLoading && (
           <Card>
             <CardContent className="py-12">
               <div className="flex items-center justify-center py-4">
-                <InlineLoader message="Generating crossplot..." />
+                <InlineLoader message="Loading crossplot data..." />
               </div>
             </CardContent>
           </Card>
         )}
 
-        {!isGenerating && appliedWellId && depthData && (
+        {appliedWellId && !isLoading && depthData && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Crossplot</CardTitle>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    const columns = [appliedXParameter, appliedYParameter];
-                    const csv = [columns.join(',')];
-                    scatterData.forEach(row => {
-                      csv.push(columns.map(col => row[col] ?? '').join(','));
-                    });
-                    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'crossplot_data.csv';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                  }}
-                >
-                  Export
-                </Button>
-              </div>
+              <CardTitle>Crossplot</CardTitle>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const columns = [appliedXParameter, appliedYParameter];
+                  const csv = [columns.join(',')];
+                  scatterData.forEach(row => {
+                    csv.push(columns.map(col => row[col] ?? '').join(','));
+                  });
+                  const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'crossplot_data.csv';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                Export
+              </Button>
             </CardHeader>
             <CardContent>
               <ScatterPlot
