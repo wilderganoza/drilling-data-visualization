@@ -872,7 +872,7 @@ const wizardSteps: Array<{ key: WizardStepKey; title: string; description: strin
   {
     key: 'pca',
     title: 'PCA',
-    description: 'Configure required PCA settings and inspect component behavior.',
+    description: 'Configure PCA settings and inspect component behavior.',
   },
   {
     key: 'outlier',
