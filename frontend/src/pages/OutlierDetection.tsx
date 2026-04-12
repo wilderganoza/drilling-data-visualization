@@ -164,6 +164,7 @@ const BoxPlotTooltip: React.FC<TooltipProps<number, string>> = ({ active, payloa
 type ColumnCompletenessStats = {
   present: number;
   missing: number;
+  zeros: number;
   percent: number;
 };
 
@@ -1081,6 +1082,9 @@ export const OutlierDetection: React.FC = () => {
     const counts: Record<string, number> = Object.fromEntries(
       availableColumns.map((column) => [column, 0])
     );
+    const zeroCounts: Record<string, number> = Object.fromEntries(
+      availableColumns.map((column) => [column, 0])
+    );
 
     depthData.data.forEach((row) => {
       availableColumns.forEach((column) => {
@@ -1091,6 +1095,9 @@ export const OutlierDetection: React.FC = () => {
           (typeof value === 'number' && Number.isNaN(value));
         if (!isMissing) {
           counts[column] = (counts[column] ?? 0) + 1;
+          if (value === 0) {
+            zeroCounts[column] = (zeroCounts[column] ?? 0) + 1;
+          }
         }
       });
     });
@@ -1101,6 +1108,7 @@ export const OutlierDetection: React.FC = () => {
       acc[column] = {
         present,
         missing,
+        zeros: zeroCounts[column] ?? 0,
         percent: totalRows ? (present / totalRows) * 100 : 0,
       };
       return acc;
@@ -2249,7 +2257,7 @@ export const OutlierDetection: React.FC = () => {
                                     />
                                   </div>
                                   <span className="block text-xs text-[var(--color-text-muted)]">
-                                    {formatPercent(stats.percent)} complete · {stats.missing} nulls
+                                    {formatPercent(stats.percent)} complete · {stats.missing} nulls · {stats.zeros} zeros
                                   </span>
                                 </div>
                               )}
