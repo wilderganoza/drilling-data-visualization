@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalHeader, ModalBody, ModalFooter, PageHeader } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalHeader, ModalBody, ModalFooter, PageHeader, ConfirmDialog } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -96,16 +96,23 @@ export const UserManagement: React.FC = () => {
     }
   };
 
-  const handleDelete = async (user: UserResponse) => {
-    if (!confirm(`Are you sure you want to delete user "${user.username}"?`)) return;
+  const [userToDelete, setUserToDelete] = useState<UserResponse | null>(null);
+
+  const handleDelete = (user: UserResponse) => {
+    setUserToDelete(user);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
     try {
-      await deleteUser(user.id);
+      await deleteUser(userToDelete.id);
       addToast('User deleted', 'success');
       fetchUsers();
     } catch (err: any) {
       const detail = err?.response?.data?.detail;
       addToast(typeof detail === 'string' ? detail : 'Error deleting user', 'error');
     }
+    setUserToDelete(null);
   };
 
   return (
@@ -275,6 +282,17 @@ export const UserManagement: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!userToDelete}
+        title="Delete user"
+        message={`Are you sure you want to delete user "${userToDelete?.username}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={confirmDeleteUser}
+        onCancel={() => setUserToDelete(null)}
+      />
     </Layout>
   );
 };

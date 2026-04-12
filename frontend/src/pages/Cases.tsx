@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, PageHeader, Button } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, PageHeader, Button, ConfirmDialog } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 import {
   useAllOutlierDatasets,
@@ -13,6 +13,7 @@ export const Cases: React.FC = () => {
   const { data: datasets, isLoading } = useAllOutlierDatasets();
   const { data: wellsData } = useWells(0, 1000);
   const deleteMutation = useDeleteOutlierDatasetById();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
 
   const wellNameById = useMemo(() => {
     const map = new Map<number, string>();
@@ -21,14 +22,19 @@ export const Cases: React.FC = () => {
   }, [wellsData]);
 
   const handleDelete = (datasetId: number, name: string) => {
-    if (!confirm(`Delete case "${name}"? This cannot be undone.`)) return;
-    deleteMutation.mutate(datasetId, {
+    setDeleteTarget({ id: datasetId, name });
+  };
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(deleteTarget.id, {
       onSuccess: () => addToast('Case deleted', 'success'),
       onError: (err: any) => {
         const detail = err?.response?.data?.detail;
         addToast(typeof detail === 'string' ? detail : 'Error deleting case', 'error');
       },
     });
+    setDeleteTarget(null);
   };
 
   const formatDate = (iso: string) => {
@@ -128,6 +134,17 @@ export const Cases: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        title="Delete case"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </Layout>
   );
 };

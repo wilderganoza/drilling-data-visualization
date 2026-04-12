@@ -25,6 +25,10 @@ export { PageHeader } from './PageHeader';
 // Exportar componentes de Modal
 export { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
 
+// Exportar componente ConfirmDialog
+export { ConfirmDialog } from './ConfirmDialog';
+export type { ConfirmDialogProps } from './ConfirmDialog';
+
 // Exportar componentes de Spinner
 export { Spinner, SpinnerOverlay, InlineLoader } from './Spinner';
 
