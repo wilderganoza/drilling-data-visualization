@@ -76,7 +76,7 @@ export const MultiParameterChart: React.FC<MultiParameterChartProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between w-full">
           <CardTitle>{title}</CardTitle>
           <Button
             onClick={handleDownloadData}

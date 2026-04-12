@@ -46,13 +46,18 @@ export const PARAMETER_LABELS: Record<string, string> = {
 };
 
 
+// Tokens que deben mantenerse en mayúsculas
+const UPPERCASE_TOKENS = new Set(['yyyy', 'mm', 'dd', 'hh', 'ss', 'rpm', 'spm', 'rop', 'psi', 'gpm', 'bbl']);
+
 // Función para obtener etiqueta legible de un parámetro
 export const getParameterLabel = (parameterName: string): string => {
   // Si existe en el diccionario, retornar etiqueta
-  // Si no, formatear el nombre: reemplazar _ por espacios y capitalizar
-  return PARAMETER_LABELS[parameterName] || parameterName
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (l: string) => l.toUpperCase());
+  if (PARAMETER_LABELS[parameterName]) return PARAMETER_LABELS[parameterName];
+  // Si no, formatear: separar por _, mantener tokens especiales en mayúsculas
+  return parameterName
+    .split('_')
+    .map((part) => UPPERCASE_TOKENS.has(part.toLowerCase()) ? part.toUpperCase() : part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 };
 
 // Función para obtener todos los nombres de parámetros conocidos

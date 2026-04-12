@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, PageHeader } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, PageHeader, Button } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 import {
   useAllOutlierDatasets,
@@ -109,13 +109,14 @@ export const Cases: React.FC = () => {
                             {formatDate(ds.created_at)}
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <button
+                            <Button
+                              variant="danger"
+                              size="sm"
                               onClick={() => handleDelete(ds.id, ds.name)}
                               disabled={deleteMutation.isPending}
-                              className="text-xs px-2 py-1 rounded bg-red-900/50 text-red-300 hover:bg-red-800/50 disabled:opacity-50"
                             >
                               Delete
-                            </button>
+                            </Button>
                           </td>
                         </tr>
                       );

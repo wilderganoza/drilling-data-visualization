@@ -227,40 +227,19 @@ export const UserManagement: React.FC = () => {
                           </td>
                           {currentUser?.is_admin && (
                             <td className="py-3 px-4 text-right space-x-2">
-                              <button
-                                onClick={() => handleToggleActive(user)}
-                                className="text-xs px-2 py-1 rounded transition-colors"
-                                style={{ backgroundColor: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'}
-                              >
+                              <Button variant="secondary" size="sm" onClick={() => handleToggleActive(user)}>
                                 {user.is_active ? 'Deactivate' : 'Activate'}
-                              </button>
-                              <button
-                                onClick={() => handleToggleAdmin(user)}
-                                className="text-xs px-2 py-1 rounded transition-colors"
-                                style={{ backgroundColor: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'}
-                              >
+                              </Button>
+                              <Button variant="secondary" size="sm" onClick={() => handleToggleAdmin(user)}>
                                 {user.is_admin ? 'Remove Admin' : 'Make Admin'}
-                              </button>
-                              <button
-                                onClick={() => setEditingPasswordId(editingPasswordId === user.id ? null : user.id)}
-                                className="text-xs px-2 py-1 rounded transition-colors"
-                                style={{ backgroundColor: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'}
-                              >
+                              </Button>
+                              <Button variant="secondary" size="sm" onClick={() => setEditingPasswordId(editingPasswordId === user.id ? null : user.id)}>
                                 Password
-                              </button>
+                              </Button>
                               {user.id !== currentUser?.id && (
-                                <button
-                                  onClick={() => handleDelete(user)}
-                                  className="text-xs px-2 py-1 rounded bg-red-900/50 text-red-300 hover:bg-red-800/50"
-                                >
+                                <Button variant="danger" size="sm" onClick={() => handleDelete(user)}>
                                   Delete
-                                </button>
+                                </Button>
                               )}
                             </td>
                           )}
@@ -271,31 +250,18 @@ export const UserManagement: React.FC = () => {
                             <td colSpan={6} className="py-3 px-4">
                               <div className="flex items-center space-x-3">
                                 <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>New password for {user.username}:</span>
-                                <input
+                                <Input
                                   type="password"
                                   value={newPassword}
                                   onChange={(e) => setNewPassword(e.target.value)}
                                   placeholder="Min 6 characters"
-                                  className="px-3 py-1 rounded text-sm focus:outline-none"
-                                  style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text)' }}
-                                  onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-primary)'}
-                                  onBlur={(e) => e.currentTarget.style.borderColor = 'var(--color-border)'}
                                 />
-                                <button
-                                  onClick={() => handlePasswordUpdate(user.id)}
-                                  className="text-xs px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
-                                >
+                                <Button variant="primary" size="sm" onClick={() => handlePasswordUpdate(user.id)}>
                                   Save
-                                </button>
-                                <button
-                                  onClick={() => { setEditingPasswordId(null); setNewPassword(''); }}
-                                  className="text-xs px-3 py-1 rounded transition-colors"
-                                  style={{ backgroundColor: 'var(--color-surface-hover)', color: 'var(--color-text)', border: '1px solid var(--color-border)' }}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'}
-                                >
+                                </Button>
+                                <Button variant="secondary" size="sm" onClick={() => { setEditingPasswordId(null); setNewPassword(''); }}>
                                   Cancel
-                                </button>
+                                </Button>
                               </div>
                             </td>
                           </tr>

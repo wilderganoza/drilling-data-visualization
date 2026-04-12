@@ -1,10 +1,23 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { ScatterPlot } from '../components/charts/ScatterPlot';
-import { Card, CardHeader, CardTitle, CardContent, Button, Select, PageHeader } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames, getParameterLabel } from '../constants/parameterLabels';
+
+const scaleOptions = [
+  { value: 'linear', label: 'Linear' },
+  { value: 'log', label: 'Logarithmic' },
+];
+
+const maxPointsOptions = [
+  { value: 1000, label: '1,000' },
+  { value: 2000, label: '2,000' },
+  { value: 5000, label: '5,000' },
+  { value: 10000, label: '10,000' },
+  { value: 20000, label: '20,000' },
+];
 
 export const ChartsGallery: React.FC = () => {
   const { data: wells } = useWells();
@@ -16,8 +29,7 @@ export const ChartsGallery: React.FC = () => {
   const [yScale, setYScale] = useState<'linear' | 'log'>('linear');
   const [maxPoints, setMaxPoints] = useState<number>(1000);
   const [showTrendLine, setShowTrendLine] = useState<boolean>(false);
-  
-  // Applied selections (for generating the plot)
+
   const [appliedWellId, setAppliedWellId] = useState<number | null>(null);
   const [appliedDatasetId, setAppliedDatasetId] = useState<'raw' | number>('raw');
   const [appliedXParameter, setAppliedXParameter] = useState<string>('bit_depth_feet');
@@ -27,7 +39,7 @@ export const ChartsGallery: React.FC = () => {
   const [appliedMaxPoints, setAppliedMaxPoints] = useState<number>(1000);
   const [appliedShowTrendLine, setAppliedShowTrendLine] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  
+
   const { data: datasets, isLoading: datasetsLoading } = useOutlierDatasets(selectedWellId);
   const { data: rawDepthData, isLoading: isRawLoading } = useDepthSampleData(
     appliedDatasetId === 'raw' ? appliedWellId || 0 : 0,
@@ -53,26 +65,39 @@ export const ChartsGallery: React.FC = () => {
     setAppliedYScale(yScale);
     setAppliedMaxPoints(maxPoints);
     setAppliedShowTrendLine(showTrendLine);
-    // Reset generating state after a short delay to show the chart
     setTimeout(() => setIsGenerating(false), 500);
   };
 
-  // Get all 28 tracked parameters from parameterLabels
   const trackedParams = getAllParameterNames();
 
-  // Use only tracked parameters that exist in the data
   const availableParameters = depthData?.data && depthData.data.length > 0
     ? trackedParams.filter(param => param in depthData.data[0])
     : trackedParams;
 
   const scatterData = depthData?.data || [];
 
+  const wellOptions = useMemo(
+    () => (wells?.wells ?? []).map((w: any) => ({ value: w.id, label: w.well_name })),
+    [wells],
+  );
+
+  const datasetOptions = useMemo(() => {
+    const opts: Array<{ value: string | number; label: string }> = [{ value: 'raw', label: 'Raw data (original)' }];
+    (datasets ?? []).forEach((d) => opts.push({ value: d.id, label: d.name || `Dataset #${d.id}` }));
+    return opts;
+  }, [datasets]);
+
+  const parameterOptions = useMemo(
+    () => availableParameters.map((p) => ({ value: p, label: getParameterLabel(p) })),
+    [availableParameters],
+  );
+
   return (
     <Layout>
       <div className="space-y-6">
-        <PageHeader 
-          title="Crossplots" 
-          subtitle="Scatter plot analysis for parameter correlation" 
+        <PageHeader
+          title="Crossplots"
+          subtitle="Scatter plot analysis for parameter correlation"
         />
 
         <Card>
@@ -81,131 +106,93 @@ export const ChartsGallery: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Well</label>
-                <select
-                  value={selectedWellId || ''}
-                  onChange={e => setSelectedWellId(Number(e.target.value))}
-                  className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700"
-                >
-                  <option value="">-- Select a well --</option>
-                  {wells?.wells?.map((well: any) => (
-                    <option key={well.id} value={well.id}>
-                      {well.well_name}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <SearchableSelect
+                    label="Well"
+                    options={wellOptions}
+                    value={selectedWellId}
+                    onChange={(v) => {
+                      setSelectedWellId(Number(v));
+                      setSelectedDatasetId('raw');
+                    }}
+                    placeholder="Select a well"
+                  />
+                </div>
+
+                <div className="relative">
+                  <SearchableSelect
+                    label="Data Source"
+                    options={datasetOptions}
+                    value={selectedDatasetId}
+                    onChange={(v) => setSelectedDatasetId(v === 'raw' ? 'raw' : Number(v))}
+                    placeholder={datasetsLoading ? 'Loading datasets...' : 'Select data source'}
+                    disabled={datasetsLoading}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Data Source</label>
-                <select
-                  value={selectedDatasetId === 'raw' ? 'raw' : String(selectedDatasetId)}
-                  onChange={e => {
-                    const value = e.target.value;
-                    setSelectedDatasetId(value === 'raw' ? 'raw' : Number(value));
-                  }}
-                  className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg border border-gray-700"
-                >
-                  <option value="raw">Raw data (original)</option>
-                  {datasets?.map((dataset) => (
-                    <option key={dataset.id} value={dataset.id}>
-                      {dataset.name || `Dataset #${dataset.id}`}
-                    </option>
-                  ))}
-                </select>
-                {datasetsLoading && (
-                  <p className="mt-1 text-xs text-gray-400">Loading clean cases...</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">X-Axis Parameter</label>
-                  <select
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <SearchableSelect
+                    label="X-Axis Parameter"
+                    options={parameterOptions}
                     value={xParameter}
-                    onChange={e => setXParameter(e.target.value)}
-                    className="w-full bg-gray-800 text-white px-3 py-2 rounded border border-gray-700"
-                  >
-                    {availableParameters.map(param => (
-                      <option key={param} value={param}>
-                        {getParameterLabel(param)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setXParameter(String(v))}
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Y-Axis Parameter</label>
-                  <select
+                <div className="relative">
+                  <SearchableSelect
+                    label="Y-Axis Parameter"
+                    options={parameterOptions}
                     value={yParameter}
-                    onChange={e => setYParameter(e.target.value)}
-                    className="w-full bg-gray-800 text-white px-3 py-2 rounded border border-gray-700"
-                  >
-                    {availableParameters.map(param => (
-                      <option key={param} value={param}>
-                        {getParameterLabel(param)}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setYParameter(String(v))}
+                  />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">X-Axis Scale</label>
-                  <select
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <SearchableSelect
+                    label="X-Axis Scale"
+                    options={scaleOptions}
                     value={xScale}
-                    onChange={e => setXScale(e.target.value as 'linear' | 'log')}
-                    className="w-full bg-gray-800 text-white px-3 py-2 rounded border border-gray-700"
-                  >
-                    <option value="linear">Linear</option>
-                    <option value="log">Logarithmic</option>
-                  </select>
+                    onChange={(v) => setXScale(String(v) as 'linear' | 'log')}
+                  />
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">Y-Axis Scale</label>
-                  <select
+                <div className="relative">
+                  <SearchableSelect
+                    label="Y-Axis Scale"
+                    options={scaleOptions}
                     value={yScale}
-                    onChange={e => setYScale(e.target.value as 'linear' | 'log')}
-                    className="w-full bg-gray-800 text-white px-3 py-2 rounded border border-gray-700"
-                  >
-                    <option value="linear">Linear</option>
-                    <option value="log">Logarithmic</option>
-                  </select>
+                    onChange={(v) => setYScale(String(v) as 'linear' | 'log')}
+                  />
+                </div>
+                <div className="relative">
+                  <SearchableSelect
+                    label="Max Points to Plot"
+                    options={maxPointsOptions}
+                    value={maxPoints}
+                    onChange={(v) => setMaxPoints(Number(v))}
+                  />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">Max Points to Plot</label>
-                <select
-                  value={maxPoints}
-                  onChange={e => setMaxPoints(Number(e.target.value))}
-                  className="w-full bg-gray-800 text-white px-3 py-2 rounded border border-gray-700"
-                >
-                  <option value={1000}>1,000</option>
-                  <option value={2000}>2,000</option>
-                  <option value={5000}>5,000</option>
-                  <option value={10000}>10,000</option>
-                  <option value={20000}>20,000</option>
-                </select>
-              </div>
-
-              <label className="flex items-center gap-3 text-sm text-gray-300 select-none">
+              <label
+                className="flex items-center gap-2 text-sm cursor-pointer"
+                style={{ color: 'var(--color-text)' }}
+              >
                 <input
                   type="checkbox"
                   checked={showTrendLine}
                   onChange={e => setShowTrendLine(e.target.checked)}
-                  className="h-4 w-4 accent-blue-600"
+                  style={{ accentColor: 'var(--color-primary)' }}
                 />
                 Show trend line
               </label>
 
-              <div className="flex justify-end pt-0">
-                <Button
-                  onClick={handleApply}
-                  disabled={!selectedWellId}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+              <div className="flex justify-end">
+                <Button onClick={handleApply} disabled={!selectedWellId}>
                   Apply Selection
                 </Button>
               </div>
@@ -217,7 +204,7 @@ export const ChartsGallery: React.FC = () => {
           <Card>
             <CardContent className="py-12">
               <div className="text-center">
-                <p className="text-gray-400 text-lg">Select a well and parameters, then click Apply to generate the crossplot</p>
+                <p style={{ color: 'var(--color-text-muted)' }}>Select a well and parameters, then click Apply to generate the crossplot</p>
               </div>
             </CardContent>
           </Card>
@@ -226,9 +213,8 @@ export const ChartsGallery: React.FC = () => {
         {isGenerating && appliedWellId && (
           <Card>
             <CardContent className="py-12">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p className="ml-4 text-gray-400">Generating crossplot...</p>
+              <div className="flex items-center justify-center py-4">
+                <InlineLoader message="Generating crossplot..." />
               </div>
             </CardContent>
           </Card>
@@ -240,6 +226,8 @@ export const ChartsGallery: React.FC = () => {
               <div className="flex items-center justify-between">
                 <CardTitle>Crossplot</CardTitle>
                 <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => {
                     const columns = [appliedXParameter, appliedYParameter];
                     const csv = [columns.join(',')];
@@ -254,7 +242,6 @@ export const ChartsGallery: React.FC = () => {
                     a.click();
                     URL.revokeObjectURL(url);
                   }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm"
                 >
                   Export
                 </Button>

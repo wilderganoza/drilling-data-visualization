@@ -4,7 +4,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, Button } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, InlineLoader } from '../components/ui';
 import { ROPChart, DepthTimeChart, MultiParameterChart } from '../components/charts';
 import { useWell, useDepthSampleData } from '../hooks';
 import { useOutlierDataset, useOutlierDatasetData } from '../hooks/useOutlierDetection';
@@ -104,7 +104,7 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
         {!embedded && (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between w-full">
               <div>
                 <h1 className="text-3xl font-bold text-gray-100">
                   {wellData?.well_name || `Well ${wellIdNum}`}
@@ -159,9 +159,8 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
         {isLoading && (
           <Card>
             <CardContent className="py-12">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p className="ml-4 text-gray-400">Loading drilling data...</p>
+              <div className="flex items-center justify-center py-4">
+                <InlineLoader message="Loading drilling data..." />
               </div>
             </CardContent>
           </Card>

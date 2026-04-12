@@ -13,7 +13,7 @@ export interface PageHeaderProps {
  */
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, actions }) => {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between w-full gap-4">
       <div>
         <h1 style={{ fontSize: '22px', fontWeight: 700, lineHeight: 1.2, color: 'var(--color-text)' }}>
           {title}

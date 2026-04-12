@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout';
-import { Card, CardContent, Button, PageHeader } from '../components/ui';
+import { Card, CardContent, Button, PageHeader, InlineLoader } from '../components/ui';
 import { QualityReport } from '../components/analysis';
 import { useWell, useQualityReport } from '../hooks';
 import { useOutlierDatasets } from '../hooks/useOutlierDetection';
@@ -112,9 +112,8 @@ export const QualityAnalysis: React.FC = () => {
         {isLoading && (
           <Card>
             <CardContent className="py-12">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p className="ml-4 text-gray-400">Analyzing data quality...</p>
+              <div className="flex items-center justify-center py-4">
+                <InlineLoader message="Analyzing data quality..." />
               </div>
             </CardContent>
           </Card>

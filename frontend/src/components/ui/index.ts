@@ -27,3 +27,7 @@ export { Modal, ModalHeader, ModalBody, ModalFooter } from './Modal';
 
 // Exportar componentes de Spinner
 export { Spinner, SpinnerOverlay, InlineLoader } from './Spinner';
+
+// Exportar componente SearchableSelect
+export { SearchableSelect } from './SearchableSelect';
+export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect';

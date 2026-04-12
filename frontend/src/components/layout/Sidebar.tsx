@@ -94,6 +94,22 @@ export const Sidebar: React.FC = () => {
       active: currentPath === '/crossplots',
     },
     {
+      name: 'Exports',
+      path: '/exports',
+      icon: (
+        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3"
+          />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 2H6a2 2 0 00-2 2v12M14 2l6 6M14 2v6h6" />
+        </svg>
+      ),
+      active: currentPath.startsWith('/exports'),
+    },
+    {
       name: 'Cases',
       path: '/cases',
       icon: (

@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
 import { WellLogView } from '../components/charts/WellLogView';
 import { useDepthSampleData } from '../hooks';
-import { Card, CardContent, PageHeader } from '../components/ui';
+import { Card, CardContent, PageHeader, InlineLoader } from '../components/ui';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames } from '../constants/parameterLabels';
 
@@ -97,9 +97,8 @@ export const WellLogs: React.FC = () => {
         {isDataLoading && (
           <Card>
             <CardContent className="py-12">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p className="ml-4 text-gray-400">Loading well log data...</p>
+              <div className="flex items-center justify-center py-4">
+                <InlineLoader message="Loading well log data..." />
               </div>
             </CardContent>
           </Card>

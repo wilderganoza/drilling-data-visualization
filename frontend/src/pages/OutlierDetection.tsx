@@ -40,6 +40,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Legend,
+  Line,
   ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
@@ -48,6 +49,7 @@ import {
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
+  type TooltipProps,
 } from 'recharts';
 
 const fieldStyle: CSSProperties = {
@@ -116,6 +118,46 @@ const formatPercent = (value: number) => {
   if (value >= 99.95) return '100%';
   if (value <= 0.05) return '0%';
   return value >= 10 ? `${Math.round(value)}%` : `${value.toFixed(1)}%`;
+};
+
+const BoxPlotTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload }) => {
+  if (!active || !payload?.length) {
+    return null;
+  }
+
+  const point = payload[0]?.payload as { element?: string; x?: number };
+  if (!point?.element || typeof point.x !== 'number') {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        backgroundColor: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: '8px',
+        padding: '8px 12px',
+        boxShadow: '0 12px 30px rgba(15, 23, 42, 0.32)',
+        color: 'var(--color-text)',
+        minWidth: '160px',
+      }}
+    >
+      <p
+        style={{
+          margin: 0,
+          fontSize: '11px',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase',
+          color: 'var(--color-text-muted)',
+        }}
+      >
+        {point.element}
+      </p>
+      <p style={{ margin: '4px 0 0', fontSize: '14px', fontWeight: 600 }}>
+        {formatNumber(point.x)}
+      </p>
+    </div>
+  );
 };
 
 type ColumnCompletenessStats = {
@@ -1009,15 +1051,23 @@ export const OutlierDetection: React.FC = () => {
       return [] as Array<{ x: number; y: number; element: string }>;
     }
 
-    return [
+    const points: Array<{ x: number; y: number; element: string }> = [
       { x: activeVariableDiagnostics.lowerWhisker, y: 1, element: 'Lower whisker' },
       { x: activeVariableDiagnostics.q1, y: 1, element: 'Q1' },
       { x: activeVariableDiagnostics.median, y: 1, element: 'Median' },
       { x: activeVariableDiagnostics.q3, y: 1, element: 'Q3' },
       { x: activeVariableDiagnostics.upperWhisker, y: 1, element: 'Upper whisker' },
-      { x: activeVariableDiagnostics.min, y: 1, element: 'Min' },
-      { x: activeVariableDiagnostics.max, y: 1, element: 'Max' },
     ];
+
+    if (Math.abs(activeVariableDiagnostics.min - activeVariableDiagnostics.lowerWhisker) > 1e-6) {
+      points.push({ x: activeVariableDiagnostics.min, y: 1, element: 'Min' });
+    }
+
+    if (Math.abs(activeVariableDiagnostics.max - activeVariableDiagnostics.upperWhisker) > 1e-6) {
+      points.push({ x: activeVariableDiagnostics.max, y: 1, element: 'Max' });
+    }
+
+    return points;
   }, [activeVariableDiagnostics]);
 
   const columnCompleteness = useMemo(() => {
@@ -1539,6 +1589,22 @@ export const OutlierDetection: React.FC = () => {
       component: label,
       percentage: (pcaPreview.data?.explainedVarianceRatio[index] ?? 0) * 100,
     }));
+  }, [pcaPreview]);
+
+  const pcaPreviewVarianceLineData = useMemo(() => {
+    if (pcaPreview.status !== 'ready' || !pcaPreview.data) {
+      return [] as Array<{ component: string; cumulative: number }>;
+    }
+
+    let running = 0;
+    return pcaPreview.data.componentLabels.map((label, index) => {
+      const ratio = pcaPreview.data?.explainedVarianceRatio[index] ?? 0;
+      running += ratio;
+      return {
+        component: label,
+        cumulative: Math.min(100, Math.max(0, running * 100)),
+      };
+    });
   }, [pcaPreview]);
 
   const pcaPreviewScatterData = useMemo(() => {
@@ -2230,20 +2296,22 @@ export const OutlierDetection: React.FC = () => {
 
             <Card>
               <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center justify-between w-full">
                   <CardTitle>Variable visualization</CardTitle>
-                  <Button
-                    variant="primary"
-                    disabled={!appliedWellId || selectedVariables.length === 0}
-                    onClick={() => {
-                      setVisualizationEnabled(true);
-                      if (!visualizedVariable && selectedVariables.length > 0) {
-                        setVisualizedVariable(selectedVariables[0]);
-                      }
-                    }}
-                  >
-                    Visualize
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="primary"
+                      disabled={!appliedWellId || selectedVariables.length === 0}
+                      onClick={() => {
+                        setVisualizationEnabled(true);
+                        if (!visualizedVariable && selectedVariables.length > 0) {
+                          setVisualizedVariable(selectedVariables[0]);
+                        }
+                      }}
+                    >
+                      Visualize
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -2506,12 +2574,8 @@ export const OutlierDetection: React.FC = () => {
                                 line={false}
                               />
                               <RechartsTooltip
-                                contentStyle={tooltipContentStyle}
-                                formatter={(_value, _name, item) => {
-                                  const payload = item.payload as { element: string; x: number };
-                                  return [formatNumber(payload.x), payload.element];
-                                }}
-                                labelFormatter={() => ''}
+                                content={<BoxPlotTooltip />}
+                                cursor={{ stroke: 'var(--color-primary)', strokeDasharray: '4 4', strokeOpacity: 0.4 }}
                               />
                             </ComposedChart>
                           </ResponsiveContainer>
@@ -2825,7 +2889,10 @@ export const OutlierDetection: React.FC = () => {
                         </p>
                         <div className="h-80 mt-3">
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={pcaPreviewVarianceChartData} margin={{ top: 36, right: 36, bottom: 56, left: 52 }}>
+                            <ComposedChart data={pcaPreviewVarianceChartData.map((item, index) => ({
+                              ...item,
+                              cumulative: pcaPreviewVarianceLineData[index]?.cumulative ?? 0,
+                            }))} margin={{ top: 36, right: 36, bottom: 56, left: 52 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke={chartGridColor} />
                               <XAxis
                                 dataKey="component"
@@ -2842,8 +2909,9 @@ export const OutlierDetection: React.FC = () => {
                                 stroke={chartAxisColor}
                                 tick={{ fill: chartAxisColor }}
                                 tickFormatter={(value) => `${value.toFixed(0)}%`}
+                                domain={[0, 100]}
                                 label={{
-                                  value: 'Explained Variance',
+                                  value: 'Variance (%)',
                                   angle: -90,
                                   position: 'insideLeft',
                                   fill: chartAxisColor,
@@ -2859,7 +2927,15 @@ export const OutlierDetection: React.FC = () => {
                                 labelFormatter={(label) => varianceLabelFormatter(label)}
                               />
                               <Bar dataKey="percentage" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                            </BarChart>
+                              <Line
+                                type="monotone"
+                                dataKey="cumulative"
+                                stroke="var(--color-secondary)"
+                                strokeWidth={2}
+                                dot={{ r: 3, fill: 'var(--color-secondary)' }}
+                                activeDot={{ r: 5 }}
+                              />
+                            </ComposedChart>
                           </ResponsiveContainer>
                         </div>
                       </div>

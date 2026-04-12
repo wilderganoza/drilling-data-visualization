@@ -71,7 +71,7 @@ export const ROPChart: React.FC<ROPChartProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between w-full">
           <CardTitle>{title}</CardTitle>
           <Button
             onClick={handleDownloadData}

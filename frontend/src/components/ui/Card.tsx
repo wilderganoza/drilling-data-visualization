@@ -49,7 +49,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = ''
   return (
     <div
       className={`flex items-start justify-between gap-3 pb-3 mb-4 ${className}`}
-      style={{ borderBottom: '1px solid var(--color-border)' }}
+      style={{ borderBottom: '1px solid var(--color-border)', width: '100%' }}
     >
       {children}
     </div>

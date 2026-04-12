@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { MultiWellComparison } from '../components/charts/MultiWellComparison';
 import { MultiHistogram } from '../components/charts/MultiHistogram';
-import { Card, CardHeader, CardTitle, CardContent, Button, Select, PageHeader } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames, getParameterLabel } from '../constants/parameterLabels';
@@ -103,8 +103,8 @@ export const Comparison: React.FC = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[0, 1, 2, 3, 4].map((index) => (
-                <div key={index} className="space-y-2">
-                  <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <div key={index} className="space-y-2 relative">
+                  <div className="flex items-center gap-2 text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
                     Well {index + 1}
                     {selectedWellIds[index] && (
                       <div
@@ -112,83 +112,62 @@ export const Comparison: React.FC = () => {
                         style={{ backgroundColor: WELL_COLORS[index % WELL_COLORS.length] }}
                       />
                     )}
-                  </label>
-                  <select
-                    value={selectedWellIds[index] || ''}
-                    onChange={(e) => {
-                      const newWellId = e.target.value ? parseInt(e.target.value) : null;
+                  </div>
+                  <SearchableSelect
+                    options={(wells?.wells ?? []).map((w) => ({ value: w.id, label: w.well_name }))}
+                    value={selectedWellIds[index]}
+                    onChange={(v) => {
+                      const newWellId = Number(v);
                       const newSelectedWellIds = [...selectedWellIds];
                       const newSelectedDatasetIds = [...selectedDatasetIds];
 
-                      if (newWellId !== null) {
-                        const existingIndex = newSelectedWellIds.findIndex((id, idx) => id === newWellId && idx !== index);
-                        if (existingIndex !== -1) {
-                          newSelectedWellIds[existingIndex] = null;
-                          newSelectedDatasetIds[existingIndex] = 'raw';
-                        }
+                      const existingIndex = newSelectedWellIds.findIndex((id, idx) => id === newWellId && idx !== index);
+                      if (existingIndex !== -1) {
+                        newSelectedWellIds[existingIndex] = null;
+                        newSelectedDatasetIds[existingIndex] = 'raw';
                       }
 
                       newSelectedWellIds[index] = newWellId;
                       newSelectedDatasetIds[index] = 'raw';
-
                       setSelectedWellIds(newSelectedWellIds);
                       setSelectedDatasetIds(newSelectedDatasetIds);
                     }}
-                    className="bg-gray-700 text-white px-3 py-2 rounded text-sm w-full border border-gray-600 focus:border-blue-500 focus:outline-none"
-                  >
-                    <option value="">Select a well...</option>
-                    {wells?.wells?.map((well) => (
-                      <option key={well.id} value={well.id}>
-                        {well.well_name}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Select a well..."
+                  />
 
                   {selectedWellIds[index] && (
-                    <select
-                      value={selectedDatasetIds[index] === 'raw' ? 'raw' : String(selectedDatasetIds[index])}
-                      onChange={(e) => {
-                        const value = e.target.value;
+                    <SearchableSelect
+                      options={[
+                        { value: 'raw', label: 'Raw data (original)' },
+                        ...(selectedDatasetQueries[index].data ?? []).map((d) => ({
+                          value: d.id,
+                          label: d.name || `Dataset #${d.id}`,
+                        })),
+                      ]}
+                      value={selectedDatasetIds[index]}
+                      onChange={(v) => {
                         const next = [...selectedDatasetIds];
-                        next[index] = value === 'raw' ? 'raw' : Number(value);
+                        next[index] = v === 'raw' ? 'raw' : Number(v);
                         setSelectedDatasetIds(next);
                       }}
-                      className="bg-gray-700 text-white px-3 py-2 rounded text-sm w-full border border-gray-600 focus:border-blue-500 focus:outline-none"
-                    >
-                      <option value="raw">Raw data (original)</option>
-                      {(selectedDatasetQueries[index].data ?? []).map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name || `Dataset #${dataset.id}`}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   )}
                 </div>
               ))}
-              
-              {/* Parameter selector in the 6th position */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
-                  Comparison Parameter
-                </label>
-                <select
+
+              <div className="relative">
+                <SearchableSelect
+                  label="Comparison Parameter"
+                  options={availableParameters.map((p) => ({ value: p, label: getParameterLabel(p) }))}
                   value={comparisonParameter}
-                  onChange={(e) => setComparisonParameter(e.target.value)}
-                  className="bg-gray-700 text-white px-3 py-2 rounded text-sm w-full border border-gray-600 focus:border-blue-500 focus:outline-none"
-                >
-                  {availableParameters.map(param => (
-                    <option key={param} value={param}>
-                      {getParameterLabel(param)}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(v) => setComparisonParameter(String(v))}
+                />
               </div>
             </div>
             <div className="mt-6 flex justify-end">
-              <Button 
+              <Button
                 onClick={handleApply}
                 disabled={!selectedWellIds.some((id) => id !== null)}
-                className="bg-blue-600 hover:bg-blue-700"
               >
                 Apply Selection
               </Button>
@@ -200,7 +179,7 @@ export const Comparison: React.FC = () => {
           <Card>
             <CardContent className="py-12">
               <div className="text-center">
-                <p className="text-gray-400 text-lg">Select wells to start comparison</p>
+                <p style={{ color: 'var(--color-text-muted)' }}>Select wells to start comparison</p>
               </div>
             </CardContent>
           </Card>
@@ -209,9 +188,8 @@ export const Comparison: React.FC = () => {
         {isLoading && appliedWellIds.some((id) => id !== null) && (
           <Card>
             <CardContent className="py-12">
-              <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p className="ml-4 text-gray-400">Loading well data...</p>
+              <div className="flex items-center justify-center py-4">
+                <InlineLoader message="Loading well data..." />
               </div>
             </CardContent>
           </Card>
@@ -222,40 +200,39 @@ export const Comparison: React.FC = () => {
             {/* Multi-Well Comparison Chart */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>
-                    {getParameterLabel(comparisonParameter)} vs Depth
-                  </CardTitle>
-                  <Button
-                    onClick={() => {
-                      const exportData: Array<{ [key: string]: any }> = [];
-                      wellsData.forEach(well => {
-                        well.data.forEach(dataPoint => {
-                          exportData.push({
-                            well_name: well.wellName,
-                            bit_depth_feet: dataPoint.bit_depth_feet,
-                            [comparisonParameter]: dataPoint[comparisonParameter],
-                          });
+                <CardTitle>
+                  {getParameterLabel(comparisonParameter)} vs Depth
+                </CardTitle>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const exportData: Array<{ [key: string]: any }> = [];
+                    wellsData.forEach(well => {
+                      well.data.forEach(dataPoint => {
+                        exportData.push({
+                          well_name: well.wellName,
+                          bit_depth_feet: dataPoint.bit_depth_feet,
+                          [comparisonParameter]: dataPoint[comparisonParameter],
                         });
                       });
-                      const columns = ['well_name', 'bit_depth_feet', comparisonParameter];
-                      const csv = [columns.join(',')];
-                      exportData.forEach(row => {
-                        csv.push(columns.map(col => row[col] ?? '').join(','));
-                      });
-                      const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'multi_well_comparison.csv';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm"
-                  >
-                    Export
-                  </Button>
-                </div>
+                    });
+                    const columns = ['well_name', 'bit_depth_feet', comparisonParameter];
+                    const csv = [columns.join(',')];
+                    exportData.forEach(row => {
+                      csv.push(columns.map(col => row[col] ?? '').join(','));
+                    });
+                    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'multi_well_comparison.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  Export
+                </Button>
               </CardHeader>
               <CardContent>
                 <MultiWellComparison
@@ -274,51 +251,50 @@ export const Comparison: React.FC = () => {
             {/* Multi-Histogram Distribution */}
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>
-                    {getParameterLabel(comparisonParameter)} Distribution by Well
-                  </CardTitle>
-                  <Button
-                    onClick={() => {
-                      const histogramWells = wellsData.map(well => ({
-                        wellName: well.wellName,
-                        data: well.data.map(d => d[comparisonParameter]).filter(v => v != null && !isNaN(v)),
-                      }));
-                      const allValues = histogramWells.flatMap(w => w.data);
-                      const min = Math.min(...allValues);
-                      const max = Math.max(...allValues);
-                      const bins = 20;
-                      const binWidth = (max - min) / bins;
-                      const exportData: any[] = [];
-                      for (let i = 0; i < bins; i++) {
-                        const binStart = min + i * binWidth;
-                        const binEnd = binStart + binWidth;
-                        const binCenter = (binStart + binEnd) / 2;
-                        const row: any = { bin_center: binCenter, bin_start: binStart, bin_end: binEnd };
-                        histogramWells.forEach(well => {
-                          const count = well.data.filter(d => d >= binStart && (i === bins - 1 ? d <= binEnd : d < binEnd)).length;
-                          row[`${well.wellName}_count`] = count;
-                        });
-                        exportData.push(row);
-                      }
-                      const columns = ['bin_center', 'bin_start', 'bin_end', ...histogramWells.map(w => `${w.wellName}_count`)];
-                      const csv = [columns.join(',')];
-                      exportData.forEach(row => {
-                        csv.push(columns.map(col => row[col] ?? '').join(','));
+                <CardTitle>
+                  {getParameterLabel(comparisonParameter)} Distribution by Well
+                </CardTitle>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    const histogramWells = wellsData.map(well => ({
+                      wellName: well.wellName,
+                      data: well.data.map(d => d[comparisonParameter]).filter(v => v != null && !isNaN(v)),
+                    }));
+                    const allValues = histogramWells.flatMap(w => w.data);
+                    const min = Math.min(...allValues);
+                    const max = Math.max(...allValues);
+                    const bins = 20;
+                    const binWidth = (max - min) / bins;
+                    const exportData: any[] = [];
+                    for (let i = 0; i < bins; i++) {
+                      const binStart = min + i * binWidth;
+                      const binEnd = binStart + binWidth;
+                      const binCenter = (binStart + binEnd) / 2;
+                      const row: any = { bin_center: binCenter, bin_start: binStart, bin_end: binEnd };
+                      histogramWells.forEach(well => {
+                        const count = well.data.filter(d => d >= binStart && (i === bins - 1 ? d <= binEnd : d < binEnd)).length;
+                        row[`${well.wellName}_count`] = count;
                       });
-                      const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'multi_histogram_distribution.csv';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm"
-                  >
-                    Export
-                  </Button>
-                </div>
+                      exportData.push(row);
+                    }
+                    const columns = ['bin_center', 'bin_start', 'bin_end', ...histogramWells.map(w => `${w.wellName}_count`)];
+                    const csv = [columns.join(',')];
+                    exportData.forEach(row => {
+                      csv.push(columns.map(col => row[col] ?? '').join(','));
+                    });
+                    const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'multi_histogram_distribution.csv';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                >
+                  Export
+                </Button>
               </CardHeader>
               <CardContent>
                 <MultiHistogram
@@ -344,16 +320,16 @@ export const Comparison: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b border-gray-700">
-                        <th className="text-left py-2 px-3 text-gray-400">Well</th>
-                        <th className="text-right py-2 px-3 text-gray-400">Data Points</th>
-                        <th className="text-right py-2 px-3 text-gray-400">Min</th>
-                        <th className="text-right py-2 px-3 text-gray-400">P25</th>
-                        <th className="text-right py-2 px-3 text-gray-400">P50</th>
-                        <th className="text-right py-2 px-3 text-gray-400">P75</th>
-                        <th className="text-right py-2 px-3 text-gray-400">Max</th>
-                        <th className="text-right py-2 px-3 text-gray-400">Mean</th>
-                        <th className="text-right py-2 px-3 text-gray-400">Std Dev</th>
+                      <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
+                        <th className="text-left py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>Well</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>Data Points</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>Min</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>P25</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>P50</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>P75</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>Max</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>Mean</th>
+                        <th className="text-right py-2 px-3" style={{ color: 'var(--color-text-muted)' }}>Std Dev</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -383,32 +359,32 @@ export const Comparison: React.FC = () => {
                         const p75 = getPercentile(values, 75);
 
                         return (
-                          <tr key={well.wellId} className="border-b border-gray-800">
+                          <tr key={well.wellId} style={{ borderBottom: '1px solid var(--color-border)' }}>
                             <td className="py-2 px-3" style={{ color: well.color }}>
                               {well.wellName}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {values.length.toLocaleString()}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {Math.min(...values).toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {p25.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {p50.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {p75.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {Math.max(...values).toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {mean.toFixed(2)}
                             </td>
-                            <td className="text-right py-2 px-3 text-gray-400">
+                            <td className="text-right py-2 px-3 text-muted-cell">
                               {stdDev.toFixed(2)}
                             </td>
                           </tr>

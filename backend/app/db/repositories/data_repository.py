@@ -113,89 +113,6 @@ class DataRepository:
         # Convertir mappings a diccionarios y retornar
         return [dict(row) for row in rows]
     
-    # Método para consultar datos por rango de tiempo
-    def query_by_time_range(
-        self,
-        # ID del pozo
-        well_id: int,
-        # Tiempo inicial (formato YYYY/MM/DD)
-        start_time: str,
-        # Tiempo final (formato YYYY/MM/DD)
-        end_time: str,
-        # Lista opcional de columnas a retornar
-        columns: Optional[List[str]] = None,
-        # Límite opcional de registros
-        limit: int = None
-    ) -> List[Dict[str, Any]]:
-        """
-        Query data by time range.
-        
-        Args:
-            well_id: The well ID
-            start_time: Start time (YYYY/MM/DD format)
-            end_time: End time (YYYY/MM/DD format)
-            columns: List of column names to retrieve (None = all)
-            limit: Maximum number of records
-            
-        Returns:
-            List of dictionaries with query results
-        """
-        # Si no se especificó límite, usar el por defecto
-        if limit is None:
-            limit = settings.DEFAULT_QUERY_LIMIT
-        
-        # Limitar al máximo permitido por seguridad
-        limit = min(limit, settings.MAX_QUERY_LIMIT)
-        
-        # Determinar qué columnas seleccionar
-        if columns:
-            # Crear set de columnas disponibles
-            available_cols = {col.name for col in self.table.columns}
-            # Filtrar solo columnas válidas
-            valid_cols = [col for col in columns if col in available_cols]
-            # Crear lista de objetos Column para SELECT
-            select_cols = [self.table.c[col] for col in valid_cols]
-        # Si no se especificaron columnas, seleccionar todas
-        else:
-            select_cols = [self.table]
-        
-        # Obtener columna de tiempo (yyyy_mm_dd o YYYY/MM/DD)
-        time_col = self._get_time_column()
-        
-        # Si no se encuentra columna de tiempo, retornar lista vacía
-        if time_col is None:
-            logger.error("Time column not found in table")
-            return []
-        
-        # Crear consulta SELECT con filtros WHERE
-        query = select(*select_cols).where(
-            # Condiciones AND: well_id y rango de tiempo
-            and_(
-                # Filtrar por ID de pozo
-                self.table.c.well_id == well_id,
-                # Tiempo mayor o igual a inicio
-                time_col >= start_time,
-                # Tiempo menor o igual a fin
-                time_col <= end_time
-            )
-        # Limitar número de resultados
-        ).limit(limit)
-        
-        # Ejecutar consulta en la sesión de BD
-        result = self.session.execute(query)
-        # Obtener todos los resultados como mappings
-        rows = result.mappings().all()
-        
-        # Registrar en log la consulta realizada
-        logger.info(
-            f"Query by time: well_id={well_id}, "
-            f"time=[{start_time}, {end_time}], "
-            f"returned {len(rows)} rows"
-        )
-        
-        # Convertir mappings a diccionarios y retornar
-        return [dict(row) for row in rows]
-    
     # Método para obtener una muestra de datos
     def query_sample(
         self,
@@ -299,21 +216,6 @@ class DataRepository:
         
         # Iterar sobre nombres posibles
         for name in depth_names:
-            # Si el nombre existe en las columnas de la tabla, retornarlo
-            if name in self.table.c:
-                return self.table.c[name]
-        
-        # Si no se encuentra ninguna, retornar None
-        return None
-    
-    # Método privado para obtener la columna de tiempo de la tabla
-    def _get_time_column(self) -> Optional[Column]:
-        """Get the time column from the table."""
-        # Intentar nombres comunes de columna de tiempo
-        time_names = ["yyyy_mm_dd", "YYYY/MM/DD", "date", "Date"]
-        
-        # Iterar sobre nombres posibles
-        for name in time_names:
             # Si el nombre existe en las columnas de la tabla, retornarlo
             if name in self.table.c:
                 return self.table.c[name]

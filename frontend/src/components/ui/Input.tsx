@@ -22,7 +22,7 @@ export const Input: React.FC<InputProps> = ({
         <label
           htmlFor={inputId}
           className="block text-sm font-medium mb-1"
-          style={{ color: 'var(--text-primary)' }}
+          style={{ color: 'var(--color-text)' }}
         >
           {label}
         </label>
@@ -32,29 +32,29 @@ export const Input: React.FC<InputProps> = ({
         className={`w-full text-sm outline-none transition-colors ${className}`}
         style={{
           padding: '8px 12px',
-          backgroundColor: 'var(--bg)',
-          border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
+          backgroundColor: 'var(--color-surface)',
+          border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border)'}`,
           borderRadius: 'var(--radius)',
-          color: 'var(--text-primary)',
+          color: 'var(--color-text)',
           boxShadow: '0 0 0 0 rgba(0,0,0,0)',
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--color-primary)';
+          e.currentTarget.style.borderColor = error ? 'var(--color-danger)' : 'var(--color-primary)';
           e.currentTarget.style.boxShadow = error
             ? '0 0 0 2px rgba(248, 113, 113, 0.18)'
             : '0 0 0 2px rgba(74, 124, 255, 0.18)';
         }}
         onBlur={(e) => {
-          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';
+          e.currentTarget.style.borderColor = error ? 'var(--color-danger)' : 'var(--color-border)';
           e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,0,0,0)';
         }}
         {...props}
       />
       {error && (
-        <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>
+        <p className="mt-1 text-xs" style={{ color: 'var(--color-danger)' }}>{error}</p>
       )}
       {helperText && !error && (
-        <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>{helperText}</p>
+        <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>{helperText}</p>
       )}
     </div>
   );
@@ -82,7 +82,7 @@ export const Select: React.FC<SelectProps> = ({
         <label
           htmlFor={inputId}
           className="block text-sm font-medium mb-1"
-          style={{ color: 'var(--text-primary)' }}
+          style={{ color: 'var(--color-text)' }}
         >
           {label}
         </label>
@@ -93,19 +93,19 @@ export const Select: React.FC<SelectProps> = ({
         style={{
           padding: '8px 12px',
           backgroundColor: 'var(--color-surface)',
-          border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
+          border: `1px solid ${error ? 'var(--color-danger)' : 'var(--color-border)'}`,
           borderRadius: 'var(--radius)',
           color: 'var(--color-text)',
           boxShadow: '0 0 0 0 rgba(0,0,0,0)',
         }}
         onFocus={(e) => {
-          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--color-primary)';
+          e.currentTarget.style.borderColor = error ? 'var(--color-danger)' : 'var(--color-primary)';
           e.currentTarget.style.boxShadow = error
             ? '0 0 0 2px rgba(248, 113, 113, 0.18)'
             : '0 0 0 2px rgba(74, 124, 255, 0.18)';
         }}
         onBlur={(e) => {
-          e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';
+          e.currentTarget.style.borderColor = error ? 'var(--color-danger)' : 'var(--color-border)';
           e.currentTarget.style.boxShadow = '0 0 0 0 rgba(0,0,0,0)';
         }}
         {...props}
@@ -117,7 +117,7 @@ export const Select: React.FC<SelectProps> = ({
         ))}
       </select>
       {error && (
-        <p className="mt-1 text-xs" style={{ color: 'var(--danger)' }}>{error}</p>
+        <p className="mt-1 text-xs" style={{ color: 'var(--color-danger)' }}>{error}</p>
       )}
     </div>
   );

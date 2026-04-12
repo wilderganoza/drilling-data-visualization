@@ -1,19 +1,10 @@
-﻿import React, { useMemo, useState } from 'react';
-import type { CSSProperties } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { WellLogView } from '../components/charts/WellLogView';
-import { Card, CardHeader, CardTitle, CardContent, PageHeader } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, PageHeader, InlineLoader, Button, SearchableSelect } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames } from '../constants/parameterLabels';
-
-const fieldStyle: CSSProperties = {
-  backgroundColor: 'var(--color-surface)',
-  border: '1px solid var(--color-border)',
-  borderRadius: 'var(--radius)',
-  color: 'var(--color-text)',
-  boxShadow: 'none',
-};
 
 export const WellLogsGeneral: React.FC = () => {
   const { data: wells } = useWells();
@@ -34,20 +25,30 @@ export const WellLogsGeneral: React.FC = () => {
   const dataRecords = appliedDatasetId === 'raw' ? rawDepthData?.data ?? [] : (processedDataset?.records ?? []).map((record) => record.data ?? {});
   const isDataLoading = appliedDatasetId === 'raw' ? isRawLoading : isProcessedLoading;
 
-  // Get only the 28 tracked parameters from parameterLabels
   const trackedParams = getAllParameterNames();
-  
+
   const availableParameters = useMemo(() => {
     if (!dataRecords.length) return [] as string[];
     return trackedParams.filter((param) => param in dataRecords[0]);
   }, [dataRecords, trackedParams]);
 
+  const wellOptions = useMemo(
+    () => (wells?.wells ?? []).map((w: any) => ({ value: w.id, label: w.well_name })),
+    [wells],
+  );
+
+  const datasetOptions = useMemo(() => {
+    const opts: Array<{ value: string | number; label: string }> = [{ value: 'raw', label: 'Raw data (original)' }];
+    (datasets ?? []).forEach((d) => opts.push({ value: d.id, label: d.name || `Dataset #${d.id}` }));
+    return opts;
+  }, [datasets]);
+
   return (
     <Layout>
       <div className="space-y-6">
-        <PageHeader 
-          title="Well Logs Viewer" 
-          subtitle="Multi-track well log visualization for any well" 
+        <PageHeader
+          title="Well Logs Viewer"
+          subtitle="Multi-track well log visualization for any well"
         />
 
         <Card>
@@ -55,69 +56,46 @@ export const WellLogsGeneral: React.FC = () => {
             <CardTitle>Select Well</CardTitle>
           </CardHeader>
           <CardContent>
-            <select
-              value={selectedWellId || ''}
-              onChange={e => setSelectedWellId(Number(e.target.value))}
-              className="w-full px-3 py-2 text-sm focus:outline-none"
-              style={fieldStyle}
-            >
-              <option value="">-- Select a well --</option>
-              {wells?.wells?.map((well: any) => (
-                <option key={well.id} value={well.id}>
-                  {well.well_name}
-                </option>
-              ))}
-            </select>
-
-            {selectedWellId && (
-              <div className="mt-6 space-y-3">
-                <div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-                      Dataset
-                    </label>
-                    <select
-                      value={selectedDatasetId === 'raw' ? 'raw' : String(selectedDatasetId)}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setSelectedDatasetId(value === 'raw' ? 'raw' : Number(value));
-                      }}
-                      className="w-full px-3 py-2 text-sm focus:outline-none"
-                      style={fieldStyle}
-                    >
-                      <option value="raw">Raw data (original)</option>
-                      {datasets?.map((dataset) => (
-                        <option key={dataset.id} value={dataset.id}>
-                          {dataset.name || `Dataset #${dataset.id}`}
-                        </option>
-                      ))}
-                    </select>
-                    {isDatasetsLoading && (
-                      <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                        Loading datasets...
-                      </p>
-                    )}
-                    {!isDatasetsLoading && datasets && datasets.length === 0 && (
-                      <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                        No processed datasets available for this well yet.
-                      </p>
-                    )}
-                  </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="relative">
+                  <SearchableSelect
+                    label="Well"
+                    options={wellOptions}
+                    value={selectedWellId}
+                    onChange={(v) => {
+                      setSelectedWellId(Number(v));
+                      setSelectedDatasetId('raw');
+                    }}
+                    placeholder="Select a well"
+                  />
                 </div>
-              </div>
-            )}
 
-            <div className="flex justify-end mt-4">
-              <button
-                onClick={() => {
-                  setAppliedWellId(selectedWellId);
-                  setAppliedDatasetId(selectedDatasetId);
-                }}
-                disabled={!selectedWellId}
-                className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-6 py-2 rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Apply
-              </button>
+                {selectedWellId && (
+                  <div className="relative">
+                    <SearchableSelect
+                      label="Dataset"
+                      options={datasetOptions}
+                      value={selectedDatasetId}
+                      onChange={(v) => setSelectedDatasetId(v === 'raw' ? 'raw' : Number(v))}
+                      placeholder={isDatasetsLoading ? 'Loading datasets...' : 'Select data source'}
+                      disabled={isDatasetsLoading}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => {
+                    setAppliedWellId(selectedWellId);
+                    setAppliedDatasetId(selectedDatasetId);
+                  }}
+                  disabled={!selectedWellId}
+                >
+                  Apply
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -126,7 +104,7 @@ export const WellLogsGeneral: React.FC = () => {
           <Card>
             <CardContent className="py-12">
               <div className="text-center">
-                <p className="text-gray-400 text-lg">Select a well to view logs</p>
+                <p style={{ color: 'var(--color-text-muted)' }}>Select a well to view logs</p>
               </div>
             </CardContent>
           </Card>
@@ -136,8 +114,7 @@ export const WellLogsGeneral: React.FC = () => {
           <Card>
             <CardContent className="py-12">
               <div className="flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-                <p className="ml-4 text-gray-400">Loading well log data...</p>
+                <InlineLoader message="Loading well log data..." />
               </div>
             </CardContent>
           </Card>
@@ -156,7 +133,7 @@ export const WellLogsGeneral: React.FC = () => {
           <Card>
             <CardContent className="py-12">
               <div className="text-center">
-                <p className="text-gray-400 text-lg">
+                <p style={{ color: 'var(--color-text-muted)' }}>
                   {appliedDatasetId === 'raw'
                     ? 'No data available for this well.'
                     : 'This processed dataset has no records to display.'}
@@ -169,4 +146,3 @@ export const WellLogsGeneral: React.FC = () => {
     </Layout>
   );
 };
-

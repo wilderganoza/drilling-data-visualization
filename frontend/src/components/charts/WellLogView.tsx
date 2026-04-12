@@ -411,8 +411,8 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+          <div className="min-w-0">
             <CardTitle>Well Log View</CardTitle>
             <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
               Click and drag vertically to zoom • Double-click to reset
