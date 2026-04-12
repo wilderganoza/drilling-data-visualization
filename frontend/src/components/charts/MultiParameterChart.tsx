@@ -91,6 +91,7 @@ export const MultiParameterChart: React.FC<MultiParameterChartProps> = ({
             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
             <XAxis
               dataKey={xAxisKey}
+              type="number"
               stroke="#9CA3AF"
               tick={{ fill: '#9CA3AF' }}
               tickMargin={14}
