@@ -54,28 +54,28 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
 
   // Transform data for ROP chart using Depth database
   const ropData = depthChartData?.data.map((point) => ({
-    depth: point.hole_depth_feet || point.bit_depth_feet,
+    depth: point.hole_depth_feet ?? point.bit_depth_feet,
     time: point.yyyy_mm_dd,
     rop: point.rate_of_penetration_ft_per_hr,
   })) || [];
 
   const depthTimeData = depthChartData?.data.map((point) => {
     // Combinar YYYY/MM/DD con HH:MM:SS para obtener el timestamp completo
-    const dateStr = point.yyyy_mm_dd || point['YYYY/MM/DD'];
-    const timeStr = point.hh_mm_ss || point['HH:MM:SS'];
+    const dateStr = point.yyyy_mm_dd ?? point['YYYY/MM/DD'];
+    const timeStr = point.hh_mm_ss ?? point['HH:MM:SS'];
     const timestamp = dateStr && timeStr ? `${dateStr} ${timeStr}` : dateStr;
-    
+
     return {
-      time: timestamp || point.yyyy_mm_dd,
-      depth: point.bit_depth_feet || point['Bit Depth (feet)'],
+      time: timestamp ?? point.yyyy_mm_dd,
+      depth: point.bit_depth_feet ?? point['Bit Depth (feet)'],
     };
   }) || [];
 
   const startDate = depthChartData?.data
     ? depthChartData.data
         .map((point) => {
-          const dateStr = point.yyyy_mm_dd || point['YYYY/MM/DD'];
-          const timeStr = point.hh_mm_ss || point['HH:MM:SS'];
+          const dateStr = point.yyyy_mm_dd ?? point['YYYY/MM/DD'];
+          const timeStr = point.hh_mm_ss ?? point['HH:MM:SS'];
           if (!dateStr) return null;
           const candidate = timeStr ? new Date(`${dateStr} ${timeStr}`) : new Date(dateStr);
           return Number.isNaN(candidate.getTime()) ? null : candidate;
@@ -85,11 +85,11 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
     : null;
 
   const multiParamData = depthChartData?.data.map((point) => ({
-    depth: point.hole_depth_feet || point.bit_depth_feet,
-    wob: point['Weight on Bit (klbs)'] || point.weight_on_bit_klbs,
-    rpm: point['Rotary RPM (RPM)'] || point.rotary_rpm_rpm || point.rotary_rpm,
-    pressure: point['Standpipe Pressure (psi)'] || point.standpipe_pressure_psi,
-    hookload: point['Hook Load (klbs)'] || point.hook_load_klbs,
+    depth: point.hole_depth_feet ?? point.bit_depth_feet,
+    wob: point['Weight on Bit (klbs)'] ?? point.weight_on_bit_klbs,
+    rpm: point['Rotary RPM (RPM)'] ?? point.rotary_rpm_rpm ?? point.rotary_rpm,
+    pressure: point['Standpipe Pressure (psi)'] ?? point.standpipe_pressure_psi,
+    hookload: point['Hook Load (klbs)'] ?? point.hook_load_klbs,
   })) || [];
 
   const availableParameters = [

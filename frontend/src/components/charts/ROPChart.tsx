@@ -46,10 +46,10 @@ export const ROPChart: React.FC<ROPChartProps> = ({
   };
 
   // Calculate 10 evenly spaced ticks for X axis
-  const xValues = data.map(d => d[xAxisKey]).filter(v => v != null);
-  const minX = Math.min(...xValues);
-  const maxX = Math.max(...xValues);
-  const step = (maxX - minX) / 9; // 9 intervals = 10 ticks
+  const xValues = data.map(d => Number(d[xAxisKey])).filter(v => Number.isFinite(v));
+  const minX = xValues.length ? Math.min(...xValues) : 0;
+  const maxX = xValues.length ? Math.max(...xValues) : 0;
+  const step = maxX > minX ? (maxX - minX) / 9 : 1; // 9 intervals = 10 ticks
   const xTicks = Array.from({ length: 10 }, (_, i) => Math.round(minX + step * i));
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -71,15 +71,14 @@ export const ROPChart: React.FC<ROPChartProps> = ({
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between w-full">
-          <CardTitle>{title}</CardTitle>
-          <Button
-            onClick={handleDownloadData}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 text-sm"
-          >
-            Export
-          </Button>
-        </div>
+        <CardTitle>{title}</CardTitle>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleDownloadData}
+        >
+          Export
+        </Button>
       </CardHeader>
       <CardContent className="pb-6">
         <ResponsiveContainer width="100%" height={height}>
