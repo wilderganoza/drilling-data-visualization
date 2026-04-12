@@ -55,7 +55,6 @@ export const ChartsGallery: React.FC = () => {
   const isLoading = appliedDatasetId === 'raw' ? isRawLoading : isProcessedLoading;
 
   const handleApply = () => {
-    setIsGenerating(true);
     setAppliedWellId(selectedWellId);
     setAppliedDatasetId(selectedDatasetId);
     setAppliedXParameter(xParameter);
