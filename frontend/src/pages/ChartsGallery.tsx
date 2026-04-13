@@ -29,6 +29,7 @@ export const ChartsGallery: React.FC = () => {
   const [yScale, setYScale] = useState<'linear' | 'log'>('linear');
   const [maxPoints, setMaxPoints] = useState<number>(1000);
   const [showTrendLine, setShowTrendLine] = useState<boolean>(false);
+  const [includeZeros, setIncludeZeros] = useState<boolean>(true);
 
   const [appliedWellId, setAppliedWellId] = useState<number | null>(null);
   const [appliedDatasetId, setAppliedDatasetId] = useState<'raw' | number>('raw');
@@ -38,6 +39,7 @@ export const ChartsGallery: React.FC = () => {
   const [appliedYScale, setAppliedYScale] = useState<'linear' | 'log'>('linear');
   const [appliedMaxPoints, setAppliedMaxPoints] = useState<number>(1000);
   const [appliedShowTrendLine, setAppliedShowTrendLine] = useState<boolean>(false);
+  const [appliedIncludeZeros, setAppliedIncludeZeros] = useState<boolean>(true);
 
   const { data: datasets, isLoading: datasetsLoading } = useOutlierDatasets(selectedWellId);
   const { data: rawDepthData, isLoading: isRawLoading } = useDepthSampleData(
@@ -63,6 +65,7 @@ export const ChartsGallery: React.FC = () => {
     setAppliedYScale(yScale);
     setAppliedMaxPoints(maxPoints);
     setAppliedShowTrendLine(showTrendLine);
+    setAppliedIncludeZeros(includeZeros);
   };
 
   const trackedParams = getAllParameterNames();
@@ -175,18 +178,38 @@ export const ChartsGallery: React.FC = () => {
                 </div>
               </div>
 
-              <label
-                className="flex items-center gap-2 text-sm cursor-pointer"
-                style={{ color: 'var(--color-text)' }}
-              >
-                <input
-                  type="checkbox"
-                  checked={showTrendLine}
-                  onChange={e => setShowTrendLine(e.target.checked)}
-                  style={{ accentColor: 'var(--color-primary)' }}
-                />
-                Show trend line
-              </label>
+              <div className="flex flex-wrap items-center gap-6">
+                <label
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                  style={{ color: 'var(--color-text)' }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={showTrendLine}
+                    onChange={e => setShowTrendLine(e.target.checked)}
+                    style={{ accentColor: 'var(--color-primary)' }}
+                  />
+                  Show trend line
+                </label>
+
+                <label
+                  className="flex items-center gap-2 text-sm"
+                  style={{
+                    color: xScale === 'log' || yScale === 'log' ? 'var(--color-text-muted)' : 'var(--color-text)',
+                    cursor: xScale === 'log' || yScale === 'log' ? 'not-allowed' : 'pointer',
+                    opacity: xScale === 'log' || yScale === 'log' ? 0.5 : 1,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={xScale === 'log' || yScale === 'log' ? true : includeZeros}
+                    onChange={e => setIncludeZeros(e.target.checked)}
+                    disabled={xScale === 'log' || yScale === 'log'}
+                    style={{ accentColor: 'var(--color-primary)' }}
+                  />
+                  Include zeros
+                </label>
+              </div>
 
               <div className="flex justify-end">
                 <Button onClick={handleApply} disabled={!selectedWellId}>
@@ -256,6 +279,7 @@ export const ChartsGallery: React.FC = () => {
                 yScale={appliedYScale}
                 maxPoints={appliedMaxPoints}
                 interactive={false}
+                includeZeros={appliedIncludeZeros}
               />
             </CardContent>
           </Card>

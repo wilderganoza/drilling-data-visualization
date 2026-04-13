@@ -28,6 +28,7 @@ interface ScatterPlotProps {
   yScale?: 'linear' | 'log'; // Escala del eje Y
   maxPoints?: number; // Máximo de puntos a mostrar
   interactive?: boolean; // Habilitar interactividad
+  includeZeros?: boolean; // Incluir puntos con valor 0
 }
 
 // Interfaz de props para tooltip personalizado
@@ -80,6 +81,7 @@ export const ScatterPlot: React.FC<ScatterPlotProps> = ({
   yScale = 'linear', // Escala lineal por defecto para Y
   maxPoints = 10000, // Máximo 10000 puntos por defecto
   interactive = true, // Interactivo por defecto
+  includeZeros = true, // Incluir ceros por defecto
 }) => {
   // Filtrar datos válidos para el gráfico
   const plotData = data.filter((d) => {
@@ -94,6 +96,11 @@ export const ScatterPlot: React.FC<ScatterPlotProps> = ({
     // Si la escala es logarítmica, validar valores positivos
     if (xScale === 'log' && x <= 0) return false;
     if (yScale === 'log' && y <= 0) return false;
+
+    // Filtrar ceros si no se deben incluir (solo en escala lineal)
+    if (!includeZeros) {
+      if ((xScale !== 'log' && x === 0) || (yScale !== 'log' && y === 0)) return false;
+    }
 
     return true;
   });
