@@ -116,16 +116,32 @@ export const ScatterPlot: React.FC<ScatterPlotProps> = ({
   const xValues = sampledPlotData.map((d) => d[xKey] as number);
   const yValues = sampledPlotData.map((d) => d[yKey] as number);
 
-  // Calcular dominio para escala logarítmica en X
+  // Generate logarithmic ticks (powers of 10) for an axis
+  const getLogTicks = (values: number[]): number[] => {
+    if (values.length === 0) return [];
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const minExp = Math.floor(Math.log10(min));
+    const maxExp = Math.ceil(Math.log10(max));
+    const ticks: number[] = [];
+    for (let exp = minExp; exp <= maxExp; exp++) {
+      ticks.push(Math.pow(10, exp));
+    }
+    return ticks;
+  };
+
+  // Calcular dominio y ticks para escala logarítmica en X
+  const xLogTicks = xScale === 'log' ? getLogTicks(xValues) : undefined;
   const xDomainLog: [number, number] | undefined =
-    xScale === 'log' && xValues.length > 0
-      ? [Math.min(...xValues), Math.max(...xValues)]
+    xScale === 'log' && xLogTicks && xLogTicks.length > 0
+      ? [xLogTicks[0], xLogTicks[xLogTicks.length - 1]]
       : undefined;
 
-  // Calcular dominio para escala logarítmica en Y
+  // Calcular dominio y ticks para escala logarítmica en Y
+  const yLogTicks = yScale === 'log' ? getLogTicks(yValues) : undefined;
   const yDomainLog: [number, number] | undefined =
-    yScale === 'log' && yValues.length > 0
-      ? [Math.min(...yValues), Math.max(...yValues)]
+    yScale === 'log' && yLogTicks && yLogTicks.length > 0
+      ? [yLogTicks[0], yLogTicks[yLogTicks.length - 1]]
       : undefined;
 
   // Función para calcular línea de tendencia (regresión lineal)
@@ -196,6 +212,8 @@ export const ScatterPlot: React.FC<ScatterPlotProps> = ({
             tick={{ fill: '#9CA3AF' }}
             scale={xScale === 'log' ? 'log' : 'auto'}
             domain={xScale === 'log' ? xDomainLog || ['auto', 'auto'] : undefined}
+            ticks={xLogTicks}
+            allowDecimals
             label={{
               value: xLabel || xKey,
               position: 'insideBottom',
@@ -212,6 +230,8 @@ export const ScatterPlot: React.FC<ScatterPlotProps> = ({
             tick={{ fill: '#9CA3AF' }}
             scale={yScale === 'log' ? 'log' : 'auto'}
             domain={yScale === 'log' ? yDomainLog || ['auto', 'auto'] : undefined}
+            ticks={yLogTicks}
+            allowDecimals
             label={{
               value: yLabel || yKey,
               angle: -90,
