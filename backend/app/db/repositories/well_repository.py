@@ -158,10 +158,12 @@ class WellRepository:
         Returns:
             List of matching Well objects
         """
+        # Escapar comodines de LIKE para que el término se busque literal
+        escaped_term = search_term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         # Crear consulta SELECT con filtro LIKE para búsqueda parcial
         query = select(Well).where(
             # Buscar nombres que contengan el término de búsqueda
-            Well.well_name.like(f"%{search_term}%")
+            Well.well_name.like(f"%{escaped_term}%", escape="\\")
         # Limitar número de resultados
         ).limit(limit)
         # Ejecutar consulta en la sesión de BD

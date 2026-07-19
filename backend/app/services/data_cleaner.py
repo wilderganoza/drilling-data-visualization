@@ -54,12 +54,16 @@ class DataCleaner:
             
             # Calcular desviación estándar
             std = df[column].std()
-            
-            # Calcular z-scores absolutos
-            z_scores = np.abs((df[column] - mean) / std)
-            
-            # Filtrar datos con z-score menor o igual al umbral
-            df_clean = df[z_scores <= threshold]
+
+            # Con desviación cero o indefinida no hay outliers que remover
+            if not std or np.isnan(std):
+                df_clean = df
+            else:
+                # Calcular z-scores absolutos
+                z_scores = np.abs((df[column] - mean) / std)
+
+                # Filtrar datos con z-score menor o igual al umbral
+                df_clean = df[z_scores <= threshold]
             
         # Método de percentiles
         elif method == 'percentile':
@@ -85,10 +89,12 @@ class DataCleaner:
         
         # Calcular cantidad de registros removidos
         removed_count = original_count - len(df_clean)
+        # Calcular porcentaje removido (0 si el DataFrame estaba vacío)
+        removed_pct = removed_count / original_count * 100 if original_count else 0.0
         # Registrar en log la operación
         logger.info(
             f"Removed {removed_count} outliers from '{column}' "
-            f"using {method} method ({removed_count/original_count*100:.2f}%)"
+            f"using {method} method ({removed_pct:.2f}%)"
         )
         
         # Retornar DataFrame limpio
@@ -139,10 +145,10 @@ class DataCleaner:
             df_filled[column] = df_filled[column].interpolate(method='linear', limit_direction='both')
         # Método de llenado hacia adelante
         elif method == 'forward':
-            df_filled[column] = df_filled[column].fillna(method='ffill')
+            df_filled[column] = df_filled[column].ffill()
         # Método de llenado hacia atrás
         elif method == 'backward':
-            df_filled[column] = df_filled[column].fillna(method='bfill')
+            df_filled[column] = df_filled[column].bfill()
         # Llenar con la media
         elif method == 'mean':
             df_filled[column] = df_filled[column].fillna(df[column].mean())

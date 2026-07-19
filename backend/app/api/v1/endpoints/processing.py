@@ -317,7 +317,14 @@ async def interpolate_data(
             # Si no hay columna de profundidad, error
             else:
                 raise HTTPException(status_code=400, detail="Cannot determine depth range")
-        
+
+        # Validar que la grilla de profundidades no quedó vacía
+        if not target_depths:
+            raise HTTPException(
+                status_code=400,
+                detail="Target depth grid is empty; check min/max depth and depth step"
+            )
+
         # Interpolar datos a las profundidades objetivo
         df_interpolated = TimeDepthInterpolator.interpolate_to_depth(
             # DataFrame original
@@ -578,15 +585,19 @@ async def get_quality_report(
         
         # Total de celdas en el DataFrame
         total_cells = len(df) * len(all_numeric_cols)
-        
+
         # Total de celdas con valores faltantes
         missing_cells = sum(missing_values.values())
-        
+
         # Total de celdas con outliers
         outlier_cells = sum(outliers_detected.values())
-        
+
         # Calcular score: 100 - (penalización por faltantes) - (penalización por outliers)
-        quality_score = max(0, 100 - (missing_cells / total_cells * 50) - (outlier_cells / total_cells * 50))
+        # Sin celdas numéricas no hay nada que penalizar
+        if total_cells > 0:
+            quality_score = max(0, 100 - (missing_cells / total_cells * 50) - (outlier_cells / total_cells * 50))
+        else:
+            quality_score = 100.0
         
         # Retornar reporte de calidad de datos
         return DataQualityReport(

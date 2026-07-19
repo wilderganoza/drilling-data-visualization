@@ -24,7 +24,7 @@ from sklearn.preprocessing import (
 
 from app.core.config import settings
 from app.core.logging import get_logger
-from app.db.models import ProcessedDataset
+from app.db.models import ProcessedDataset, utcnow
 from app.db.repositories.data_repository import DataRepository
 from app.db.repositories.processed_dataset_repository import ProcessedDatasetRepository
 from app.schemas.outliers import (
@@ -160,7 +160,7 @@ class OutlierDetectionService:
                         metrics=None,
                         record_count=None,
                         status="processing",
-                        updated_at=datetime.utcnow(),
+                        updated_at=utcnow(),
                     )
                 )
                 self.session.flush()
@@ -551,6 +551,8 @@ class OutlierDetectionService:
             return (z_scores > threshold).any(axis=1)
 
         if method == OutlierMethod.iqr:
+            if values.size == 0:
+                return np.zeros(0, dtype=bool)
             multiplier = float(params.pop("multiplier", 1.5))
             q1 = np.percentile(values, 25, axis=0)
             q3 = np.percentile(values, 75, axis=0)
@@ -674,7 +676,7 @@ class OutlierDetectionService:
 
     @staticmethod
     def _generate_dataset_name(request: OutlierDetectionRequest) -> str:
-        timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+        timestamp = utcnow().strftime("%Y%m%d-%H%M%S")
         return f"{request.outlier.method.value}-{timestamp}"
 
     def _to_summary(self, dataset: ProcessedDataset) -> ProcessedDatasetSummary:

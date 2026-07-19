@@ -100,7 +100,7 @@ class TimeDepthInterpolator:
                     valid_depths, valid_values,
                     kind=method_used,
                     bounds_error=False,
-                    fill_value='extrapolate'
+                    fill_value=np.nan  # NaN fuera del rango medido: no inventar valores extrapolados
                 )
                 
                 # Interpolar a profundidades objetivo
@@ -224,7 +224,7 @@ class TimeDepthInterpolator:
                     valid_times, valid_values,
                     kind=method_used,
                     bounds_error=False,
-                    fill_value='extrapolate'
+                    fill_value=np.nan  # NaN fuera del rango medido: no inventar valores extrapolados
                 )
                 
                 # Interpolar a tiempos objetivo
@@ -337,6 +337,14 @@ class TimeDepthInterpolator:
         Returns:
             List of depth values
         """
+        # Validar rango y paso antes de crear la grilla
+        if step <= 0:
+            logger.error(f"Invalid depth step: {step}, must be positive")
+            return []
+        if min_depth > max_depth:
+            logger.error(f"Invalid depth range: min ({min_depth}) > max ({max_depth})")
+            return []
+
         # Crear array de profundidades con numpy.arange
         depths = np.arange(min_depth, max_depth + step, step)
         # Registrar en log la operación
