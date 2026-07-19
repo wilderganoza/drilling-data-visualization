@@ -57,7 +57,6 @@ export const Histogram: React.FC<HistogramProps> = ({
   xLabel = 'Value', // Etiqueta por defecto del eje X
   yLabel = 'Frequency', // Etiqueta por defecto del eje Y
   title,
-  color = '#3B82F6', // Color azul por defecto
   height = 400, // Altura por defecto: 400px
 }) => {
   // Función para calcular el histograma
@@ -128,7 +127,8 @@ export const Histogram: React.FC<HistogramProps> = ({
           <XAxis
             dataKey="range"
             stroke="#9CA3AF"
-            tick={{ fill: '#9CA3AF', fontSize: 10, angle: -45, textAnchor: 'end' }}
+            tick={{ fill: '#9CA3AF', fontSize: 10, textAnchor: 'end' }}
+            angle={-45}
             height={80}
             label={{
               value: xLabel,

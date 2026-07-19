@@ -57,7 +57,6 @@ export const MultiWellComparison: React.FC<MultiWellComparisonProps> = ({
   xKey,
   yKey,
   xLabel,
-  yLabel,
   title,
   height = 500,
   invertYAxis = false,

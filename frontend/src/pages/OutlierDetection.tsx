@@ -33,6 +33,7 @@ import type {
 } from '../api/endpoints/outliers';
 import { useAppStore } from '../store/appStore';
 import { getParameterLabel } from '../constants/parameterLabels';
+import { minMax as computeMinMax } from '../utils/stats';
 import {
   Area,
   AreaChart,
@@ -40,7 +41,6 @@ import {
   BarChart,
   CartesianGrid,
   ComposedChart,
-  Legend,
   Line,
   ReferenceArea,
   ReferenceLine,
@@ -50,7 +50,6 @@ import {
   Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
-  type TooltipProps,
 } from 'recharts';
 
 const fieldStyle: CSSProperties = {
@@ -121,7 +120,7 @@ const formatPercent = (value: number) => {
   return value >= 10 ? `${Math.round(value)}%` : `${value.toFixed(1)}%`;
 };
 
-const BoxPlotTooltip: React.FC<TooltipProps<number, string>> = ({ active, payload }) => {
+const BoxPlotTooltip: React.FC<{ active?: boolean; payload?: Array<{ payload?: unknown }> }> = ({ active, payload }) => {
   if (!active || !payload?.length) {
     return null;
   }
@@ -326,8 +325,11 @@ const computeHistogramBins = (entries: ValueEntry[], requestedBins = 12): Histog
   }
 
   const values = entries.map((entry) => entry.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const valueRange = computeMinMax(values);
+  if (!valueRange) {
+    return [];
+  }
+  const { min, max } = valueRange;
 
   if (min === max) {
     const outliers = entries.filter((entry) => entry.isOutlier).length;
@@ -387,12 +389,11 @@ const buildDensityComparisonBins = (
     return [];
   }
 
-  const min = Math.min(...preValues, ...postValues);
-  const max = Math.max(...preValues, ...postValues);
-
-  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+  const combinedRange = computeMinMax([...preValues, ...postValues]);
+  if (!combinedRange) {
     return [];
   }
+  const { min, max } = combinedRange;
 
   if (min === max) {
     return [
@@ -436,21 +437,6 @@ const buildDensityComparisonBins = (
   });
 };
 
-const computeScaledValue = (method: ScalingConfig['method'], value: number, stats: ScalingStats) => {
-  switch (method) {
-    case 'standard':
-      return stats.std > 0 ? (value - stats.mean) / stats.std : 0;
-    case 'minmax':
-      return stats.range > 0 ? (value - stats.min) / stats.range : 0;
-    case 'robust':
-      return stats.iqr > 0 ? (value - stats.median) / stats.iqr : 0;
-    case 'maxabs':
-      return stats.maxAbs > 0 ? value / stats.maxAbs : 0;
-    default:
-      return value;
-  }
-};
-
 const varianceTooltipFormatter = (
   value: number | string | (number | string)[] | undefined,
 ): [string, string] => {
@@ -465,392 +451,6 @@ const varianceTooltipFormatter = (
 
 const varianceLabelFormatter = (label: string | number | React.ReactNode): string =>
   `Component ${String(label ?? '')}`;
-
-const isFiniteNumber = (value: unknown): value is number =>
-  typeof value === 'number' && Number.isFinite(value);
-
-const buildScalingPreviewData = (
-  sample: Array<Record<string, unknown>>,
-  variables: string[],
-  scalingMethod: ScalingConfig['method'],
-): ScalingPreviewData => {
-  if (!sample.length) {
-    throw new Error('Sample data is empty. Try reloading the well.');
-  }
-
-  if (variables.length === 0) {
-    throw new Error('Select at least one numeric variable before calculating.');
-  }
-
-  const stats: Record<string, ScalingStats> = {};
-  const valueMap = new Map<string, number[]>();
-  variables.forEach((variable) => valueMap.set(variable, []));
-
-  sample.forEach((row) => {
-    variables.forEach((variable) => {
-      const value = row?.[variable];
-      if (isFiniteNumber(value)) {
-        valueMap.get(variable)?.push(value);
-      }
-    });
-  });
-
-  let variablesWithData = 0;
-
-  valueMap.forEach((values, variable) => {
-    if (!values.length) {
-      return;
-    }
-
-    const sorted = [...values].sort((a, b) => a - b);
-    const min = sorted[0];
-    const max = sorted[sorted.length - 1];
-    const range = max - min;
-    const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
-    const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
-    const std = Math.sqrt(variance);
-    const median = computeQuantile(sorted, 0.5);
-    const q1 = computeQuantile(sorted, 0.25);
-    const q3 = computeQuantile(sorted, 0.75);
-    const iqr = q3 - q1;
-    const maxAbs = Math.max(...values.map((value) => Math.abs(value)));
-
-    stats[variable] = {
-      min,
-      max,
-      range,
-      mean,
-      std,
-      median,
-      iqr,
-      maxAbs,
-      q1,
-      q3,
-    };
-
-    variablesWithData += 1;
-  });
-
-  if (variablesWithData === 0) {
-    throw new Error('The selected variables do not contain numeric values in the sampled rows.');
-  }
-
-  const rows: ScalingPreviewRow[] = sample.map((row, index) => {
-    const raw: Record<string, number | null> = {};
-    const scaled: Record<string, number | null> = {};
-
-    variables.forEach((variable) => {
-      const rawValue = row?.[variable];
-      if (isFiniteNumber(rawValue)) {
-        raw[variable] = rawValue;
-        const statsForVariable = stats[variable];
-        scaled[variable] = statsForVariable
-          ? computeScaledValue(scalingMethod, rawValue, statsForVariable)
-          : rawValue;
-      } else {
-        raw[variable] = null;
-        scaled[variable] = null;
-      }
-    });
-
-    return {
-      index: index + 1,
-      raw,
-      scaled,
-    };
-  });
-
-  const rawMatrix: number[][] = [];
-  const scaledMatrix: number[][] = [];
-  const numericRowIndices: number[] = [];
-
-  rows.forEach((row, index) => {
-    const rawValues = variables.map((variable) => row.raw[variable]);
-    if (rawValues.every((value): value is number => typeof value === 'number')) {
-      rawMatrix.push(rawValues);
-      scaledMatrix.push(variables.map((variable) => row.scaled[variable] as number));
-      numericRowIndices.push(index);
-    }
-  });
-
-  return {
-    rows,
-    stats,
-    totalRows: sample.length,
-    variableOrder: variables.slice(),
-    rawMatrix,
-    scaledMatrix,
-    numericRowIndices,
-  };
-};
-
-const dotProduct = (left: number[], right: number[]) =>
-  left.reduce((sum, value, index) => sum + value * (right[index] ?? 0), 0);
-
-const matrixVectorMultiply = (matrix: number[][], vector: number[]) =>
-  matrix.map((row) => dotProduct(row, vector));
-
-const vectorNorm = (vector: number[]) => Math.sqrt(dotProduct(vector, vector));
-
-const normalizeVector = (vector: number[]) => {
-  const norm = vectorNorm(vector);
-  if (!Number.isFinite(norm) || norm === 0) {
-    return vector.map(() => 0);
-  }
-  return vector.map((value) => value / norm);
-};
-
-const computePrincipalEigenvector = (matrix: number[][], iterations = 200) => {
-  const size = matrix.length;
-  let vector = normalizeVector(Array.from({ length: size }, (_, index) => (index % 2 === 0 ? 1 : 0.5)));
-  if (vector.every((value) => value === 0)) {
-    vector = normalizeVector(Array.from({ length: size }, () => 1));
-  }
-
-  for (let index = 0; index < iterations; index += 1) {
-    const multiplied = matrixVectorMultiply(matrix, vector);
-    const normalized = normalizeVector(multiplied);
-    if (normalized.every((value) => value === 0)) {
-      break;
-    }
-    vector = normalized;
-  }
-
-  const multiplied = matrixVectorMultiply(matrix, vector);
-  const eigenvalue = dotProduct(vector, multiplied);
-
-  return {
-    eigenvalue: Number.isFinite(eigenvalue) ? eigenvalue : 0,
-    eigenvector: vector,
-  };
-};
-
-const buildPcaPreviewData = (
-  scalingData: ScalingPreviewData,
-  pca: PCAConfig,
-): PcaPreviewData => {
-  if (scalingData.scaledMatrix.length < 2) {
-    throw new Error('At least two numeric rows are required to calculate PCA preview.');
-  }
-
-  const featureCount = scalingData.variableOrder.length;
-  if (featureCount === 0) {
-    throw new Error('Select at least one numeric variable before calculating PCA.');
-  }
-
-  const maxComponents = Math.min(featureCount, scalingData.scaledMatrix.length);
-  const requestedComponents = pca.n_components ?? maxComponents;
-  const componentCount = Math.max(1, Math.min(maxComponents, requestedComponents));
-
-  const means = Array.from({ length: featureCount }, (_, column) =>
-    scalingData.scaledMatrix.reduce((sum, row) => sum + (row[column] ?? 0), 0) / scalingData.scaledMatrix.length,
-  );
-
-  const centered = scalingData.scaledMatrix.map((row) =>
-    row.map((value, column) => value - means[column]),
-  );
-
-  const denominator = Math.max(1, centered.length - 1);
-  const covariance = Array.from({ length: featureCount }, (_, row) =>
-    Array.from({ length: featureCount }, (_, column) =>
-      centered.reduce((sum, values) => sum + values[row] * values[column], 0) / denominator,
-    ),
-  );
-
-  const totalVariance = covariance.reduce((sum, row, index) => sum + (row[index] ?? 0), 0);
-  const working = covariance.map((row) => row.slice());
-  const eigenvalues: number[] = [];
-  const eigenvectors: number[][] = [];
-
-  for (let component = 0; component < componentCount; component += 1) {
-    const { eigenvalue, eigenvector } = computePrincipalEigenvector(working);
-    const safeEigenvalue = eigenvalue > 0 ? eigenvalue : 0;
-
-    eigenvalues.push(safeEigenvalue);
-    eigenvectors.push(eigenvector);
-
-    for (let row = 0; row < featureCount; row += 1) {
-      for (let column = 0; column < featureCount; column += 1) {
-        working[row][column] -= safeEigenvalue * eigenvector[row] * eigenvector[column];
-      }
-    }
-  }
-
-  const scores = centered.map((row, rowIndex) => {
-    const components = eigenvectors.map((vector, componentIndex) => {
-      const projection = dotProduct(row, vector);
-      if (pca.whiten) {
-        const eigenvalue = eigenvalues[componentIndex];
-        return eigenvalue > 1e-12 ? projection / Math.sqrt(eigenvalue) : 0;
-      }
-      return projection;
-    });
-    return {
-      index: scalingData.numericRowIndices[rowIndex] + 1,
-      components,
-    };
-  });
-
-  const explainedVariance = eigenvalues.map((value) => Math.max(0, value));
-  const explainedVarianceRatio = explainedVariance.map((value) =>
-    totalVariance > 0 ? value / totalVariance : 0,
-  );
-  const componentLabels = explainedVariance.map((_, index) => `PC${index + 1}`);
-
-  return {
-    componentLabels,
-    explainedVariance,
-    explainedVarianceRatio,
-    scores,
-  };
-};
-
-const clamp = (value: number, min: number, max: number) =>
-  Math.min(max, Math.max(min, value));
-
-const euclideanDistance = (left: number[], right: number[]) =>
-  Math.sqrt(left.reduce((sum, value, index) => sum + (value - (right[index] ?? 0)) ** 2, 0));
-
-const buildOutlierPreviewData = (
-  scalingData: ScalingPreviewData,
-  outlier: OutlierConfig,
-  pcaData?: PcaPreviewData | null,
-): OutlierPreviewData => {
-  const useComponents = Boolean(pcaData?.scores?.length);
-  const featureMatrix = useComponents
-    ? (pcaData?.scores.map((row) => row.components) ?? [])
-    : scalingData.scaledMatrix;
-
-  if (featureMatrix.length < 3) {
-    throw new Error('At least three numeric rows are required to preview outlier detection.');
-  }
-
-  const rowCount = featureMatrix.length;
-  const dimensions = featureMatrix[0]?.length ?? 0;
-  if (dimensions === 0) {
-    throw new Error('No numeric dimensions available for outlier detection preview.');
-  }
-
-  const method = outlier.method;
-  const scores = Array.from({ length: rowCount }, () => 0);
-  const flags = Array.from({ length: rowCount }, () => false);
-  let thresholdValue: number | undefined;
-
-  if (method === 'dbscan') {
-    const eps = Math.max(1e-6, Number(outlier.params?.eps ?? 0.5));
-    const minSamples = Math.max(1, Math.round(Number(outlier.params?.min_samples ?? 5)));
-
-    for (let row = 0; row < rowCount; row += 1) {
-      let neighbors = 0;
-      for (let column = 0; column < rowCount; column += 1) {
-        if (row === column) continue;
-        if (euclideanDistance(featureMatrix[row], featureMatrix[column]) <= eps) {
-          neighbors += 1;
-        }
-      }
-      scores[row] = neighbors;
-      flags[row] = neighbors < minSamples;
-    }
-    thresholdValue = minSamples;
-  } else if (method === 'zscore') {
-    const means = Array.from({ length: dimensions }, (_, dim) =>
-      featureMatrix.reduce((sum, row) => sum + row[dim], 0) / rowCount,
-    );
-    const stds = Array.from({ length: dimensions }, (_, dim) => {
-      const variance =
-        featureMatrix.reduce((sum, row) => sum + (row[dim] - means[dim]) ** 2, 0) /
-        Math.max(1, rowCount - 1);
-      return Math.sqrt(variance);
-    });
-    const threshold = Math.max(0.1, Number(outlier.params?.threshold ?? 3));
-    thresholdValue = threshold;
-
-    for (let row = 0; row < rowCount; row += 1) {
-      const maxAbsZ = featureMatrix[row].reduce((max, value, dim) => {
-        const std = stds[dim];
-        const z = std > 1e-12 ? Math.abs((value - means[dim]) / std) : 0;
-        return Math.max(max, z);
-      }, 0);
-      scores[row] = maxAbsZ;
-      flags[row] = maxAbsZ > threshold;
-    }
-  } else if (method === 'iqr') {
-    const multiplier = Math.max(0.1, Number(outlier.params?.multiplier ?? 1.5));
-    thresholdValue = multiplier;
-
-    const fences = Array.from({ length: dimensions }, (_, dim) => {
-      const sorted = featureMatrix.map((row) => row[dim]).sort((a, b) => a - b);
-      const q1 = computeQuantile(sorted, 0.25);
-      const q3 = computeQuantile(sorted, 0.75);
-      const iqr = q3 - q1;
-      return {
-        lower: q1 - multiplier * iqr,
-        upper: q3 + multiplier * iqr,
-      };
-    });
-
-    for (let row = 0; row < rowCount; row += 1) {
-      let violations = 0;
-      for (let dim = 0; dim < dimensions; dim += 1) {
-        const value = featureMatrix[row][dim];
-        if (value < fences[dim].lower || value > fences[dim].upper) {
-          violations += 1;
-        }
-      }
-      scores[row] = violations;
-      flags[row] = violations > 0;
-    }
-  } else {
-    const contamination = clamp(Number(outlier.params?.contamination ?? 0.05), 0.001, 0.49);
-    const neighbors =
-      method === 'local_outlier_factor'
-        ? Math.max(2, Math.round(Number(outlier.params?.n_neighbors ?? 20)))
-        : Math.max(2, Math.round(Math.sqrt(rowCount)));
-
-    for (let row = 0; row < rowCount; row += 1) {
-      const distances: number[] = [];
-      for (let column = 0; column < rowCount; column += 1) {
-        if (row === column) continue;
-        distances.push(euclideanDistance(featureMatrix[row], featureMatrix[column]));
-      }
-      distances.sort((a, b) => a - b);
-      const nearest = distances.slice(0, Math.min(neighbors, distances.length));
-      const meanDistance =
-        nearest.reduce((sum, value) => sum + value, 0) / Math.max(1, nearest.length);
-      scores[row] = meanDistance;
-    }
-
-    const sortedScores = [...scores].sort((a, b) => a - b);
-    const cutoffIndex = Math.max(0, Math.floor((1 - contamination) * (sortedScores.length - 1)));
-    const scoreThreshold = sortedScores[cutoffIndex] ?? sortedScores[sortedScores.length - 1] ?? 0;
-    thresholdValue = scoreThreshold;
-    for (let row = 0; row < rowCount; row += 1) {
-      flags[row] = scores[row] >= scoreThreshold;
-    }
-  }
-
-  const rows: OutlierPreviewRow[] = scalingData.numericRowIndices.map((sourceIndex, row) => ({
-    index: sourceIndex + 1,
-    score: scores[row] ?? 0,
-    isOutlier: flags[row] ?? false,
-    raw: scalingData.rows[sourceIndex]?.raw ?? {},
-    scaled: scalingData.rows[sourceIndex]?.scaled ?? {},
-    components: pcaData?.scores[row]?.components,
-  }));
-
-  return {
-    method,
-    rows,
-    totalRows: rows.length,
-    outlierCount: rows.filter((item) => item.isOutlier).length,
-    threshold: thresholdValue,
-    contamination:
-      typeof outlier.params?.contamination === 'number'
-        ? Number(outlier.params.contamination)
-        : undefined,
-    componentLabels: pcaData?.componentLabels,
-  };
-};
 
 type WizardStepKey = 'well' | 'variables' | 'scaling' | 'pca' | 'outlier' | 'review';
 
@@ -1452,7 +1052,7 @@ export const OutlierDetection: React.FC = () => {
     if (hydratedDatasetIdRef.current === selectedDatasetId) {
       return;
     }
-    const metrics = datasetDetail.metrics ?? {};
+    const metrics = (datasetDetail.metrics ?? {}) as Record<string, unknown>;
     const variables = (metrics.variables as string[] | undefined) ?? selectedVariables;
     if (variables.length === 0) {
       return;
@@ -1923,38 +1523,6 @@ export const OutlierDetection: React.FC = () => {
     if (!datasetData) return 0;
     return Math.max(1, Math.ceil(datasetData.total_records / datasetData.page_size));
   }, [datasetData]);
-
-  const varianceChartData = useMemo(() => {
-    const ratios = datasetDetail?.metrics?.explained_variance_ratio ?? [];
-    const labels = datasetDetail?.metrics?.pca_component_labels ?? [];
-    return ratios.map((value, index) => ({
-      component: labels[index] ?? `PC${index + 1}`,
-      percentage: value * 100,
-    }));
-  }, [datasetDetail]);
-
-  const scatterData = useMemo(() => {
-    if (!datasetData?.records?.length) return [] as Array<Record<string, unknown>>;
-    const labels = datasetDetail?.metrics?.pca_component_labels;
-    if (!labels || labels.length < 2) return [] as Array<Record<string, unknown>>;
-    const [xKey, yKey] = labels;
-    return datasetData.records
-      .map((record, index) => {
-        const components = record.components ?? {};
-        const x = components?.[xKey];
-        const y = components?.[yKey];
-        if (typeof x !== 'number' || typeof y !== 'number') {
-          return null;
-        }
-        return {
-          id: record.source_record_id ?? `row-${datasetData.page}:${index}`,
-          x,
-          y,
-          is_outlier: record.is_outlier,
-        };
-      })
-      .filter((point): point is { id: number | string; x: number; y: number; is_outlier: boolean } => point !== null);
-  }, [datasetData, datasetDetail]);
 
   const renderDataPreview = () => {
     if (!datasetData) {
@@ -2778,7 +2346,7 @@ export const OutlierDetection: React.FC = () => {
                       { value: 'arpack', label: 'ARPACK' },
                       { value: 'randomized', label: 'Randomized' },
                     ]}
-                    value={pcaConfig.svd_solver}
+                    value={pcaConfig.svd_solver ?? 'auto'}
                     onChange={(v) => setPcaConfig((prev) => ({ ...prev, svd_solver: String(v) as PCAConfig['svd_solver'] }))}
                   />
 
@@ -3381,66 +2949,6 @@ export const OutlierDetection: React.FC = () => {
         return null;
     }
   };
-
-  const variableDiagnostics = useMemo<VariableDiagnostics[]>(() => {
-    if (!datasetData?.records?.length) {
-      return [];
-    }
-
-    const baseVariables = datasetDetail?.metrics?.variables ?? selectedVariables;
-    const uniqueVariables = Array.from(new Set(baseVariables.filter((variable): variable is string => Boolean(variable))));
-
-    return uniqueVariables
-      .map((variable) => {
-        const entries: ValueEntry[] = datasetData.records.reduce<ValueEntry[]>((acc, record) => {
-          const value = record.data?.[variable];
-          if (typeof value === 'number' && Number.isFinite(value)) {
-            acc.push({ value, isOutlier: Boolean(record.is_outlier) });
-          }
-          return acc;
-        }, []);
-
-        if (entries.length < 2) {
-          return null;
-        }
-
-        const values = entries.map((entry) => entry.value).sort((a, b) => a - b);
-        const sampleSize = values.length;
-        const min = values[0];
-        const max = values[values.length - 1];
-        const boxStats = computeBoxPlotStats(values);
-        const mean = values.reduce((sum, value) => sum + value, 0) / sampleSize;
-        const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / sampleSize;
-        const std = Math.sqrt(variance);
-        const histogram = computeHistogramBins(entries);
-        const violin = histogram.map((bin) => ({
-          center: bin.center,
-          positive: bin.density,
-          negative: -bin.density,
-          label: bin.label,
-        }));
-        const outlierRatio = entries.filter((entry) => entry.isOutlier).length / sampleSize;
-
-        return {
-          variable,
-          sampleSize,
-          min,
-          max,
-          q1: boxStats.q1,
-          median: boxStats.median,
-          q3: boxStats.q3,
-          lowerWhisker: boxStats.lowerWhisker,
-          upperWhisker: boxStats.upperWhisker,
-          mean,
-          std,
-          outlierRatio,
-          outlierCount: entries.filter((entry) => entry.isOutlier).length,
-          histogram,
-          violin,
-        } satisfies VariableDiagnostics;
-      })
-      .filter((item): item is VariableDiagnostics => Boolean(item));
-  }, [datasetData?.records, datasetDetail?.metrics?.variables, selectedVariables]);
 
   const densityComparisons = useMemo(() => {
     const variablesForDensity = datasetDetail?.metrics?.variables ?? selectedVariables;

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { ScatterPlot } from '../components/charts/ScatterPlot';
-import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect, ErrorState } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames, getParameterLabel } from '../constants/parameterLabels';
@@ -20,7 +20,7 @@ const maxPointsOptions = [
 ];
 
 export const ChartsGallery: React.FC = () => {
-  const { data: wells } = useWells();
+  const { data: wells, error: wellsError } = useWells();
   const [selectedWellId, setSelectedWellId] = useState<number | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = useState<'raw' | number>('raw');
   const [xParameter, setXParameter] = useState<string>('bit_depth_feet');
@@ -42,11 +42,11 @@ export const ChartsGallery: React.FC = () => {
   const [appliedIncludeZeros, setAppliedIncludeZeros] = useState<boolean>(true);
 
   const { data: datasets, isLoading: datasetsLoading } = useOutlierDatasets(selectedWellId);
-  const { data: rawDepthData, isLoading: isRawLoading } = useDepthSampleData(
+  const { data: rawDepthData, isLoading: isRawLoading, error: rawError } = useDepthSampleData(
     appliedDatasetId === 'raw' ? appliedWellId || 0 : 0,
     50000
   );
-  const { data: processedDataset, isLoading: isProcessedLoading } = useOutlierDatasetData(
+  const { data: processedDataset, isLoading: isProcessedLoading, error: processedError } = useOutlierDatasetData(
     appliedDatasetId === 'raw' ? null : appliedDatasetId,
     { includeOutliers: false, pageSize: 50000 }
   );
@@ -55,6 +55,7 @@ export const ChartsGallery: React.FC = () => {
     ? rawDepthData
     : { data: processedRows };
   const isLoading = appliedDatasetId === 'raw' ? isRawLoading : isProcessedLoading;
+  const dataError = wellsError ?? (appliedDatasetId === 'raw' ? rawError : processedError);
 
   const handleApply = () => {
     setAppliedWellId(selectedWellId);
@@ -77,7 +78,7 @@ export const ChartsGallery: React.FC = () => {
   const scatterData = depthData?.data || [];
 
   const wellOptions = useMemo(
-    () => (wells?.wells ?? []).map((w: any) => ({ value: w.id, label: w.well_name })),
+    () => (wells?.wells ?? []).map((w) => ({ value: w.id, label: w.well_name })),
     [wells],
   );
 
@@ -240,7 +241,15 @@ export const ChartsGallery: React.FC = () => {
           </Card>
         )}
 
-        {appliedWellId && !isLoading && depthData && (
+        {appliedWellId && !isLoading && dataError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={dataError} />
+            </CardContent>
+          </Card>
+        )}
+
+        {appliedWellId && !isLoading && dataError == null && depthData && (
           <Card>
             <CardHeader>
               <CardTitle>Crossplot</CardTitle>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalHeader, ModalBody, ModalFooter, PageHeader, ConfirmDialog } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, PageHeader, ConfirmDialog } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
 import {

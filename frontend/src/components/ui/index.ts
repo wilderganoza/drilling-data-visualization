@@ -35,3 +35,7 @@ export { Spinner, SpinnerOverlay, InlineLoader } from './Spinner';
 // Exportar componente SearchableSelect
 export { SearchableSelect } from './SearchableSelect';
 export type { SearchableSelectProps, SearchableSelectOption } from './SearchableSelect';
+
+// Exportar componente ErrorState
+export { ErrorState, getErrorMessage } from './ErrorState';
+export type { ErrorStateProps } from './ErrorState';

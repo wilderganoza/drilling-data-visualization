@@ -24,10 +24,6 @@ export interface AppState {
   toggleSidebar: () => void; // Función para alternar sidebar
   setSidebarOpen: (open: boolean) => void; // Función para establecer estado del sidebar
 
-  // Tema de la aplicación
-  theme: 'light' | 'dark'; // Tema actual
-  toggleTheme: () => void; // Función para alternar tema
-
   // Estados de carga
   isLoading: boolean; // Indicador de carga global
   setIsLoading: (loading: boolean) => void; // Función para establecer estado de carga
@@ -76,13 +72,6 @@ export const useAppStore = create<AppState>()(
         sidebarOpen: true,
         toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
         setSidebarOpen: (open) => set({ sidebarOpen: open }),
-
-        // Estado inicial: Tema
-        theme: 'dark',
-        toggleTheme: () =>
-          set((state) => ({
-            theme: state.theme === 'light' ? 'dark' : 'light',
-          })),
 
         // Estado inicial: Carga
         isLoading: false,
@@ -139,8 +128,8 @@ export const useAppStore = create<AppState>()(
         // Nombre de la clave en localStorage
         name: 'drilling-app-storage',
         // Especificar qué partes del estado persistir
+        // (el tema vive en useTheme/localStorage 'theme', única fuente de verdad)
         partialize: (state) => ({
-          theme: state.theme,
           sidebarOpen: state.sidebarOpen,
           selectedWell: state.selectedWell,
         }),

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { login } from '../api/endpoints/auth';
 import { useAuthStore } from '../store/authStore';
 import { Button, Input } from '../components/ui';
+import { isTokenValid } from '../utils/jwt';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -11,6 +12,11 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+
+  // Con sesión vigente no tiene sentido mostrar el login
+  if (isTokenValid(localStorage.getItem('access_token'))) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

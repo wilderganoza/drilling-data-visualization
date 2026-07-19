@@ -1,29 +1,30 @@
 import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { WellLogView } from '../components/charts/WellLogView';
-import { Card, CardHeader, CardTitle, CardContent, PageHeader, InlineLoader, Button, SearchableSelect } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, PageHeader, InlineLoader, Button, SearchableSelect, ErrorState } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames } from '../constants/parameterLabels';
 
 export const WellLogsGeneral: React.FC = () => {
-  const { data: wells } = useWells();
+  const { data: wells, error: wellsError } = useWells();
   const [selectedWellId, setSelectedWellId] = useState<number | null>(null);
   const [appliedWellId, setAppliedWellId] = useState<number | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = useState<'raw' | number>('raw');
   const [appliedDatasetId, setAppliedDatasetId] = useState<'raw' | number>('raw');
   const { data: datasets, isLoading: isDatasetsLoading } = useOutlierDatasets(selectedWellId);
-  const { data: processedDataset, isLoading: isProcessedLoading } = useOutlierDatasetData(
+  const { data: processedDataset, isLoading: isProcessedLoading, error: processedError } = useOutlierDatasetData(
     appliedDatasetId === 'raw' ? null : appliedDatasetId,
     { includeOutliers: false, pageSize: 5000 }
   );
-  const { data: rawDepthData, isLoading: isRawLoading } = useDepthSampleData(
+  const { data: rawDepthData, isLoading: isRawLoading, error: rawError } = useDepthSampleData(
     appliedDatasetId === 'raw' && appliedWellId ? appliedWellId : 0,
     50000
   );
 
   const dataRecords = appliedDatasetId === 'raw' ? rawDepthData?.data ?? [] : (processedDataset?.records ?? []).map((record) => record.data ?? {});
   const isDataLoading = appliedDatasetId === 'raw' ? isRawLoading : isProcessedLoading;
+  const dataError = wellsError ?? (appliedDatasetId === 'raw' ? rawError : processedError);
 
   const trackedParams = getAllParameterNames();
 
@@ -33,7 +34,7 @@ export const WellLogsGeneral: React.FC = () => {
   }, [dataRecords, trackedParams]);
 
   const wellOptions = useMemo(
-    () => (wells?.wells ?? []).map((w: any) => ({ value: w.id, label: w.well_name })),
+    () => (wells?.wells ?? []).map((w) => ({ value: w.id, label: w.well_name })),
     [wells],
   );
 
@@ -120,7 +121,15 @@ export const WellLogsGeneral: React.FC = () => {
           </Card>
         )}
 
-        {!isDataLoading && appliedWellId && dataRecords.length > 0 && (
+        {!isDataLoading && appliedWellId && dataError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={dataError} />
+            </CardContent>
+          </Card>
+        )}
+
+        {!isDataLoading && appliedWellId && dataError == null && dataRecords.length > 0 && (
           <WellLogView
             data={dataRecords}
             depthKey="bit_depth_feet"
@@ -129,7 +138,7 @@ export const WellLogsGeneral: React.FC = () => {
           />
         )}
 
-        {!isDataLoading && appliedWellId && dataRecords.length === 0 && (
+        {!isDataLoading && appliedWellId && dataError == null && dataRecords.length === 0 && (
           <Card>
             <CardContent className="py-12">
               <div className="text-center">

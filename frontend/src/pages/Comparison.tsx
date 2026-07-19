@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import { Layout } from '../components/layout/Layout';
 import { MultiWellComparison } from '../components/charts/MultiWellComparison';
 import { MultiHistogram } from '../components/charts/MultiHistogram';
-import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect, ErrorState } from '../components/ui';
 import { useWells, useDepthSampleData } from '../hooks';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames, getParameterLabel } from '../constants/parameterLabels';
+import { minMax } from '../utils/stats';
 
 const WELL_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -87,6 +88,15 @@ export const Comparison: React.FC = () => {
     const datasetChoice = appliedDatasetIds[index] ?? 'raw';
     return datasetChoice === 'raw' ? allWellQueries[index]?.isLoading : allCleanQueries[index]?.isLoading;
   });
+
+  // Primer error de las queries activas (para mostrarlo en lugar de "sin datos")
+  const queryError = appliedWellIds
+    .map((wellId, index) => {
+      if (!wellId) return null;
+      const datasetChoice = appliedDatasetIds[index] ?? 'raw';
+      return datasetChoice === 'raw' ? allWellQueries[index]?.error : allCleanQueries[index]?.error;
+    })
+    .find((err) => err != null);
 
   return (
     <Layout>
@@ -195,7 +205,15 @@ export const Comparison: React.FC = () => {
           </Card>
         )}
 
-        {!isLoading && wellsData.length > 0 && (
+        {!isLoading && queryError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={queryError} />
+            </CardContent>
+          </Card>
+        )}
+
+        {!isLoading && queryError == null && wellsData.length > 0 && (
           <>
             {/* Multi-Well Comparison Chart */}
             <Card>
@@ -263,8 +281,9 @@ export const Comparison: React.FC = () => {
                       data: well.data.map(d => d[comparisonParameter]).filter(v => v != null && !isNaN(v)),
                     }));
                     const allValues = histogramWells.flatMap(w => w.data);
-                    const min = Math.min(...allValues);
-                    const max = Math.max(...allValues);
+                    const range = minMax(allValues);
+                    if (!range) return; // sin valores numéricos no hay nada que exportar
+                    const { min, max } = range;
                     const bins = 20;
                     const binWidth = (max - min) / bins;
                     const exportData: any[] = [];
@@ -338,22 +357,41 @@ export const Comparison: React.FC = () => {
                           .map(d => d[comparisonParameter])
                           .filter(v => v != null && !isNaN(v))
                           .sort((a, b) => a - b);
-                        
+
+                        // Sin valores numéricos para este parámetro: fila con guiones
+                        if (values.length === 0) {
+                          return (
+                            <tr key={well.wellId} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                              <td className="py-2 px-3" style={{ color: well.color }}>
+                                {well.wellName}
+                              </td>
+                              <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                0
+                              </td>
+                              {['min', 'p25', 'p50', 'p75', 'max', 'mean', 'std'].map((stat) => (
+                                <td key={stat} className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                                  —
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        }
+
                         const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
                         const stdDev = Math.sqrt(
                           values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length
                         );
-                        
+
                         const getPercentile = (arr: number[], p: number) => {
                           const index = (p / 100) * (arr.length - 1);
                           const lower = Math.floor(index);
                           const upper = Math.ceil(index);
                           const weight = index % 1;
-                          
+
                           if (lower === upper) return arr[lower];
                           return arr[lower] * (1 - weight) + arr[upper] * weight;
                         };
-                        
+
                         const p25 = getPercentile(values, 25);
                         const p50 = getPercentile(values, 50);
                         const p75 = getPercentile(values, 75);
@@ -367,7 +405,7 @@ export const Comparison: React.FC = () => {
                               {values.length.toLocaleString()}
                             </td>
                             <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                              {Math.min(...values).toFixed(2)}
+                              {values[0].toFixed(2)}
                             </td>
                             <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {p25.toFixed(2)}
@@ -379,7 +417,7 @@ export const Comparison: React.FC = () => {
                               {p75.toFixed(2)}
                             </td>
                             <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                              {Math.max(...values).toFixed(2)}
+                              {values[values.length - 1].toFixed(2)}
                             </td>
                             <td className="text-right py-2 px-3 text-sm" style={{ color: 'var(--color-text-muted)' }}>
                               {mean.toFixed(2)}
