@@ -75,7 +75,7 @@ async def list_wells(
         logger.error(f"Error fetching wells: {e}")
 
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error fetching wells: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching wells")
 
 # Endpoint GET /{well_id} para obtener detalles de un pozo específico
 @router.get("/{well_id}", response_model=WellMetadata, summary="Get well details")
@@ -159,4 +159,4 @@ async def get_well(
         logger.error(f"Error fetching well {well_id}: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error fetching well: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching well")

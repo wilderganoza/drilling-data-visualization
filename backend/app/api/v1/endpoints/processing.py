@@ -140,7 +140,7 @@ async def clean_data(
         logger.error(f"Error cleaning data: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error cleaning data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error cleaning data")
 
 # Endpoint POST /transform para transformar datos calculando métricas derivadas
 @router.post("/transform", response_model=ProcessingResponse, summary="Transform drilling data")
@@ -253,7 +253,7 @@ async def transform_data(
         logger.error(f"Error transforming data: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error transforming data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error transforming data")
 
 # Endpoint POST /interpolate para interpolar datos a grilla uniforme de profundidad
 @router.post("/interpolate", response_model=ProcessingResponse, summary="Interpolate to depth grid")
@@ -375,7 +375,7 @@ async def interpolate_data(
         logger.error(f"Error interpolating data: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error interpolating data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interpolating data")
 
 # Endpoint POST /detect-events para detectar eventos y anomalías de perforación
 @router.post("/detect-events", response_model=EventDetectionResponse, summary="Detect drilling events")
@@ -456,7 +456,7 @@ async def detect_events(
         logger.error(f"Error detecting events: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error detecting events: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error detecting events")
 
 # Endpoint GET /quality-report/{well_id} para generar reporte de calidad de datos
 @router.get("/quality-report/{well_id}", response_model=DataQualityReport, summary="Get data quality report")
@@ -621,4 +621,4 @@ async def get_quality_report(
         logger.error(f"Error generating quality report: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error generating quality report: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error generating quality report")

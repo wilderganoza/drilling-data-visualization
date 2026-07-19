@@ -57,7 +57,7 @@ async def run_outlier_detection(
         logger.exception("Unexpected error running outlier pipeline")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to execute pipeline: {type(exc).__name__}: {exc}",
+            detail="Failed to execute pipeline",
         ) from exc
 
 
@@ -81,7 +81,7 @@ async def preview_scaling(
         logger.exception("Unexpected error running scaling preview")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to execute scaling preview: {type(exc).__name__}: {exc}",
+            detail="Failed to execute scaling preview",
         ) from exc
 
 
@@ -105,7 +105,7 @@ async def preview_pca(
         logger.exception("Unexpected error running PCA preview")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to execute PCA preview: {type(exc).__name__}: {exc}",
+            detail="Failed to execute PCA preview",
         ) from exc
 
 
@@ -129,7 +129,7 @@ async def preview_outlier_detection(
         logger.exception("Unexpected error running outlier preview")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to execute preview: {type(exc).__name__}: {exc}",
+            detail="Failed to execute preview",
         ) from exc
 
 
@@ -157,7 +157,7 @@ async def rerun_outlier_detection(
         logger.exception("Unexpected error re-running outlier pipeline")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to execute pipeline: {type(exc).__name__}: {exc}",
+            detail="Failed to execute pipeline",
         ) from exc
 
 
