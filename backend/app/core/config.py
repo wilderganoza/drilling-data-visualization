@@ -16,10 +16,6 @@ class Settings(BaseSettings):
     # PostgreSQL database
     DATABASE_URL: str = Field(default="postgresql://postgres:postgres@localhost:5432/drilling_db")
 
-    REDIS_HOST: str = Field(default="localhost")
-    REDIS_PORT: int = Field(default=6379)
-    REDIS_DB: int = Field(default=0)
-
     CORS_ORIGINS: List[str] = Field(
         default=[
             "http://localhost:3000",

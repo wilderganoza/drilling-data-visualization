@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import type { ChartTooltipProps } from './tooltipTypes';
 
 // Interfaz de props para el componente Histogram
 interface HistogramProps {
@@ -25,7 +26,7 @@ interface HistogramProps {
 }
 
 // Componente personalizado para tooltip del histograma
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
   // Si el tooltip está activo y tiene datos
   if (active && payload && payload.length) {
     return (
@@ -33,7 +34,7 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
         {/* Mostrar rango del bin */}
         <p className="text-sm text-gray-300">
-          <span className="font-semibold">Range:</span> {payload[0].payload.range}
+          <span className="font-semibold">Range:</span> {payload[0].payload?.range}
         </p>
         {/* Mostrar conteo */}
         <p className="text-sm text-gray-300">
@@ -41,7 +42,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         </p>
         {/* Mostrar frecuencia en porcentaje */}
         <p className="text-sm text-gray-300">
-          <span className="font-semibold">Frequency:</span> {payload[0].payload.frequency}%
+          <span className="font-semibold">Frequency:</span> {payload[0].payload?.frequency}%
         </p>
       </div>
     );

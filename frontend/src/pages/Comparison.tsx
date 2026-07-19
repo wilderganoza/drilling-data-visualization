@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoa
 import { useWells, useDepthSampleData } from '../hooks';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames, getParameterLabel } from '../constants/parameterLabels';
-import { minMax } from '../utils/stats';
+import { minMax, isFiniteNumber } from '../utils/stats';
 
 const WELL_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
@@ -225,7 +225,7 @@ export const Comparison: React.FC = () => {
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    const exportData: Array<{ [key: string]: any }> = [];
+                    const exportData: Array<Record<string, unknown>> = [];
                     wellsData.forEach(well => {
                       well.data.forEach(dataPoint => {
                         exportData.push({
@@ -278,7 +278,7 @@ export const Comparison: React.FC = () => {
                   onClick={() => {
                     const histogramWells = wellsData.map(well => ({
                       wellName: well.wellName,
-                      data: well.data.map(d => d[comparisonParameter]).filter(v => v != null && !isNaN(v)),
+                      data: well.data.map(d => d[comparisonParameter]).filter(isFiniteNumber),
                     }));
                     const allValues = histogramWells.flatMap(w => w.data);
                     const range = minMax(allValues);
@@ -286,12 +286,12 @@ export const Comparison: React.FC = () => {
                     const { min, max } = range;
                     const bins = 20;
                     const binWidth = (max - min) / bins;
-                    const exportData: any[] = [];
+                    const exportData: Array<Record<string, number>> = [];
                     for (let i = 0; i < bins; i++) {
                       const binStart = min + i * binWidth;
                       const binEnd = binStart + binWidth;
                       const binCenter = (binStart + binEnd) / 2;
-                      const row: any = { bin_center: binCenter, bin_start: binStart, bin_end: binEnd };
+                      const row: Record<string, number> = { bin_center: binCenter, bin_start: binStart, bin_end: binEnd };
                       histogramWells.forEach(well => {
                         const count = well.data.filter(d => d >= binStart && (i === bins - 1 ? d <= binEnd : d < binEnd)).length;
                         row[`${well.wellName}_count`] = count;
@@ -319,7 +319,7 @@ export const Comparison: React.FC = () => {
                 <MultiHistogram
                   wells={wellsData.map(well => ({
                     wellName: well.wellName,
-                    data: well.data.map(d => d[comparisonParameter]).filter(v => v != null && !isNaN(v)),
+                    data: well.data.map(d => d[comparisonParameter]).filter(isFiniteNumber),
                     color: well.color,
                   }))}
                   xLabel={getParameterLabel(comparisonParameter)}
@@ -355,7 +355,7 @@ export const Comparison: React.FC = () => {
                       {wellsData.map(well => {
                         const values = well.data
                           .map(d => d[comparisonParameter])
-                          .filter(v => v != null && !isNaN(v))
+                          .filter(isFiniteNumber)
                           .sort((a, b) => a - b);
 
                         // Sin valores numéricos para este parámetro: fila con guiones

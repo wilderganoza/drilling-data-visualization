@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
   Brush,
 } from 'recharts';
+import type { ChartTooltipProps } from './tooltipTypes';
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../ui';
 import { getParameterLabel } from '../../constants/parameterLabels';
 import { downloadDataAsCSV } from '../../utils/downloadUtils';
@@ -52,12 +53,12 @@ export const ROPChart: React.FC<ROPChartProps> = ({
   const step = maxX > minX ? (maxX - minX) / 9 : 1; // 9 intervals = 10 ticks
   const xTicks = Array.from({ length: 10 }, (_, i) => Math.round(minX + step * i));
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-lg">
           <p className="text-gray-300 text-sm">
-            {xAxisKey === 'depth' ? 'Depth' : 'Time'}: {payload[0].payload[xAxisKey]}
+            {xAxisKey === 'depth' ? 'Depth' : 'Time'}: {payload[0].payload?.[xAxisKey]}
           </p>
           <p className="text-blue-400 font-semibold">
             ROP: {payload[0].value?.toFixed(2)} ft/hr

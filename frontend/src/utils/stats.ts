@@ -43,3 +43,8 @@ export function mean(values: readonly number[]): number | null {
   }
   return count > 0 ? sum / count : null;
 }
+
+// Type guard: filtra valores dinámicos de pozo a números finitos.
+export function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}

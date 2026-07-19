@@ -841,7 +841,7 @@ export const OutlierDetection: React.FC = () => {
         setScalingPreviewPage(1);
       })
       .catch((error) => {
-        const detail = (error as any)?.response?.data?.detail;
+        const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
         setScalingPreview({
           status: 'error',
           data: null,
@@ -916,7 +916,7 @@ export const OutlierDetection: React.FC = () => {
         setPcaScatterPlotted(false);
       })
       .catch((error) => {
-        const detail = (error as any)?.response?.data?.detail;
+        const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
         setPcaPreview({
           status: 'error',
           data: null,
@@ -992,7 +992,7 @@ export const OutlierDetection: React.FC = () => {
         setOutlierScatterPlotted(false);
       })
       .catch((error) => {
-        const detail = (error as any)?.response?.data?.detail;
+        const detail = (error as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
         setOutlierPreview({
           status: 'error',
           data: null,

@@ -142,7 +142,7 @@ export const downloadDataAsCSV = (
 };
 
 // Función para descargar datos como archivo JSON
-export const downloadDataAsJSON = (data: any, filename: string) => {
+export const downloadDataAsJSON = (data: unknown, filename: string) => {
   // Convertir datos a JSON con formato legible (indentación de 2 espacios)
   const json = JSON.stringify(data, null, 2);
   // Crear blob con tipo JSON
