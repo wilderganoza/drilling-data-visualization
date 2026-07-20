@@ -51,7 +51,6 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
   const [isDragging, setIsDragging] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRefs = useRef<Map<string, SVGSVGElement>>(new Map());
   const trackColors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   const addTrack = () => {
@@ -175,9 +174,8 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
     }
   };
 
-  const renderTrack = (track: Track, index: number) => {
+  const renderTrack = (track: Track) => {
     const trackWidth = 260; // Increased to match selectbox width
-    const trackX = index * (trackWidth + 20);
     const svgHeight = height + 40; // Extra space for labels at bottom
 
     const trackData = track.parameters.map(param => {
@@ -272,7 +270,7 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
           </defs>
 
           {/* Parameter curves */}
-          {trackData.map(({ param, scaleValue, minVal, maxVal }, paramIndex) => {
+          {trackData.map(({ param, scaleValue }, paramIndex) => {
             const color = trackColors[paramIndex % trackColors.length];
             const points = data
               .filter(d => {
@@ -353,8 +351,7 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
           })}
 
           {/* Min/Max labels at top */}
-          {trackData.map(({ minVal, maxVal, param }, paramIndex) => {
-            const color = trackColors[paramIndex % trackColors.length];
+          {trackData.map(({ minVal, maxVal }, paramIndex) => {
             const yPos = 20 + (paramIndex * 14);
             return (
               <g key={`labels-${paramIndex}`}>
@@ -517,7 +514,7 @@ export const WellLogView: React.FC<WellLogViewProps> = ({
             style={{ maxHeight: height + 100 }}
           >
             <div className="flex gap-5 p-4 pt-2">
-              {tracks.map((track, index) => renderTrack(track, index))}
+              {tracks.map((track) => renderTrack(track))}
             </div>
           </div>
 

@@ -10,6 +10,7 @@ import {
   InlineLoader,
   Input,
   SearchableSelect,
+  ErrorState,
 } from '../components/ui';
 import { useWells } from '../hooks';
 import { useExportColumns, useExportXlsx } from '../hooks/useExports';
@@ -32,7 +33,7 @@ export const Exports: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const exportXlsx = useExportXlsx();
-  const { data: wellsData, isLoading: wellsLoading } = useWells();
+  const { data: wellsData, isLoading: wellsLoading, error: wellsError } = useWells();
   const wells = wellsData?.wells ?? [];
   const { data: datasetsData, isLoading: datasetsLoading } = useOutlierDatasets(selectedWellId);
 
@@ -43,6 +44,7 @@ export const Exports: React.FC = () => {
     data: columnsData,
     isLoading: columnsLoading,
     isFetching: columnsFetching,
+    error: columnsError,
   } = useExportColumns(
     showColumns ? appliedWellId : null,
     showColumns ? appliedCase : null,
@@ -71,15 +73,6 @@ export const Exports: React.FC = () => {
     return cols.filter((c) => c.label.toLowerCase().includes(q) || c.key.toLowerCase().includes(q));
   }, [columnsData, columnSearch]);
 
-  const groupedColumns = useMemo(() => {
-    const groups: Record<string, typeof availableColumns> = {};
-    availableColumns.forEach((col) => {
-      const group = col.group ?? 'Columns';
-      if (!groups[group]) groups[group] = [];
-      groups[group].push(col);
-    });
-    return groups;
-  }, [availableColumns]);
 
   useEffect(() => {
     if (!columnsData?.columns) return;
@@ -161,6 +154,14 @@ export const Exports: React.FC = () => {
           subtitle="Download drilling data in XLSX format"
         />
 
+        {wellsError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={wellsError} />
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Select source</CardTitle>
@@ -213,6 +214,10 @@ export const Exports: React.FC = () => {
             <CardContent className="space-y-4">
               {(columnsLoading || columnsFetching) && (
                 <InlineLoader message="Loading columns..." />
+              )}
+
+              {!columnsLoading && !columnsFetching && columnsError != null && (
+                <ErrorState error={columnsError} />
               )}
 
               {!columnsLoading && columnsData && columnsData.columns.length === 0 && (

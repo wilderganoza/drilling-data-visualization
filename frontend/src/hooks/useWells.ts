@@ -27,8 +27,9 @@ export const useWell = (wellId: number | null) => {
       if (!wellId) throw new Error('Well ID is required');
       return getWell(wellId);
     },
-    // Solo ejecutar la query si wellId no es null
-    enabled: wellId !== null,
+    // Solo ejecutar la query con un wellId válido (0 no es un id real y
+    // dispararía el throw del queryFn)
+    enabled: wellId != null && wellId > 0,
     // Tiempo que los datos se consideran frescos (10 minutos)
     staleTime: 10 * 60 * 1000,
   });

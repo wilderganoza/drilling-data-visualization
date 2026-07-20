@@ -75,7 +75,7 @@ async def list_wells(
         logger.error(f"Error fetching wells: {e}")
 
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error fetching wells: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching wells")
 
 # Endpoint GET /{well_id} para obtener detalles de un pozo específico
 @router.get("/{well_id}", response_model=WellMetadata, summary="Get well details")
@@ -107,23 +107,17 @@ async def get_well(
         try:
             # Obtener tabla de datos de profundidad
             depth_table = db_manager.get_depth_table("well_data")
-            
+
             # Si la tabla existe, consultar rango de profundidad
             if depth_table is not None:
-                # Obtener sesión de BD de profundidad
-                depth_session = next(db_manager.get_depth_session())
-            
-                # Crear repositorio de datos con la sesión y tabla
-                data_repo = DataRepository(depth_session, depth_table)
-            
+                # Reutilizar la sesión del endpoint (misma base de datos)
+                data_repo = DataRepository(db, depth_table)
+
                 # Consultar rango de profundidad para este pozo
-                depth_range = data_repo.get_depth_range(well_id)
-            
-                # Agregar rango de profundidad a metadata
-                metadata["depth_range"] = depth_range
-            
-                # Cerrar sesión de BD
-                depth_session.close()
+                metadata["depth_range"] = data_repo.get_depth_range(well_id)
+            # Si la tabla no existe, no hay rango disponible
+            else:
+                metadata["depth_range"] = None
         # Si hay error obteniendo rango de profundidad
         except Exception as e:
             # Registrar advertencia
@@ -159,4 +153,4 @@ async def get_well(
         logger.error(f"Error fetching well {well_id}: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error fetching well: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching well")

@@ -43,7 +43,7 @@ async def get_depth_sample(
         raise
     except Exception as e:
         logger.error(f"Error fetching depth sample: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching data")
 
 
 @router.get("/depth/range/{well_id}", response_model=DepthRangeResponse, summary="Get depth range")
@@ -70,7 +70,7 @@ async def get_depth_range(
         raise
     except Exception as e:
         logger.error(f"Error fetching depth range: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching depth range: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching depth range")
 
 
 @router.get("/depth/query/{well_id}", response_model=DataResponse, summary="Query depth data by range")
@@ -112,7 +112,7 @@ async def query_depth_data(
         raise
     except Exception as e:
         logger.error(f"Error querying depth data: {e}")
-        raise HTTPException(status_code=500, detail=f"Error querying data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error querying data")
 
 
 @router.get("/depth/columns", response_model=ColumnsResponse, summary="Get depth database columns")
@@ -127,4 +127,4 @@ async def get_depth_columns():
         )
     except Exception as e:
         logger.error(f"Error fetching depth columns: {e}")
-        raise HTTPException(status_code=500, detail=f"Error fetching columns: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching columns")

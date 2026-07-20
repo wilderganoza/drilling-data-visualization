@@ -4,10 +4,17 @@
 import React, { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, Button, InlineLoader } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, InlineLoader, ErrorState } from '../components/ui';
 import { ROPChart, DepthTimeChart, MultiParameterChart } from '../components/charts';
 import { useWell, useDepthSampleData } from '../hooks';
 import { useOutlierDataset, useOutlierDatasetData } from '../hooks/useOutlierDetection';
+import { minMax, mean } from '../utils/stats';
+
+// Los registros de pozo son dinámicos: convertir explícitamente antes de graficar
+const asNumber = (v: unknown): number | undefined =>
+  typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+const asString = (v: unknown): string | undefined =>
+  typeof v === 'string' && v ? v : undefined;
 
 type WellVisualizationProps = {
   wellId?: number;
@@ -17,18 +24,19 @@ type WellVisualizationProps = {
 
 export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, embedded, datasetId = 'raw' }) => {
   const params = useParams<{ wellId: string }>();
-  const wellIdFromRoute = params.wellId ? parseInt(params.wellId) : 0;
+  const parsedRouteId = Number(params.wellId);
+  const wellIdFromRoute = Number.isFinite(parsedRouteId) ? parsedRouteId : 0;
   const wellIdNum = wellId ?? wellIdFromRoute;
 
-  const { data: wellData, isLoading: wellLoading } = useWell(wellIdNum);
-  const { data: rawDepthChartData, isLoading: rawDepthDataLoading } = useDepthSampleData(
+  const { data: wellData, isLoading: wellLoading, error: wellError } = useWell(wellIdNum);
+  const { data: rawDepthChartData, isLoading: rawDepthDataLoading, error: rawDepthError } = useDepthSampleData(
     datasetId === 'raw' ? wellIdNum : 0,
     50000,
   );
   const { data: processedDatasetDetail } = useOutlierDataset(
     datasetId === 'raw' ? null : datasetId,
   );
-  const { data: processedDatasetData, isLoading: processedDataLoading } = useOutlierDatasetData(
+  const { data: processedDatasetData, isLoading: processedDataLoading, error: processedDataError } = useOutlierDatasetData(
     datasetId === 'raw' ? null : datasetId,
     { includeOutliers: false, pageSize: 50000 },
   );
@@ -42,15 +50,13 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
       };
 
   const isLoading = wellLoading || (datasetId === 'raw' ? rawDepthDataLoading : processedDataLoading);
+  const queryError = wellError ?? (datasetId === 'raw' ? rawDepthError : processedDataError);
   const dataPointsCount = datasetId === 'raw'
     ? (wellData?.total_rows ?? depthChartData?.data?.length ?? 0)
     : (processedDatasetData?.total_records
       ?? processedDatasetDetail?.metrics?.processed_records
       ?? depthChartData?.data?.length
       ?? 0);
-  const columnsCount = depthChartData?.data?.length
-    ? Object.keys(depthChartData.data[0]).length
-    : (datasetId === 'raw' ? (wellData?.total_columns ?? 0) : 0);
 
   // Sort data by depth so line charts render left-to-right
   const sortedData = useMemo(() => {
@@ -64,28 +70,28 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
 
   // Transform data for ROP chart using Depth database
   const ropData = sortedData.map((point) => ({
-    depth: point.hole_depth_feet ?? point.bit_depth_feet,
-    time: point.yyyy_mm_dd,
-    rop: point.rate_of_penetration_ft_per_hr,
+    depth: asNumber(point.hole_depth_feet ?? point.bit_depth_feet),
+    time: asString(point.yyyy_mm_dd),
+    rop: asNumber(point.rate_of_penetration_ft_per_hr),
   }));
 
   const depthTimeData = sortedData.map((point) => {
     // Combinar YYYY/MM/DD con HH:MM:SS para obtener el timestamp completo
-    const dateStr = point.yyyy_mm_dd ?? point['YYYY/MM/DD'];
-    const timeStr = point.hh_mm_ss ?? point['HH:MM:SS'];
+    const dateStr = asString(point.yyyy_mm_dd ?? point['YYYY/MM/DD']);
+    const timeStr = asString(point.hh_mm_ss ?? point['HH:MM:SS']);
     const timestamp = dateStr && timeStr ? `${dateStr} ${timeStr}` : dateStr;
 
     return {
-      time: timestamp ?? point.yyyy_mm_dd,
-      depth: point.bit_depth_feet ?? point['Bit Depth (feet)'],
+      time: timestamp,
+      depth: asNumber(point.bit_depth_feet ?? point['Bit Depth (feet)']),
     };
   });
 
   const startDate = depthChartData?.data
     ? depthChartData.data
         .map((point) => {
-          const dateStr = point.yyyy_mm_dd ?? point['YYYY/MM/DD'];
-          const timeStr = point.hh_mm_ss ?? point['HH:MM:SS'];
+          const dateStr = asString(point.yyyy_mm_dd ?? point['YYYY/MM/DD']);
+          const timeStr = asString(point.hh_mm_ss ?? point['HH:MM:SS']);
           if (!dateStr) return null;
           const candidate = timeStr ? new Date(`${dateStr} ${timeStr}`) : new Date(dateStr);
           return Number.isNaN(candidate.getTime()) ? null : candidate;
@@ -95,11 +101,11 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
     : null;
 
   const multiParamData = sortedData.map((point) => ({
-    depth: point.hole_depth_feet ?? point.bit_depth_feet,
-    wob: point['Weight on Bit (klbs)'] ?? point.weight_on_bit_klbs,
-    rpm: point['Rotary RPM (RPM)'] ?? point.rotary_rpm_rpm ?? point.rotary_rpm,
-    pressure: point['Standpipe Pressure (psi)'] ?? point.standpipe_pressure_psi,
-    hookload: point['Hook Load (klbs)'] ?? point.hook_load_klbs,
+    depth: asNumber(point.hole_depth_feet ?? point.bit_depth_feet),
+    wob: asNumber(point['Weight on Bit (klbs)'] ?? point.weight_on_bit_klbs),
+    rpm: asNumber(point['Rotary RPM (RPM)'] ?? point.rotary_rpm_rpm ?? point.rotary_rpm),
+    pressure: asNumber(point['Standpipe Pressure (psi)'] ?? point.standpipe_pressure_psi),
+    hookload: asNumber(point['Hook Load (klbs)'] ?? point.hook_load_klbs),
   }));
 
   const availableParameters = [
@@ -108,6 +114,11 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
     { key: 'pressure', name: 'Standpipe Pressure', color: '#F59E0B', yAxisId: 'left' },
     { key: 'hookload', name: 'Hook Load', color: '#EF4444', yAxisId: 'right' },
   ];
+
+  // Estadísticas con guardas: datos vacíos no deben producir NaN/-Infinity
+  const hasData = !!depthChartData && depthChartData.data.length > 0;
+  const avgRop = mean(ropData.map((p) => Number(p.rop)).filter((v) => Number.isFinite(v)));
+  const maxDepth = minMax(depthTimeData.map((p) => Number(p.depth)))?.max ?? null;
 
   const content = (
     <div className="space-y-6">
@@ -126,7 +137,7 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
         )}
 
         {/* Data Statistics */}
-        {!isLoading && depthChartData && (
+        {!isLoading && hasData && (
           <Card>
             <CardHeader>
               <CardTitle>Data Statistics</CardTitle>
@@ -142,16 +153,13 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
                 <div>
                   <p className="text-sm text-gray-400">Avg ROP</p>
                   <p className="text-2xl font-bold text-green-500">
-                    {(
-                      ropData.reduce((sum, p) => sum + (p.rop || 0), 0) / ropData.length
-                    ).toFixed(2)}{' '}
-                    ft/hr
+                    {avgRop !== null ? `${avgRop.toFixed(2)} ft/hr` : 'N/A'}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Max Depth</p>
                   <p className="text-2xl font-bold text-purple-500">
-                    {Math.max(...depthTimeData.map((p) => p.depth || 0)).toFixed(0)} ft
+                    {maxDepth !== null ? `${maxDepth.toFixed(0)} ft` : 'N/A'}
                   </p>
                 </div>
                 <div>
@@ -176,8 +184,17 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
           </Card>
         )}
 
+        {/* Error State */}
+        {!isLoading && queryError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={queryError} />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Charts */}
-        {!isLoading && depthChartData && (
+        {!isLoading && hasData && (
           <>
             {/* ROP Chart */}
             <ROPChart
@@ -207,7 +224,7 @@ export const WellVisualization: React.FC<WellVisualizationProps> = ({ wellId, em
         )}
 
         {/* No Data State */}
-        {!isLoading && (!depthChartData || depthChartData.data.length === 0) && (
+        {!isLoading && queryError == null && !hasData && (
           <Card>
             <CardContent className="py-12">
               <div className="text-center">

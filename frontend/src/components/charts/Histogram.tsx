@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import type { ChartTooltipProps } from './tooltipTypes';
 
 // Interfaz de props para el componente Histogram
 interface HistogramProps {
@@ -25,7 +26,7 @@ interface HistogramProps {
 }
 
 // Componente personalizado para tooltip del histograma
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
   // Si el tooltip está activo y tiene datos
   if (active && payload && payload.length) {
     return (
@@ -33,7 +34,7 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
         {/* Mostrar rango del bin */}
         <p className="text-sm text-gray-300">
-          <span className="font-semibold">Range:</span> {payload[0].payload.range}
+          <span className="font-semibold">Range:</span> {payload[0].payload?.range}
         </p>
         {/* Mostrar conteo */}
         <p className="text-sm text-gray-300">
@@ -41,7 +42,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         </p>
         {/* Mostrar frecuencia en porcentaje */}
         <p className="text-sm text-gray-300">
-          <span className="font-semibold">Frequency:</span> {payload[0].payload.frequency}%
+          <span className="font-semibold">Frequency:</span> {payload[0].payload?.frequency}%
         </p>
       </div>
     );
@@ -57,7 +58,6 @@ export const Histogram: React.FC<HistogramProps> = ({
   xLabel = 'Value', // Etiqueta por defecto del eje X
   yLabel = 'Frequency', // Etiqueta por defecto del eje Y
   title,
-  color = '#3B82F6', // Color azul por defecto
   height = 400, // Altura por defecto: 400px
 }) => {
   // Función para calcular el histograma
@@ -128,7 +128,8 @@ export const Histogram: React.FC<HistogramProps> = ({
           <XAxis
             dataKey="range"
             stroke="#9CA3AF"
-            tick={{ fill: '#9CA3AF', fontSize: 10, angle: -45, textAnchor: 'end' }}
+            tick={{ fill: '#9CA3AF', fontSize: 10, textAnchor: 'end' }}
+            angle={-45}
             height={80}
             label={{
               value: xLabel,

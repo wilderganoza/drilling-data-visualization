@@ -10,7 +10,7 @@ interface DataQueryParams {
 }
 
 interface WellDataPoint {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface WellDataResponse {
@@ -21,7 +21,7 @@ interface WellDataResponse {
 
 const getDepthData = async (params: DataQueryParams): Promise<WellDataResponse> => {
   const { wellId, minDepth, maxDepth, columns, limit = 1000 } = params;
-  const queryParams: any = { limit };
+  const queryParams: Record<string, string | number> = { limit };
   if (minDepth !== undefined) queryParams.min_depth = minDepth;
   if (maxDepth !== undefined) queryParams.max_depth = maxDepth;
   if (columns && columns.length > 0) queryParams.columns = columns.join(',');

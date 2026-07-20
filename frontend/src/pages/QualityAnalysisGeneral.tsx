@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout/Layout';
-import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, InlineLoader, SearchableSelect, ErrorState } from '../components/ui';
 import { QualityReport } from '../components/analysis';
 import { useWells, useQualityReport } from '../hooks';
 import { useOutlierDatasets } from '../hooks/useOutlierDetection';
 
 export const QualityAnalysisGeneral: React.FC = () => {
-  const { data: wells } = useWells();
+  const { data: wells, error: wellsError } = useWells();
   const [selectedWellId, setSelectedWellId] = useState<number | null>(null);
   const [appliedWellId, setAppliedWellId] = useState<number | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = useState<'raw' | number>('raw');
@@ -20,13 +20,13 @@ export const QualityAnalysisGeneral: React.FC = () => {
 
   const { data: datasets, isLoading: isDatasetsLoading } = useOutlierDatasets(selectedWellId);
 
-  const { data: qualityData, isLoading, refetch } = useQualityReport(appliedWellId ?? null, {
+  const { data: qualityData, isLoading, error: qualityError, refetch } = useQualityReport(appliedWellId ?? null, {
     datasetId: appliedDatasetId,
     datasetLimit: 5000,
   });
 
   const wellOptions = useMemo(
-    () => (wells?.wells ?? []).map((w: any) => ({ value: w.id, label: w.well_name })),
+    () => (wells?.wells ?? []).map((w) => ({ value: w.id, label: w.well_name })),
     [wells],
   );
 
@@ -112,7 +112,8 @@ export const QualityAnalysisGeneral: React.FC = () => {
               </Card>
             )}
 
-            {!isLoading && qualityData && totalRecords > 0 && <QualityReport report={qualityData} />}
+            {!isLoading && (wellsError ?? qualityError) != null && <ErrorState error={wellsError ?? qualityError} />}
+            {!isLoading && (wellsError ?? qualityError) == null && qualityData && totalRecords > 0 && <QualityReport report={qualityData} />}
 
             {showGenerateButton && (
               <Card>

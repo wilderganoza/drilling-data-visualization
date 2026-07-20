@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Modal, ModalHeader, ModalBody, ModalFooter, PageHeader, ConfirmDialog } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, Input, PageHeader, ConfirmDialog, getErrorMessage } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -55,9 +55,8 @@ export const UserManagement: React.FC = () => {
       setShowCreateForm(false);
       setFormData({ username: '', password: '', full_name: '', email: '', is_admin: false });
       fetchUsers();
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail;
-      addToast(typeof detail === 'string' ? detail : 'Error creating user', 'error');
+    } catch (err: unknown) {
+      addToast(getErrorMessage(err, 'Error creating user'), 'error');
     }
   };
 
@@ -108,9 +107,8 @@ export const UserManagement: React.FC = () => {
       await deleteUser(userToDelete.id);
       addToast('User deleted', 'success');
       fetchUsers();
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail;
-      addToast(typeof detail === 'string' ? detail : 'Error deleting user', 'error');
+    } catch (err: unknown) {
+      addToast(getErrorMessage(err, 'Error deleting user'), 'error');
     }
     setUserToDelete(null);
   };

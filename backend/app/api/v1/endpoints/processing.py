@@ -140,7 +140,7 @@ async def clean_data(
         logger.error(f"Error cleaning data: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error cleaning data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error cleaning data")
 
 # Endpoint POST /transform para transformar datos calculando métricas derivadas
 @router.post("/transform", response_model=ProcessingResponse, summary="Transform drilling data")
@@ -253,7 +253,7 @@ async def transform_data(
         logger.error(f"Error transforming data: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error transforming data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error transforming data")
 
 # Endpoint POST /interpolate para interpolar datos a grilla uniforme de profundidad
 @router.post("/interpolate", response_model=ProcessingResponse, summary="Interpolate to depth grid")
@@ -317,7 +317,14 @@ async def interpolate_data(
             # Si no hay columna de profundidad, error
             else:
                 raise HTTPException(status_code=400, detail="Cannot determine depth range")
-        
+
+        # Validar que la grilla de profundidades no quedó vacía
+        if not target_depths:
+            raise HTTPException(
+                status_code=400,
+                detail="Target depth grid is empty; check min/max depth and depth step"
+            )
+
         # Interpolar datos a las profundidades objetivo
         df_interpolated = TimeDepthInterpolator.interpolate_to_depth(
             # DataFrame original
@@ -375,7 +382,7 @@ async def interpolate_data(
         logger.error(f"Error interpolating data: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error interpolating data: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interpolating data")
 
 # Endpoint POST /detect-events para detectar eventos y anomalías de perforación
 @router.post("/detect-events", response_model=EventDetectionResponse, summary="Detect drilling events")
@@ -456,7 +463,7 @@ async def detect_events(
         logger.error(f"Error detecting events: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error detecting events: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error detecting events")
 
 # Endpoint GET /quality-report/{well_id} para generar reporte de calidad de datos
 @router.get("/quality-report/{well_id}", response_model=DataQualityReport, summary="Get data quality report")
@@ -578,15 +585,19 @@ async def get_quality_report(
         
         # Total de celdas en el DataFrame
         total_cells = len(df) * len(all_numeric_cols)
-        
+
         # Total de celdas con valores faltantes
         missing_cells = sum(missing_values.values())
-        
+
         # Total de celdas con outliers
         outlier_cells = sum(outliers_detected.values())
-        
+
         # Calcular score: 100 - (penalización por faltantes) - (penalización por outliers)
-        quality_score = max(0, 100 - (missing_cells / total_cells * 50) - (outlier_cells / total_cells * 50))
+        # Sin celdas numéricas no hay nada que penalizar
+        if total_cells > 0:
+            quality_score = max(0, 100 - (missing_cells / total_cells * 50) - (outlier_cells / total_cells * 50))
+        else:
+            quality_score = 100.0
         
         # Retornar reporte de calidad de datos
         return DataQualityReport(
@@ -621,4 +632,4 @@ async def get_quality_report(
         logger.error(f"Error generating quality report: {e}")
         
         # Lanzar excepción HTTP 500 con detalle del error
-        raise HTTPException(status_code=500, detail=f"Error generating quality report: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error generating quality report")

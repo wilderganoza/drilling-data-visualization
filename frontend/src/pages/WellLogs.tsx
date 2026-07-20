@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout/Layout';
 import { WellLogView } from '../components/charts/WellLogView';
 import { useDepthSampleData } from '../hooks';
-import { Card, CardContent, PageHeader, InlineLoader, SearchableSelect, Button } from '../components/ui';
+import { Card, CardContent, PageHeader, InlineLoader, SearchableSelect, Button, ErrorState } from '../components/ui';
 import { useOutlierDatasets, useOutlierDatasetData } from '../hooks/useOutlierDetection';
 import { getAllParameterNames } from '../constants/parameterLabels';
 
@@ -13,17 +13,18 @@ export const WellLogs: React.FC = () => {
   const [selectedDatasetId, setSelectedDatasetId] = useState<'raw' | number>('raw');
   const [appliedDatasetId, setAppliedDatasetId] = useState<'raw' | number>('raw');
   const { data: datasets, isLoading: isDatasetsLoading } = useOutlierDatasets(Number.isFinite(numericWellId) ? numericWellId : null);
-  const { data: processedDataset, isLoading: isProcessedLoading } = useOutlierDatasetData(
+  const { data: processedDataset, isLoading: isProcessedLoading, error: processedError } = useOutlierDatasetData(
     appliedDatasetId === 'raw' ? null : appliedDatasetId,
     { includeOutliers: false, pageSize: 5000 }
   );
-  const { data: rawDepthData, isLoading: isRawLoading } = useDepthSampleData(
+  const { data: rawDepthData, isLoading: isRawLoading, error: rawError } = useDepthSampleData(
     appliedDatasetId === 'raw' && Number.isFinite(numericWellId) ? numericWellId : 0,
     50000
   );
 
   const dataRecords = appliedDatasetId === 'raw' ? rawDepthData?.data ?? [] : (processedDataset?.records ?? []).map((record) => record.data ?? {});
   const isDataLoading = appliedDatasetId === 'raw' ? isRawLoading : isProcessedLoading;
+  const dataError = appliedDatasetId === 'raw' ? rawError : processedError;
 
   // Get only the 28 tracked parameters from parameterLabels
   const trackedParams = getAllParameterNames();
@@ -76,7 +77,15 @@ export const WellLogs: React.FC = () => {
           </Card>
         )}
 
-        {!isDataLoading && dataRecords.length > 0 && (
+        {!isDataLoading && dataError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={dataError} />
+            </CardContent>
+          </Card>
+        )}
+
+        {!isDataLoading && dataError == null && dataRecords.length > 0 && (
           <WellLogView
             data={dataRecords}
             depthKey="bit_depth_feet"
@@ -85,7 +94,7 @@ export const WellLogs: React.FC = () => {
           />
         )}
 
-        {!isDataLoading && dataRecords.length === 0 && (
+        {!isDataLoading && dataError == null && dataRecords.length === 0 && (
           <Card>
             <CardContent className="py-12">
               <div className="text-center">

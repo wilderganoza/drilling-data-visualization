@@ -11,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import type { ChartTooltipProps } from './tooltipTypes';
 
 // Interfaz para datos de histograma de un pozo
 interface WellHistogramData {
@@ -30,7 +31,7 @@ interface MultiHistogramProps {
 }
 
 // Componente personalizado para tooltip del multi-histograma
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
   // Si el tooltip está activo y tiene datos
   if (active && payload && payload.length) {
     return (
@@ -38,10 +39,10 @@ const CustomTooltip = ({ active, payload }: any) => {
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
         {/* Mostrar valor del bin */}
         <p className="text-sm text-gray-300 mb-2">
-          <span className="font-semibold">Value:</span> {payload[0].payload.binCenter?.toFixed(2)}
+          <span className="font-semibold">Value:</span> {Number(payload[0].payload?.binCenter ?? 0).toFixed(2)}
         </p>
         {/* Mapear cada pozo y mostrar su frecuencia */}
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <p key={index} className="text-sm" style={{ color: entry.color }}>
             <span className="font-semibold">{entry.name}:</span> {entry.value}
           </p>
@@ -83,7 +84,7 @@ export const MultiHistogram: React.FC<MultiHistogramProps> = ({
       const binCenter = (binStart + binEnd) / 2;
       
       // Inicializar objeto de datos del bin
-      const binData: any = {
+      const binData: Record<string, string | number> = {
         binCenter,
         binStart,
         binEnd,
@@ -105,8 +106,8 @@ export const MultiHistogram: React.FC<MultiHistogramProps> = ({
     });
 
     // Calcular 10 ticks espaciados uniformemente basados en el rango de datos
-    const dataMin = histogramData.length > 0 ? Math.min(...histogramData.map(d => d.binCenter)) : 0;
-    const dataMax = histogramData.length > 0 ? Math.max(...histogramData.map(d => d.binCenter)) : 100;
+    const dataMin = histogramData.length > 0 ? Math.min(...histogramData.map(d => Number(d.binCenter))) : 0;
+    const dataMax = histogramData.length > 0 ? Math.max(...histogramData.map(d => Number(d.binCenter))) : 100;
     const step = (dataMax - dataMin) / 9;
     const ticks = Array.from({ length: 10 }, (_, i) => dataMin + step * i);
 

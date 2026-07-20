@@ -197,6 +197,10 @@ class EventDetector:
             mean = df[column].mean()
             # Calcular desviación estándar
             std = df[column].std()
+            # Con desviación cero o indefinida no hay anomalías detectables
+            if not std or np.isnan(std):
+                logger.info(f"Column '{column}' has zero std, no anomalies detectable")
+                return []
             # Calcular z-scores absolutos
             z_scores = np.abs((df[column] - mean) / std)
             # Crear máscara de anomalías (z-score > umbral)
@@ -262,26 +266,30 @@ class EventDetector:
             logger.warning(f"Column '{column}' not found")
             return []
         
+        # Trabajar sobre índice posicional: el DataFrame puede llegar filtrado
+        # con un índice no contiguo y los accesos por etiqueta idx-1 fallarían
+        df_reset = df.reset_index(drop=True)
+
         # Calcular cambio porcentual entre registros consecutivos
-        pct_change = df[column].pct_change() * 100
-        
+        pct_change = df_reset[column].pct_change() * 100
+
         # Encontrar cambios rápidos
         rapid_changes = []
-        # Crear máscara de cambios rápidos (cambio absoluto > umbral)
-        rapid_mask = np.abs(pct_change) > threshold_pct
-        
+        # Crear máscara de cambios rápidos (cambio absoluto finito > umbral)
+        rapid_mask = np.abs(pct_change.replace([np.inf, -np.inf], np.nan)) > threshold_pct
+
         # Iterar sobre índices con cambios rápidos
-        for idx in df[rapid_mask].index:
+        for idx in df_reset[rapid_mask].index:
             # Saltar primera fila (no tiene valor previo)
             if idx > 0:
                 rapid_changes.append({
                     'event_type': 'rapid_change',
                     'index': idx,
                     'column': column,
-                    'previous_value': df.loc[idx - 1, column],
-                    'current_value': df.loc[idx, column],
+                    'previous_value': df_reset.loc[idx - 1, column],
+                    'current_value': df_reset.loc[idx, column],
                     'change_pct': pct_change.loc[idx],
-                    'depth': df.loc[idx].get('bit_depth_feet', None)
+                    'depth': df_reset.loc[idx].get('bit_depth_feet', None)
                 })
         
         # Registrar en log la cantidad de cambios rápidos detectados

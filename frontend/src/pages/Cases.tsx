@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout';
-import { Card, CardHeader, CardTitle, CardContent, PageHeader, Button, ConfirmDialog } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, PageHeader, Button, ConfirmDialog, ErrorState, getErrorMessage } from '../components/ui';
 import { useAppStore } from '../store/appStore';
 import {
   useAllOutlierDatasets,
@@ -10,7 +10,7 @@ import { useWells } from '../hooks/useWells';
 
 export const Cases: React.FC = () => {
   const { addToast } = useAppStore();
-  const { data: datasets, isLoading } = useAllOutlierDatasets();
+  const { data: datasets, isLoading, error: datasetsError } = useAllOutlierDatasets();
   const { data: wellsData } = useWells(0, 1000);
   const deleteMutation = useDeleteOutlierDatasetById();
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; name: string } | null>(null);
@@ -29,9 +29,8 @@ export const Cases: React.FC = () => {
     if (!deleteTarget) return;
     deleteMutation.mutate(deleteTarget.id, {
       onSuccess: () => addToast('Case deleted', 'success'),
-      onError: (err: any) => {
-        const detail = err?.response?.data?.detail;
-        addToast(typeof detail === 'string' ? detail : 'Error deleting case', 'error');
+      onError: (err: unknown) => {
+        addToast(getErrorMessage(err, 'Error deleting case'), 'error');
       },
     });
     setDeleteTarget(null);
@@ -62,6 +61,8 @@ export const Cases: React.FC = () => {
           <CardContent>
             {isLoading ? (
               <p style={{ color: 'var(--color-text-muted)' }}>Loading cases...</p>
+            ) : datasetsError != null ? (
+              <ErrorState error={datasetsError} />
             ) : rows.length === 0 ? (
               <p style={{ color: 'var(--color-text-muted)' }}>No cases saved yet.</p>
             ) : (

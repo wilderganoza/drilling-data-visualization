@@ -38,7 +38,7 @@ class TransformDataRequest(BaseModel):
     # Si se deben remuestrear los datos
     resample: bool = Field(False, description="Resample data")
     # Número objetivo de puntos para remuestreo
-    target_points: int = Field(10000, description="Target points for resampling")
+    target_points: int = Field(10000, gt=0, description="Target points for resampling")
     # Diámetro de broca en pulgadas (para cálculo de MSE)
     bit_diameter: float = Field(8.5, description="Bit diameter in inches for MSE")
 
@@ -55,7 +55,7 @@ class InterpolateRequest(BaseModel):
     # Profundidad máxima para grilla uniforme (opcional)
     max_depth: Optional[float] = Field(None, description="Maximum depth for uniform grid")
     # Tamaño de paso para grilla uniforme (por defecto 1.0)
-    depth_step: float = Field(1.0, description="Step size for uniform grid")
+    depth_step: float = Field(1.0, gt=0, description="Step size for uniform grid")
     # Método de interpolación (linear, nearest, cubic)
     method: Literal['linear', 'nearest', 'cubic'] = Field('linear', description="Interpolation method")
     # Lista de columnas a interpolar (opcional, None = todas)

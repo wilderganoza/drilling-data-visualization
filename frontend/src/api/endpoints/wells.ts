@@ -25,7 +25,7 @@ export const getWells = async (
   search?: string // Término de búsqueda opcional
 ): Promise<WellsListResponse> => {
   // Construir parámetros de query
-  const params: any = { skip, limit };
+  const params: Record<string, string | number> = { skip, limit };
   // Agregar término de búsqueda si existe
   if (search) {
     params.search = search;

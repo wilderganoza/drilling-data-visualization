@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Layout } from '../components/layout/Layout';
-import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, SearchableSelect } from '../components/ui';
+import { Card, CardHeader, CardTitle, CardContent, Button, PageHeader, SearchableSelect, ErrorState } from '../components/ui';
 import { useWells } from '../hooks';
 import { useOutlierDatasets } from '../hooks/useOutlierDetection';
 import { WellVisualization } from './WellVisualization';
 
 export const WellVisualizationGeneral: React.FC = () => {
-  const { data: wells } = useWells();
+  const { data: wells, error: wellsError } = useWells();
   const [selectedWellId, setSelectedWellId] = useState<number | null>(null);
   const [appliedWellId, setAppliedWellId] = useState<number | null>(null);
   const [selectedDatasetId, setSelectedDatasetId] = useState<'raw' | number>('raw');
@@ -14,7 +14,7 @@ export const WellVisualizationGeneral: React.FC = () => {
   const { data: datasets, isLoading: datasetsLoading } = useOutlierDatasets(selectedWellId);
 
   const wellOptions = useMemo(
-    () => (wells?.wells ?? []).map((w: any) => ({ value: w.id, label: w.well_name })),
+    () => (wells?.wells ?? []).map((w) => ({ value: w.id, label: w.well_name })),
     [wells],
   );
 
@@ -37,6 +37,14 @@ export const WellVisualizationGeneral: React.FC = () => {
           title="Wells"
           subtitle="Select a well to visualize drilling data"
         />
+
+        {wellsError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={wellsError} />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

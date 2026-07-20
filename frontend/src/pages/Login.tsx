@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { login } from '../api/endpoints/auth';
 import { useAuthStore } from '../store/authStore';
-import { Button, Input } from '../components/ui';
+import { Button, Input, getErrorMessage } from '../components/ui';
+import { isTokenValid } from '../utils/jwt';
 
 export const Login: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -12,6 +13,11 @@ export const Login: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
 
+  // Con sesión vigente no tiene sentido mostrar el login
+  if (isTokenValid(localStorage.getItem('access_token'))) {
+    return <Navigate to="/" replace />;
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -20,9 +26,8 @@ export const Login: React.FC = () => {
       const response = await login({ username, password });
       setAuth(response.access_token, response.user);
       navigate('/');
-    } catch (err: any) {
-      const detail = err?.response?.data?.detail;
-      setError(typeof detail === 'string' ? detail : 'Invalid username or password');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Invalid username or password'));
     } finally {
       setLoading(false);
     }

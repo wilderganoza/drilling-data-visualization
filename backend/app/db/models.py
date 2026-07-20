@@ -1,9 +1,14 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Boolean
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.dialects.postgresql import JSONB
-from datetime import datetime
+from datetime import datetime, timezone
 
 Base = declarative_base()
+
+
+def utcnow() -> datetime:
+    """UTC naive, para columnas DateTime sin zona horaria (reemplaza el deprecado datetime.utcnow)."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class User(Base):
@@ -16,8 +21,8 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     def __repr__(self):
         return f"<User(id={self.id}, username='{self.username}')>"
@@ -31,7 +36,7 @@ class Well(Base):
     filename = Column(String, nullable=True)
     total_rows = Column(Integer, nullable=True)
     total_columns = Column(Integer, nullable=True)
-    date_imported = Column(DateTime, default=datetime.utcnow)
+    date_imported = Column(DateTime, default=utcnow)
 
     def __repr__(self):
         return f"<Well(id={self.id}, well_name='{self.well_name}')>"
@@ -54,8 +59,8 @@ class ProcessedDataset(Base):
     status = Column(String(50), default="completed")
     record_count = Column(Integer, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     well = relationship("Well", backref="processed_datasets")
     creator = relationship("User", backref="processed_datasets", foreign_keys=[created_by])
@@ -75,7 +80,7 @@ class ProcessedRecord(Base):
     scaled_data = Column(JSONB, nullable=True)
     component_scores = Column(JSONB, nullable=True)
     is_outlier = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
     dataset = relationship("ProcessedDataset", back_populates="records")
 

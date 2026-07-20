@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Brush,
 } from 'recharts';
+import type { ChartTooltipProps } from './tooltipTypes';
 
 interface WellData {
   wellId: number;
@@ -29,7 +30,7 @@ interface MultiWellComparisonProps {
   invertYAxis?: boolean;
 }
 
-const CustomTooltip = ({ active, payload }: any) => {
+const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
   if (active && payload && payload.length) {
     // Get depth value from the first payload entry that has it
     const depthValue = payload[0]?.payload?.xValue;
@@ -39,7 +40,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         <p className="text-gray-300 text-sm mb-2">
           <span className="font-semibold">Depth:</span> {typeof depthValue === 'number' ? depthValue.toFixed(2) : 'N/A'} ft
         </p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index) => (
           <div key={index} className="text-sm">
             <p style={{ color: entry.color }} className="font-semibold">
               {entry.name}: {typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
@@ -57,7 +58,6 @@ export const MultiWellComparison: React.FC<MultiWellComparisonProps> = ({
   xKey,
   yKey,
   xLabel,
-  yLabel,
   title,
   height = 500,
   invertYAxis = false,

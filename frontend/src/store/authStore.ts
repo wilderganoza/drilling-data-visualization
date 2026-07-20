@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { UserInfo } from '../api/endpoints/auth';
+import { isTokenValid } from '../utils/jwt';
 
 interface AuthState {
   token: string | null;
@@ -31,14 +32,20 @@ export const useAuthStore = create<AuthState>()((set) => ({
   loadFromStorage: () => {
     const token = localStorage.getItem('access_token');
     const userStr = localStorage.getItem('user');
-    if (token && userStr) {
+    if (token && userStr && isTokenValid(token)) {
       try {
         const user = JSON.parse(userStr) as UserInfo;
         set({ token, user, isAuthenticated: true });
+        return;
       } catch {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
+        // JSON de usuario corrupto: cae al clear de abajo
       }
     }
+    // Token ausente, expirado o storage corrupto: limpiar sesión
+    if (token || userStr) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+    }
+    set({ token: null, user: null, isAuthenticated: false });
   },
 }));

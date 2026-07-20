@@ -130,7 +130,12 @@ class DataTransformer:
         """
         # Guardar conteo original de registros
         original_count = len(df)
-        
+
+        # Validar objetivo de puntos positivo (evita división por cero)
+        if target_points <= 0:
+            logger.error(f"Invalid target_points: {target_points}, must be positive")
+            return df
+
         # Si ya tiene menos puntos que el objetivo, no remuestrear
         if original_count <= target_points:
             logger.info(f"Data already has {original_count} points, no resampling needed")
@@ -346,16 +351,28 @@ class DataTransformer:
             min_val = df_norm[column].min()
             # Obtener valor máximo
             max_val = df_norm[column].max()
-            # Aplicar normalización Min-Max
-            df_norm[normalized_col] = (df_norm[column] - min_val) / (max_val - min_val)
+            # Calcular rango de la columna
+            value_range = max_val - min_val
+            # Con columna constante o vacía no hay rango que escalar
+            if not value_range or pd.isna(value_range):
+                logger.warning(f"Column '{column}' has no value range, normalized to 0")
+                df_norm[normalized_col] = 0.0
+            else:
+                # Aplicar normalización Min-Max
+                df_norm[normalized_col] = (df_norm[column] - min_val) / value_range
         # Método Z-score (estandarización)
         elif method == 'zscore':
             # Calcular media
             mean = df_norm[column].mean()
             # Calcular desviación estándar
             std = df_norm[column].std()
-            # Aplicar normalización Z-score
-            df_norm[normalized_col] = (df_norm[column] - mean) / std
+            # Con desviación cero o indefinida no se puede estandarizar
+            if not std or pd.isna(std):
+                logger.warning(f"Column '{column}' has zero std, normalized to 0")
+                df_norm[normalized_col] = 0.0
+            else:
+                # Aplicar normalización Z-score
+                df_norm[normalized_col] = (df_norm[column] - mean) / std
         # Método desconocido
         else:
             logger.error(f"Unknown normalization method: {method}")

@@ -12,6 +12,7 @@ import {
   ResponsiveContainer,
   Brush,
 } from 'recharts';
+import type { ChartTooltipProps } from './tooltipTypes';
 import { Card, CardHeader, CardTitle, CardContent, Button } from '../ui';
 import { downloadDataAsCSV } from '../../utils/downloadUtils';
 
@@ -46,11 +47,11 @@ export const DepthTimeChart: React.FC<DepthTimeChartProps> = ({
     return validData[index]?.time;
   }).filter((t): t is string => t != null);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: ChartTooltipProps) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-gray-800 border border-gray-700 p-3 rounded-lg shadow-lg">
-          <p className="text-gray-300 text-sm">Time: {payload[0].payload.time}</p>
+          <p className="text-gray-300 text-sm">Time: {payload[0].payload?.time}</p>
           <p className="text-green-400 font-semibold">
             Depth: {payload[0].value?.toFixed(2)} ft
           </p>

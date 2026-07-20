@@ -139,6 +139,11 @@ class DataRepository:
             self.table.c.well_id == well_id
         # Limitar al tamaño de muestra solicitado
         ).limit(sample_size)
+
+        # Ordenar por id si existe: sin ORDER BY la muestra no es determinista
+        # y los pipelines de procesamiento/outliers no serían reproducibles
+        if "id" in self.table.c:
+            query = query.order_by(self.table.c.id)
         
         # Ejecutar consulta en la sesión de BD
         result = self.session.execute(query)

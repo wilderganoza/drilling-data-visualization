@@ -4,30 +4,32 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Layout } from '../components/layout';
-import { Card, CardContent, Button, PageHeader, InlineLoader, SearchableSelect } from '../components/ui';
+import { Card, CardContent, Button, PageHeader, InlineLoader, SearchableSelect, ErrorState } from '../components/ui';
 import { QualityReport } from '../components/analysis';
 import { useWell, useQualityReport } from '../hooks';
 import { useOutlierDatasets } from '../hooks/useOutlierDetection';
 
 export const QualityAnalysis: React.FC = () => {
   const { wellId } = useParams<{ wellId: string }>();
-  const wellIdNum = wellId ? parseInt(wellId) : 0;
+  const parsedWellId = Number(wellId);
+  const wellIdNum = Number.isFinite(parsedWellId) ? parsedWellId : 0;
   const [selectedDatasetId, setSelectedDatasetId] = useState<'raw' | number>('raw');
   const [appliedDatasetId, setAppliedDatasetId] = useState<'raw' | number>('raw');
 
-  const { data: wellData, isLoading: wellLoading } = useWell(wellIdNum);
+  const { data: wellData, isLoading: wellLoading, error: wellError } = useWell(wellIdNum);
   const { data: datasets, isLoading: isDatasetsLoading } = useOutlierDatasets(Number.isFinite(wellIdNum) ? wellIdNum : null);
-  const { data: qualityData, isLoading: qualityLoading, refetch } = useQualityReport(wellIdNum, {
+  const { data: qualityData, isLoading: qualityLoading, error: qualityError, refetch } = useQualityReport(wellIdNum, {
     datasetId: appliedDatasetId,
     datasetLimit: 10000,
   });
 
   const isLoading = wellLoading || qualityLoading;
+  const queryError = wellError ?? qualityError;
   const selectedDatasetSummary = appliedDatasetId === 'raw'
     ? null
     : datasets?.find((dataset) => dataset.id === appliedDatasetId) ?? null;
   const totalRecords = qualityData?.total_records ?? 0;
-  const showEmptyState = !isLoading && totalRecords === 0;
+  const showEmptyState = !isLoading && queryError == null && totalRecords === 0;
 
   return (
     <Layout>
@@ -91,8 +93,17 @@ export const QualityAnalysis: React.FC = () => {
           </Card>
         )}
 
+        {/* Error State */}
+        {!isLoading && queryError != null && (
+          <Card>
+            <CardContent>
+              <ErrorState error={queryError} />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quality Report */}
-        {!isLoading && !showEmptyState && qualityData && <QualityReport report={qualityData} />}
+        {!isLoading && !showEmptyState && queryError == null && qualityData && <QualityReport report={qualityData} />}
 
         {/* No Data State */}
         {showEmptyState && (

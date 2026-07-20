@@ -21,16 +21,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:5174",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:5174",
-        "https://drilling-frontend.onrender.com",
-        "https://drilling-data-visualization-frontend.onrender.com",
-        "https://drilling-data-visualization.onrender.com",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+",  # Allow any localhost port in development
     allow_credentials=True,
     allow_methods=["*"],
@@ -47,7 +38,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled error on {request.method} {request.url}: {''.join(tb)}")
     return JSONResponse(
         status_code=500,
-        content={"detail": str(exc), "type": type(exc).__name__},
+        content={"detail": "Internal server error"},
     )
 
 

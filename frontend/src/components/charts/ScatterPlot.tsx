@@ -10,7 +10,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  TooltipProps,
 } from 'recharts';
 
 // Interfaz de props para el componente ScatterPlot
@@ -34,7 +33,7 @@ interface ScatterPlotProps {
 // Interfaz de props para tooltip personalizado
 interface CustomTooltipProps {
   active?: boolean; // Si el tooltip está activo
-  payload?: any[]; // Datos del tooltip
+  payload?: Array<{ payload?: Record<string, string | number | null | undefined> }>; // Datos del tooltip
   xKey: string; // Clave del eje X
   yKey: string; // Clave del eje Y
   xLabel?: string; // Etiqueta del eje X
@@ -46,6 +45,7 @@ const CustomTooltip = ({ active, payload, xKey, yKey, xLabel, yLabel }: CustomTo
   // Si el tooltip está activo y tiene datos
   if (active && payload && payload.length) {
     const data = payload[0].payload;
+    if (!data) return null;
     return (
       // Contenedor del tooltip con estilos
       <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 shadow-lg">
