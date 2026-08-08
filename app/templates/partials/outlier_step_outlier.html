@@ -1,0 +1,151 @@
+{% import "macros/ui.html" as ui %}
+{% if request.headers.get('HX-Request') %}<div id="outlier-step-pills" hx-swap-oob="true">{{ ui.step_pills(steps, step_titles, current_step) }}</div>{% endif %}
+<div class="space-y-6">
+  {% if errors %}
+    <div class="card p-4" style="border-color: var(--color-danger);">
+      {% for e in errors %}<p class="text-sm text-danger">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Outlier detection method</h3>
+      <span class="text-sm text-muted">Flags/drops rows from the pooled variable data — runs before Scaling/PCA below, independent of whatever you pick there.</span>
+    </div>
+    <form id="outlier-outlier-form" hx-post="/outliers/steps/scaling" hx-target="#wizard-content" hx-swap="innerHTML" class="space-y-4">
+      {{ ui.wizard_hidden(ctx, skip_outlier=True) }}
+
+      {# Explicit label map — the old `|replace('_',' ')|title` produced
+         "Dbscan" / "Zscore" / "Iqr", wrong casing for well-known acronyms
+         (same fix already applied in the ROP Prediction wizard). #}
+      {% set method_options = [
+        ('isolation_forest', 'Isolation Forest', 'Tree-based anomaly score — good general-purpose default for multivariate outliers.'),
+        ('dbscan', 'DBSCAN', 'Density clustering — rows in no dense cluster are flagged. Sensitive to eps/min samples.'),
+        ('local_outlier_factor', 'Local Outlier Factor (LOF)', 'Flags rows whose local density is much lower than their neighbors\'.'),
+        ('zscore', 'Z-score', 'Flags rows with any variable beyond N standard deviations from its mean. Simple, per-variable.'),
+        ('iqr', 'IQR', 'Flags rows outside Q1−k·IQR … Q3+k·IQR on any variable. Robust to non-normal data.'),
+      ] %}
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="w-full">
+          <label class="form-label">Method</label>
+          <select name="outlier_method" id="outlier-method-select" class="form-select" onchange="outlierShowMethodFields(this.value)">
+            {% for key, label, hint in method_options %}
+              <option value="{{ key }}" {{ 'selected' if key == outlier_method else '' }} title="{{ hint }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="outlier-param-fields-wrapper" style="display: contents;">
+          {# Every method's fields stay in the DOM (just hidden), toggled client-side
+             by the Method select below — switching methods used to re-fetch this
+             fragment from the server, which discarded whatever the user had typed for
+             the method they switched away from (tune contamination, try DBSCAN, come
+             back to Isolation Forest — silently reset to the 0.05 default). Keeping
+             every group present means the browser preserves each input's value on its
+             own; the backend already only reads the params for whichever method is
+             selected (WizardState.outlier_params()), so the inactive groups' values
+             are harmlessly ignored server-side too. #}
+          <div data-method-fields="isolation_forest" style="display:{{ 'contents' if outlier_method == 'isolation_forest' else 'none' }};">
+            <div class="w-full">
+              <label class="form-label">Contamination (0-0.5)</label>
+              <input type="number" name="outlier_contamination" class="form-input" min="0.001" max="0.5" step="0.001" value="{{ outlier_params.contamination if (outlier_method == 'isolation_forest' and outlier_params.contamination is defined) else 0.05 }}" />
+            </div>
+            <div class="w-full">
+              <label class="form-label">Estimators</label>
+              <input type="number" name="outlier_n_estimators" class="form-input" min="10" step="10" value="{{ outlier_params.n_estimators if (outlier_method == 'isolation_forest' and outlier_params.n_estimators is defined) else '' }}" placeholder="100" />
+            </div>
+          </div>
+          <div data-method-fields="dbscan" style="display:{{ 'contents' if outlier_method == 'dbscan' else 'none' }};">
+            <div class="w-full">
+              <label class="form-label">Eps</label>
+              <input type="number" name="outlier_eps" class="form-input" min="0.01" step="0.01" value="{{ outlier_params.eps if (outlier_method == 'dbscan' and outlier_params.eps is defined) else 0.5 }}" />
+            </div>
+            <div class="w-full">
+              <label class="form-label">Min samples</label>
+              <input type="number" name="outlier_min_samples" class="form-input" min="1" step="1" value="{{ outlier_params.min_samples if (outlier_method == 'dbscan' and outlier_params.min_samples is defined) else 5 }}" />
+            </div>
+          </div>
+          <div data-method-fields="local_outlier_factor" style="display:{{ 'contents' if outlier_method == 'local_outlier_factor' else 'none' }};">
+            <div class="w-full">
+              <label class="form-label">Neighbors</label>
+              <input type="number" name="outlier_n_neighbors" class="form-input" min="1" step="1" value="{{ outlier_params.n_neighbors if (outlier_method == 'local_outlier_factor' and outlier_params.n_neighbors is defined) else 20 }}" />
+            </div>
+          </div>
+          <div data-method-fields="zscore" style="display:{{ 'contents' if outlier_method == 'zscore' else 'none' }};">
+            <div class="w-full">
+              <label class="form-label">Threshold</label>
+              <input type="number" name="outlier_threshold" class="form-input" min="0.1" step="0.1" value="{{ outlier_params.threshold if (outlier_method == 'zscore' and outlier_params.threshold is defined) else 3.0 }}" />
+            </div>
+          </div>
+          <div data-method-fields="iqr" style="display:{{ 'contents' if outlier_method == 'iqr' else 'none' }};">
+            <div class="w-full">
+              <label class="form-label">IQR multiplier</label>
+              <input type="number" name="outlier_multiplier" class="form-input" min="0.1" step="0.1" value="{{ outlier_params.multiplier if (outlier_method == 'iqr' and outlier_params.multiplier is defined) else 1.5 }}" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <label class="check-label">
+        <input type="checkbox" name="outlier_mark_outliers" value="true" {{ 'checked' if outlier_mark_outliers else '' }} />
+        Store outlier rows too (flagged), instead of dropping them
+      </label>
+
+      <div class="flex justify-between">
+        <button type="button" class="btn btn-secondary" hx-post="/outliers/steps/variables" hx-target="#wizard-content" hx-swap="innerHTML" hx-include="#outlier-outlier-form">&larr; Back</button>
+        <div class="flex items-center gap-2">
+          <div id="outlier-out-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Computing…</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="if(window.htmx){htmx.trigger(document.getElementById('outlier-out-calc'),'htmx:abort');}">Cancel</button>
+          </div>
+          <button type="button" id="outlier-out-calc" class="btn btn-secondary" hx-post="/outliers/preview/outlier" hx-target="#outlier-outlier-preview" hx-swap="innerHTML" hx-include="#outlier-outlier-form" hx-indicator="#outlier-out-ind">Calculate preview</button>
+          <button type="submit" class="btn btn-primary">Next: Scaling &rarr;</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Pipeline metrics</h3>
+      <span class="text-sm text-muted">Runs the full pipeline (current scaling + PCA settings) on the pooled rows — nothing is saved until Review.</span>
+    </div>
+    <div id="outlier-outlier-preview">
+      <p class="text-sm text-muted">Click "Calculate preview" to run the full pipeline (no data is saved yet).</p>
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Component scatter (inliers vs. outliers)</h3>
+      <span class="text-sm text-muted">Diagnostic-only PCA projection, just to visualize the split.</span>
+    </div>
+    <div class="flex items-center gap-4" style="max-width: 420px;">
+      <div class="w-full">
+        <label class="form-label">X component</label>
+        <select id="outlier-scatter-x" class="form-select"><option value="0">PC1</option></select>
+      </div>
+      <div class="w-full">
+        <label class="form-label">Y component</label>
+        <select id="outlier-scatter-y" class="form-select"><option value="1">PC2</option></select>
+      </div>
+      <button type="button" id="outlier-scatter-btn" class="btn btn-secondary" style="white-space: nowrap; margin-top: 20px;"
+              hx-post="/outliers/preview/outlier-scatter" hx-target="#outlier-outlier-scatter" hx-swap="innerHTML"
+              hx-include="#outlier-outlier-form" hx-indicator="#outlier-scatter-ind"
+              hx-vals='js:{"outlier_scatter_x": document.getElementById("outlier-scatter-x").value, "outlier_scatter_y": document.getElementById("outlier-scatter-y").value}'>
+        Plot
+      </button>
+      <div id="outlier-scatter-ind" class="htmx-indicator inline-loader" style="margin-top:20px;"><span class="spinner-el"></span><span>Plotting…</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="if(window.htmx){htmx.trigger(document.getElementById('outlier-scatter-btn'),'htmx:abort');}">Cancel</button>
+      </div>
+    </div>
+    <div id="outlier-outlier-scatter" class="mt-4">
+      <p class="text-sm text-muted">Pick components and click "Plot" (run "Calculate preview" first if the component list above is empty).</p>
+    </div>
+  </div>
+</div>
+<script>
+  function outlierShowMethodFields(method) {
+    document.querySelectorAll('#outlier-param-fields-wrapper [data-method-fields]').forEach(function (el) {
+      el.style.display = (el.dataset.methodFields === method) ? 'contents' : 'none';
+    });
+  }
+</script>

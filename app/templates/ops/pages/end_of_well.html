@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}End of Well — {{ well.legal_well_name if well else "" }}{% endblock %}
+{% macro f(label, value, unit="") %}
+  <div><dt>{{ label }}</dt><dd>{{ value if value is not none and value != "" else "—" }}{{ (" " ~ unit) if value is not none and value != "" and unit else "" }}</dd></div>
+{% endmacro %}
+{% block content %}
+<div class="doc-toolbar">
+  <a href="/ops/events/{{ event.id }}/dashboard" class="btn btn-secondary btn-sm">&larr; Dashboard</a>
+  <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">🖨️ Print / Save PDF</button>
+</div>
+<div class="doc">
+  <h1>End-of-Well Report</h1>
+  <p class="text-muted" style="font-size: 13px">{{ well.legal_well_name if well else "" }} · {{ wellbore.name if wellbore else "" }} · {{ event.event_code if event else "" }}</p>
+
+  <h2>Well Summary</h2>
+  <dl class="facts">
+    {{ f("Days (actual / plan)", (kpis.days_elapsed|string) ~ " / " ~ (kpis.planned_days|round(0)|int|string if kpis.planned_days is not none else "—")) }}
+    {{ f("Final MD", kpis.current_md, depth_unit) }}
+    {{ f("Final TVD", kpis.current_tvd, depth_unit) }}
+    {{ f("% of planned TD", kpis.pct_complete, "%") }}
+    {{ f("Target formation", plan.target_formation if plan else none) }}
+    {{ f("Rig", plan.rig_name if plan else none) }}
+    {{ f("Spud date", plan.planned_spud_date if plan else none) }}
+    {{ f("AFE No.", plan.afe_number if plan else none) }}
+  </dl>
+
+  <h2>Cost &amp; Time Performance</h2>
+  <dl class="facts">
+    {{ f("Actual cost", kpis.total_actual_cost|money) }}
+    {{ f("AFE budget", kpis.budget_total|money) }}
+    {{ f("Cost vs AFE", kpis.cost_pct, "%") }}
+    {{ f("Days vs plan", ("%+.0f"|format(kpis.days_delta) if kpis.days_delta is not none else "—")) }}
+    {{ f("Productive time", kpis.productive_hours, "h") }}
+    {{ f("NPT", (kpis.npt_hours|string) ~ " h") }}
+    {{ f("NPT %", kpis.npt_pct, "%") }}
+    {{ f("NPT events", kpis.npt_events) }}
+  </dl>
+
+  <h2>Daily Progress</h2>
+  <table>
+    <thead><tr><th>Date</th><th>No.</th><th>MD ({{ depth_unit }})</th><th>TVD ({{ depth_unit }})</th><th>Progress ({{ depth_unit }})</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for d in day_summary %}
+        <tr><td>{{ d.date }}</td><td>{{ d.no or "—" }}</td><td>{{ d.md if d.md is not none else "—" }}</td><td>{{ d.tvd if d.tvd is not none else "—" }}</td><td>{{ d.progress if d.progress is not none else "—" }}</td><td>{{ d.status or "—" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>NPT Register</h2>
+  {% if npt_all %}
+    <table>
+      <thead><tr><th>Date</th><th>Type</th><th>Title</th><th>Hrs</th><th>Cause</th><th>Lessons learned</th></tr></thead>
+      <tbody>
+        {% for r, e in npt_all %}
+          <tr><td>{{ r.report_date }}</td><td>{{ e.npt_type or "—" }}</td><td>{{ e.title or "—" }}</td><td>{{ e.gross_hours if e.gross_hours is not none else "—" }}</td><td>{{ e.cause or "—" }}</td><td>{{ e.lessons_learned or "—" }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-muted" style="font-size:12px">No NPT recorded for this well.</p>
+  {% endif %}
+</div>
+{% endblock %}

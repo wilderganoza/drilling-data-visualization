@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Validation Rules — Ops Admin{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Ops Administration", "Roles, catalogs and validation for the operations module") }}
+  <div class="card p-0">
+    {% include "ops/partials/admin_nav.html" %}
+    <div class="p-4">
+      {% include "ops/partials/admin_rules_table.html" %}
+      <p class="text-xs mt-4 text-muted">
+        Plus fixed report-level checks: TVD ≤ MD, MD not less than the previous day, and Time-Summary hours ≈ 24 (all <span class="badge badge-warning">notify</span>).
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

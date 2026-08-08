@@ -1,0 +1,22 @@
+{# ROP-Prediction-owned wrapper around the shared partials/outlier_param_fields.html.
+   That shared template renders a LIVE input only for the currently-selected
+   method's parameter(s). Since the outer form's hidden_state() call skips ALL
+   seven outlier_* field names (delegating them entirely to this div), the other
+   six must be re-emitted here as hidden inputs — otherwise switching methods and
+   back silently reverts them to hardcoded defaults (3.0 / 1.5 / 0.05 / ... instead
+   of whatever the user actually typed). #}
+{% set _all_fields = ['outlier_threshold', 'outlier_multiplier', 'outlier_contamination',
+                       'outlier_n_estimators', 'outlier_eps', 'outlier_min_samples', 'outlier_n_neighbors'] %}
+{% set _method_fields = {
+     'isolation_forest': ['outlier_contamination', 'outlier_n_estimators'],
+     'dbscan': ['outlier_eps', 'outlier_min_samples'],
+     'local_outlier_factor': ['outlier_n_neighbors'],
+     'zscore': ['outlier_threshold'],
+     'iqr': ['outlier_multiplier'],
+   } %}
+{% set active = _method_fields.get(method, []) %}
+{% include "partials/outlier_param_fields.html" with context %}
+{% for f in _all_fields if f not in active %}
+  {% set v = outlier_params.get(f.replace('outlier_', '')) %}
+  <input type="hidden" name="{{ f }}" value="{{ v if v is not none else '' }}">
+{% endfor %}

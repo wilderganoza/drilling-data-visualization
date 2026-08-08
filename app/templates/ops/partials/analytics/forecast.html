@@ -1,0 +1,120 @@
+{% if not res or res.error or not res.ok %}
+  <div class="card p-4">
+    <p class="text-sm text-muted">
+      {{ res.error if res and res.error else "Not enough data to build a cost & time forecast for this event yet. Capture daily cost / depth and set an AFE budget on the well plan." }}
+    </p>
+  </div>
+{% else %}
+{% set k = res.kpis %}
+<div class="space-y-4">
+
+  {# --- Headline KPI cards --- #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="card p-3">
+      <p class="text-xs text-muted">CPI (cost)</p>
+      <p style="font-size:20px;font-weight:600;color:{{ 'var(--color-success)' if (k.CPI is not none and k.CPI >= 1) else 'var(--color-danger)' }};">{{ '%.3f'|format(k.CPI) if k.CPI is not none else '—' }}</p>
+      <p class="text-xs text-muted">{{ 'under budget' if (k.CPI is not none and k.CPI >= 1) else 'over budget' if k.CPI is not none else '' }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">SPI (schedule)</p>
+      <p style="font-size:20px;font-weight:600;color:{{ 'var(--color-success)' if (k.SPI is not none and k.SPI >= 1) else 'var(--color-danger)' }};">{{ '%.3f'|format(k.SPI) if k.SPI is not none else '—' }}</p>
+      <p class="text-xs text-muted">{{ 'ahead' if (k.SPI is not none and k.SPI >= 1) else 'behind' if k.SPI is not none else '' }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">EAC (forecast cost)</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ '${:,.0f}'.format(k.EAC_cpi) if k.EAC_cpi is not none else '—' }}</p>
+      <p class="text-xs text-muted">BAC {{ '${:,.0f}'.format(k.BAC) if k.BAC is not none else '—' }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">VAC (variance)</p>
+      <p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if (k.VAC is not none and k.VAC < 0) else 'var(--color-success)' }};">{{ '${:,.0f}'.format(k.VAC) if k.VAC is not none else '—' }}</p>
+      <p class="text-xs text-muted">{{ 'overrun' if (k.VAC is not none and k.VAC < 0) else 'underrun' if k.VAC is not none else '' }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Forecast days</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ '%.1f'|format(k.forecast_days) if k.forecast_days is not none else ('%.1f'|format(k.linear_forecast_days) if k.linear_forecast_days is not none else '—') }}</p>
+      <p class="text-xs text-muted">planned {{ '%.1f'|format(k.planned_days) if k.planned_days is not none else '—' }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Linear (depth) days</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ '%.1f'|format(k.linear_forecast_days) if k.linear_forecast_days is not none else '—' }}</p>
+      <p class="text-xs text-muted">elapsed {{ '%.1f'|format(k.days_elapsed) if k.days_elapsed is not none else '—' }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">% complete (depth)</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ '%.1f'|format(k.pct_complete) if k.pct_complete is not none else '—' }}%</p>
+      <p class="text-xs text-muted">cost {{ '%.1f'|format(k.cost_pct) if k.cost_pct is not none else '—' }}% of AFE</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Status</p>
+      <p style="font-size:20px;font-weight:600;">
+        {% if k.CPI is not none and k.CPI >= 1 and (k.SPI is none or k.SPI >= 1) %}<span class="badge badge-success">On track</span>
+        {% elif k.CPI is not none and k.CPI < 0.95 %}<span class="badge badge-danger">Overrun</span>
+        {% else %}<span class="badge badge-warning">Watch</span>{% endif %}
+      </p>
+    </div>
+  </div>
+
+  {# --- Earned-value metrics table --- #}
+  <div class="card p-4">
+    <p class="text-sm" style="font-weight:600;color:var(--color-text);margin-bottom:8px;">Earned-value metrics</p>
+    <table class="text-sm" style="width:100%;border-collapse:collapse;">
+      <tbody>
+        {% macro moneyrow(label, val, hint) %}
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td class="text-muted" style="padding:6px 8px">{{ label }}</td>
+          <td style="padding:6px 8px;text-align:right;color:var(--color-text);font-variant-numeric:tabular-nums;">{{ '${:,.0f}'.format(val) if val is not none else '—' }}</td>
+          <td class="text-xs text-muted" style="padding:6px 8px">{{ hint }}</td>
+        </tr>
+        {% endmacro %}
+        {{ moneyrow('BAC — Budget at Completion', k.BAC, 'AFE authorised total') }}
+        {{ moneyrow('AC — Actual Cost', k.AC, 'spent to date') }}
+        {{ moneyrow('EV — Earned Value', k.EV, '% complete × BAC') }}
+        {{ moneyrow('PV — Planned Value', k.PV, 'BAC × time elapsed') }}
+        {{ moneyrow('EAC — Estimate at Completion', k.EAC_cpi, 'BAC ÷ CPI') }}
+        {{ moneyrow('EAC (composite)', k.EAC_composite, 'AC + (BAC − EV) ÷ CPI') }}
+        {{ moneyrow('ETC — Estimate to Complete', k.ETC, 'EAC − AC') }}
+        <tr>
+          <td class="text-muted" style="padding:6px 8px">VAC — Variance at Completion</td>
+          <td style="padding:6px 8px;text-align:right;font-variant-numeric:tabular-nums;color:{{ 'var(--color-danger)' if (k.VAC is not none and k.VAC < 0) else 'var(--color-success)' }};">{{ '${:,.0f}'.format(k.VAC) if k.VAC is not none else '—' }}</td>
+          <td class="text-xs text-muted" style="padding:6px 8px">BAC − EAC ({{ 'overrun' if (k.VAC is not none and k.VAC < 0) else 'underrun' }})</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  {# --- Cost forecast chart --- #}
+  <div class="card p-4">
+    <p class="text-sm" style="font-weight:600;color:var(--color-text);margin-bottom:8px;">Cost forecast — cumulative actual vs run-rate projection</p>
+    <div id="fc-cost" class="chart-container"></div>
+    <script id="fc-cost-data" type="application/json">{{ res.cost_forecast|tojson }}</script>
+    <script>(function boot(){ if(!window.EngCharts||!window.d3){setTimeout(boot,40);return;}
+      var d=JSON.parse(document.getElementById('fc-cost-data').textContent);
+      window.EngCharts.xyPlot('fc-cost',{ xLabel:'Day', yLabel:'Cumulative cost ($)', height:340, series:[
+        {name:'Actual', color:'#3B82F6', points:d.filter(function(p){return p.actual!=null;}).map(function(p){return {x:p.day,y:p.actual};})},
+        {name:'Forecast', color:'#F59E0B', dashed:true, points:d.filter(function(p){return p.forecast!=null;}).map(function(p){return {x:p.day,y:p.forecast};})}
+      ]}); })();</script>
+  </div>
+
+  {# --- Depth forecast chart --- #}
+  <div class="card p-4">
+    <p class="text-sm" style="font-weight:600;color:var(--color-text);margin-bottom:8px;">Depth forecast — MD vs day ({{ depth_unit }})</p>
+    <div id="fc-depth" class="chart-container"></div>
+    <script id="fc-depth-data" type="application/json">{{ res.depth_forecast|tojson }}</script>
+    <script>(function boot(){ if(!window.EngCharts||!window.d3){setTimeout(boot,40);return;}
+      var d=JSON.parse(document.getElementById('fc-depth-data').textContent);
+      window.EngCharts.xyPlot('fc-depth',{ xLabel:'Day', yLabel:'MD', height:340, series:[
+        {name:'Actual', color:'#3B82F6', points:d.filter(function(p){return p.actual!=null;}).map(function(p){return {x:p.day,y:p.actual};})},
+        {name:'Planned', color:'#10B981', points:d.filter(function(p){return p.planned!=null;}).map(function(p){return {x:p.day,y:p.planned};})},
+        {name:'Forecast', color:'#F59E0B', dashed:true, points:d.filter(function(p){return p.forecast!=null;}).map(function(p){return {x:p.day,y:p.forecast};})}
+      ]}); })();</script>
+  </div>
+
+  <p class="text-xs text-muted">
+    Earned value uses % complete measured by <strong>depth</strong> (current MD ÷ planned final MD), not physical progress across all operations.
+    The cost and depth forecasts assume the current CPI / run-rate holds for the remainder of the well; a change in formation, NPT or scope will move these numbers.
+    EAC = BAC ÷ CPI; the composite EAC blends spent-to-date with remaining work at the current cost efficiency.
+  </p>
+
+</div>
+{% endif %}

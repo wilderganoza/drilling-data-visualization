@@ -1,0 +1,81 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Hydraulics — results</h3>
+<p class="text-xs mb-3 text-muted">Power-law rheology n={{ r.n }}, K={{ r.K }} (from PV/YP). Field-unit pressure losses, laminar/turbulent by critical velocity.</p>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">Pump pressure (SPP)</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.spp) }} <span class="text-xs">psi</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">ECD @ TD</p><p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if not r.window_ok else 'var(--color-text)' }};">{{ r.ecd_td }} <span class="text-xs">ppg</span></p><p class="text-xs text-muted">window {{ r.pore_emw }}–{{ r.frac_emw }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Bit HSI</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ r.hsi }}</p><p class="text-xs text-muted">{{ r.pct_bit }}% ΔP at bit</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Min transport ratio</p><p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if r.min_tr < 50 else 'var(--color-text)' }};">{{ r.min_tr }}%</p></div>
+</div>
+
+<div class="space-y-4">
+  <div>
+    <div class="card p-3 mb-3">
+      <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Pressure loss breakdown</h4>
+      <table class="w-full text-xs"><tbody>
+        <tr><td class="py-1 text-muted">Surface equipment</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.dp_surf) }} psi</td></tr>
+        <tr><td class="py-1 text-muted">Drill pipe bore</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.dp_dp) }} psi</td></tr>
+        <tr><td class="py-1 text-muted">Collar/BHA bore</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.dp_col) }} psi</td></tr>
+        <tr><td class="py-1 text-muted">Bit nozzles</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.dp_bit) }} psi</td></tr>
+        <tr><td class="py-1 text-muted">Annulus (total)</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.dp_ann) }} psi</td></tr>
+        <tr style="border-top:1px solid var(--color-border);"><td class="py-1 font-medium" style="color:var(--color-text);">SPP</td><td class="py-1 text-right font-medium" style="color:var(--color-text);">{{ "{:,}".format(r.spp) }} psi</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card p-3">
+      <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Bit hydraulics</h4>
+      <table class="w-full text-xs"><tbody>
+        <tr><td class="py-1 text-muted">TFA</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.tfa }} in²</td></tr>
+        <tr><td class="py-1 text-muted">Nozzle velocity</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.vn }} ft/s</td></tr>
+        <tr><td class="py-1 text-muted">HSI (hp/in²)</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.hsi }}</td></tr>
+        <tr><td class="py-1 text-muted">Jet impact force</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.jet_impact) }} lbf</td></tr>
+      </tbody></table>
+    </div>
+  </div>
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">ECD vs depth &amp; operating window</h4>
+    <div id="eng-hy-ecd" class="chart-container"></div>
+  </div>
+</div>
+
+<div class="card p-3 mt-4">
+  <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Annulus &amp; hole cleaning by section</h4>
+  <div class="overflow-x-auto">
+    <table class="w-full text-xs">
+      <thead><tr class="border-b">
+        <th class="text-left py-1 px-2 text-muted">Section</th><th class="text-left py-1 px-2 text-muted">Hole × pipe</th>
+        <th class="text-left py-1 px-2 text-muted">Ann. vel (ft/min)</th><th class="text-left py-1 px-2 text-muted">ΔP (psi)</th>
+        <th class="text-left py-1 px-2 text-muted">ECD (ppg)</th><th class="text-left py-1 px-2 text-muted">Transport ratio</th>
+      </tr></thead>
+      <tbody>
+        {% for a in r.annulus %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ a.section }}</td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ a.hole }}" × {{ a.pipe_od }}"</td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ a.av }}</td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ a.dp }}</td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ a.ecd }}</td>
+            <td class="py-1 px-2"><span class="badge {{ 'badge-success' if a.tr >= 50 else 'badge-danger' }}">{{ a.tr }}%</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script id="eng-hy-data" type="application/json">{{ r.ecd_profile|tojson }}</script>
+<script>
+  (function boot() {
+    if (!window.EngCharts || !window.d3) { setTimeout(boot, 40); return; }
+    var d = JSON.parse(document.getElementById("eng-hy-data").textContent);
+    if (!d.length) return;
+    window.EngCharts.depthPlot("eng-hy-ecd", {
+      yLabel: "TVD ({{ depth_unit or 'ft' }})", xLabel: "Mud weight equivalent (ppg)", height: 380,
+      series: [
+        { name: "Pore", color: "#3B82F6", dashed: true, points: d.map(function (p) { return { x: p.pore, y: p.tvd }; }) },
+        { name: "ECD", color: "#10B981", points: d.map(function (p) { return { x: p.ecd, y: p.tvd }; }) },
+        { name: "Frac", color: "#EF4444", dashed: true, points: d.map(function (p) { return { x: p.frac, y: p.tvd }; }) },
+      ],
+    });
+  })();
+</script>

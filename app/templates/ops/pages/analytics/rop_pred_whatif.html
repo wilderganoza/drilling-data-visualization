@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}What-if — ROP Prediction{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/analytics/rop-prediction/experiments" class="text-sm" style="color: var(--color-primary);">&larr; Saved models</a>
+  {{ ui.page_header("What-if — " ~ exp.name, "Move the controllable parameters and see the predicted ROP update live. Context/response inputs default to their training median.") }}
+
+  <form id="rop-whatif-form" hx-post="/analytics/rop-prediction/experiments/{{ exp.id }}/whatif" hx-target="#rop-whatif-out" hx-swap="innerHTML"
+        hx-trigger="load, change delay:150ms, input delay:350ms">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card p-4">
+        <div class="card-header"><h3 class="card-title">Controllable</h3><span class="text-sm" style="color:#22c55e;">parameters you set</span></div>
+        {% for c in controls %}
+        <div style="margin-bottom:14px;">
+          <label class="form-label" style="display:flex; justify-content:space-between;">
+            <span>{{ c.label }}</span>
+            <span class="text-sm" id="rop-wf-val-{{ loop.index }}" style="color:var(--color-primary);">{{ c.median|fmt_number(1) }}</span>
+          </label>
+          <input type="range" name="{{ c.feature }}" min="{{ c.min }}" max="{{ c.max }}"
+                 step="{{ ((c.max - c.min) / 100) if (c.max > c.min) else 1 }}" value="{{ c.median }}"
+                 style="width:100%;" oninput="document.getElementById('rop-wf-val-{{ loop.index }}').textContent=parseFloat(this.value).toFixed(1);">
+        </div>
+        {% endfor %}
+        {% if not controls %}<p class="text-sm text-muted">This model has no controllable features selected.</p>{% endif %}
+      </div>
+
+      <div>
+        <div id="rop-whatif-out" style="margin-bottom:16px;"></div>
+        <div class="card p-4">
+          <div class="card-header"><h3 class="card-title">Context / response</h3><span class="text-sm text-muted">held at training median (editable)</span></div>
+          {% for c in fixed %}
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+            <label class="text-sm" style="width:200px; color:var(--color-text);">{{ c.label }}</label>
+            <input type="number" name="{{ c.feature }}" value="{{ c.median|round(3) }}" step="any" class="form-input" style="flex:1;">
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </form>
+
+  {% if controls %}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Parameter sweep — founder point</h3>
+      <span class="text-sm text-muted">Sweeps one controllable variable across its trained range (everything else held at the values set above) and plots the predicted ROP curve. The "founder point" is where adding more WOB/RPM stops improving ROP — the practical optimum the sweep is looking for.</span>
+    </div>
+    <div id="rop-sweep-controls" class="grid grid-cols-1 md:grid-cols-4 gap-4" style="align-items:end;">
+      <div>
+        <label class="form-label">Sweep variable</label>
+        <select id="rop-sweep-feature" name="sweep_feature" class="form-select"
+                onchange="ropSweepRangeDefaults(this.value)">
+          {% for c in controls %}<option value="{{ c.feature }}" {{ 'selected' if loop.first else '' }}>{{ c.label }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Min</label>
+        <input type="number" id="rop-sweep-min" name="sweep_min" step="any" class="form-input"
+               value="{{ controls[0].min|round(3) }}">
+      </div>
+      <div>
+        <label class="form-label">Max</label>
+        <input type="number" id="rop-sweep-max" name="sweep_max" step="any" class="form-input"
+               value="{{ controls[0].max|round(3) }}">
+      </div>
+      <div>
+        <label class="form-label">Compare across (optional)</label>
+        <select id="rop-sweep-compare" name="compare_feature" class="form-select">
+          <option value="">None</option>
+          {% for c in controls %}<option value="{{ c.feature }}">{{ c.label }} (min/median/max)</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <button type="button" id="rop-sweep-btn" class="btn btn-primary btn-sm"
+              hx-post="/analytics/rop-prediction/experiments/{{ exp.id }}/whatif/sweep"
+              hx-target="#rop-sweep-chart" hx-swap="innerHTML"
+              hx-include="#rop-whatif-form, #rop-sweep-controls" hx-indicator="#rop-sweep-ind">
+        Plot sweep
+      </button>
+      <div id="rop-sweep-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Computing…</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="if(window.htmx){htmx.trigger(document.getElementById('rop-sweep-btn'),'htmx:abort');}">Cancel</button>
+      </div>
+    </div>
+    <div id="rop-sweep-chart" class="mt-4">
+      <p class="text-sm text-muted">Pick a variable and click "Plot sweep".</p>
+    </div>
+  </div>
+
+  <script>
+  var ROP_SWEEP_STATS = {{ controls_by_feature|tojson }};
+  function ropSweepRangeDefaults(feature) {
+    var st = ROP_SWEEP_STATS[feature];
+    if (!st) return;
+    document.getElementById('rop-sweep-min').value = st.min;
+    document.getElementById('rop-sweep-max').value = st.max;
+  }
+  </script>
+  {% endif %}
+</div>
+{% endblock %}

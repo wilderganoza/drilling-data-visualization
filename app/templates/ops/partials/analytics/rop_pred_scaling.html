@@ -1,0 +1,63 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+<div class="space-y-6">
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Scaling method</h3>
+      <span class="text-sm text-muted">Puts all features on a comparable numeric range so distance/gradient-based models (SVR, KNN, MLP, linear) aren't dominated by whichever sensor has the biggest raw numbers — tree models are unaffected either way. Fit on the training split only.</span>
+    </div>
+    <form id="rop-scaling-form" hx-post="/analytics/rop-prediction/step/pca" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+      {{ h.hidden_state(state, skip=['scaling','scaling_preview_done']) }}
+      <input type="hidden" name="scaling_preview_done" id="rop-scaling-done" value="{{ 'true' if state.scaling_preview_done else 'false' }}">
+      <div class="w-full" style="max-width: 380px;">
+        <label class="form-label">Method</label>
+        {# Explicit labels + per-option hints — `|capitalize` produced the
+           misspellings "Minmax"/"Maxabs" and zero guidance on which to pick. #}
+        {% set scaling_options = [
+          ('none', 'None', 'No scaling — fine when only tree models will be used.'),
+          ('standard', 'Standard (z-score)', 'Mean 0, std 1 per feature — the usual default.'),
+          ('minmax', 'MinMax (0–1)', 'Rescales each feature to [0, 1]. Sensitive to extreme values.'),
+          ('robust', 'Robust (median/IQR)', 'Uses median and IQR — the choice when outliers remain in the data.'),
+          ('maxabs', 'MaxAbs (−1–1)', 'Divides by each feature\'s max |value|; preserves zeros/sparsity.'),
+        ] %}
+        <select name="scaling" class="form-select">
+          {% for key, label, hint in scaling_options %}
+            <option value="{{ key }}" {{ 'selected' if key == state.scaling else '' }} title="{{ hint }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <p class="text-sm text-muted">The preview below is optional — the chosen method is applied automatically when the model trains.</p>
+      <div class="flex justify-between">
+        <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/outliers" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="#rop-scaling-form">&larr; Back</button>
+        <div class="flex items-center gap-2">
+          <div id="rop-scaling-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Computing…</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="ropAbort('rop-scaling-calc','rop-scaling-preview')">Cancel</button>
+          </div>
+          <button type="button" id="rop-scaling-calc" class="btn btn-secondary"
+                  onclick="document.getElementById('rop-scaling-done').value='true'"
+                  hx-post="/analytics/rop-prediction/preview/scaling" hx-target="#rop-scaling-preview" hx-swap="innerHTML" hx-include="#rop-scaling-form" hx-indicator="#rop-scaling-ind">Calculate preview</button>
+          <button type="submit" class="btn btn-primary">Next: PCA &rarr;</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {# First visit: idle until "Calculate preview" is clicked. Revisit after the
+     user already calculated: auto-restores it (scaling_preview_done flag). #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Preview</h3>
+      <span class="text-sm text-muted">Raw vs. scaled min/mean/max per selected feature, so you can sanity-check the transform before training.</span>
+    </div>
+    {% if state.scaling_preview_done %}
+    <div id="rop-scaling-preview"
+         hx-post="/analytics/rop-prediction/preview/scaling" hx-trigger="load" hx-swap="innerHTML"
+         hx-target="this" hx-include="#rop-scaling-form" hx-indicator="#rop-scaling-ind">
+      <p class="text-sm text-muted">Restoring your preview…</p>
+    </div>
+    {% else %}
+    <div id="rop-scaling-preview">
+      <p class="text-sm text-muted">Click "Calculate preview" to see raw vs. scaled values.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>

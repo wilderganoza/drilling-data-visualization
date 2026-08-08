@@ -1,0 +1,48 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Well Control — kill sheet, MAASP &amp; kick tolerance</h3>
+<p class="text-xs mb-3 text-muted">TVD {{ "{:,}".format(r.tvd) }} {{ depth_unit or "ft" }} · casing shoe {{ "{:,}".format(r.shoe_md) }} {{ depth_unit or "ft" }} ({{ "{:,}".format(r.shoe_tvd) }} TVD).</p>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">Kill mud weight</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ r.kmw }} <span class="text-xs">ppg</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">ICP → FCP</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.icp) }}→{{ "{:,}".format(r.fcp) }}</p><p class="text-xs text-muted">psi</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Strokes to bit</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.strokes_to_bit) }}</p><p class="text-xs text-muted">{{ r.minutes_to_bit }} min</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">MAASP (current mud)</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.maasp) }}</p><p class="text-xs text-muted">psi · kill {{ "{:,}".format(r.maasp_kill) }}</p></div>
+</div>
+
+<div class="space-y-4">
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Wait &amp; Weight — pressure schedule</h4>
+    <div id="eng-wc-sched" class="chart-container"></div>
+  </div>
+  <div class="space-y-4">
+    <div class="card p-3">
+      <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Kick tolerance</h4>
+      <table class="w-full text-xs"><tbody>
+        <tr><td class="py-1 text-muted">Max kick intensity (0-vol)</td><td class="py-1 text-right"><span class="badge {{ 'badge-success' if r.ki_ok else 'badge-danger' }}">{{ r.max_ki }} ppg</span></td></tr>
+        <tr><td class="py-1 text-muted">Kick tolerance volume</td><td class="py-1 text-right"><span class="badge {{ 'badge-success' if r.vol_ok else 'badge-danger' }}">{{ r.kt_volume }} bbl</span></td></tr>
+        <tr><td class="py-1 text-muted">Design kick intensity</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.design_ki }} ppg</td></tr>
+        <tr><td class="py-1 text-muted">Current pit gain</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.pit_gain }} bbl</td></tr>
+        <tr><td class="py-1 text-muted">Influx type (from gradients)</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.influx_type }}</td></tr>
+      </tbody></table>
+    </div>
+    <div class="overflow-x-auto card p-3">
+      <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Schedule table</h4>
+      <table class="w-full text-xs">
+        <thead><tr class="border-b"><th class="text-left py-1 px-2 text-muted">Strokes</th><th class="text-left py-1 px-2 text-muted">Min</th><th class="text-left py-1 px-2 text-muted">DP pressure (psi)</th></tr></thead>
+        <tbody>{% for s in r.schedule %}<tr style="border-bottom:1px solid var(--color-border);"><td class="py-1 px-2" style="color:var(--color-text);">{{ "{:,}".format(s.strokes) }}</td><td class="py-1 px-2 text-muted">{{ s.minutes }}</td><td class="py-1 px-2" style="color:var(--color-text);">{{ "{:,}".format(s.pressure) }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script id="eng-wc-data" type="application/json">{{ r.schedule|tojson }}</script>
+<script>
+  (function boot() {
+    if (!window.EngCharts || !window.d3) { setTimeout(boot, 40); return; }
+    var d = JSON.parse(document.getElementById("eng-wc-data").textContent);
+    window.EngCharts.xyPlot("eng-wc-sched", {
+      xLabel: "Strokes", yLabel: "Drill-pipe pressure (psi)", height: 340,
+      series: [{ name: "W&W pressure", color: "#3B82F6", points: d.map(function (p) { return { x: p.strokes, y: p.pressure }; }) }],
+    });
+  })();
+</script>

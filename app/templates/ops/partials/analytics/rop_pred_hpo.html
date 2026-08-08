@@ -1,0 +1,156 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+{% import "ops/partials/analytics/rop_pred_macros.html" as m %}
+<div class="space-y-4">
+  {% if not_ready is defined and not_ready %}
+  {# Reached by jumping forward in the breadcrumb before choosing a model —
+     an honest "not ready" card instead of a blank-model run form. #}
+  <form>{{ h.hidden_state(state) }}
+    <div class="card p-4">
+      <div class="card-header"><h3 class="card-title">Hyperparameter optimization</h3></div>
+      <p class="text-sm text-muted">No model chosen yet — run <strong style="color:var(--color-text);">Pre-selection</strong> first (its best model is picked automatically) and come back here to tune it.</p>
+      <div class="flex mt-3">
+        <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/preselect" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Go to Pre-selection</button>
+      </div>
+    </div>
+  </form>
+  {% else %}
+  {% if error %}<div class="card p-4"><p style="color:var(--color-danger,#ef4444);">{{ error }}</p></div>{% endif %}
+
+  <form hx-post="/analytics/rop-prediction/run/hpo" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+    {{ h.hidden_state(state, skip=['hpo_trials','best_params']) }}
+    <div class="card p-4">
+      <div class="card-header">
+        <h3 class="card-title">Hyperparameter optimization</h3>
+        <span class="text-sm text-muted">Model: <strong style="color:var(--color-text);">{{ model_label }}</strong> · Optuna TPE search · each trial is scored by cross-validated R&sup2; computed ONLY on the training set (grouped by well) — the test set is never touched by the search itself, only used afterward to report train/test below.</span>
+      </div>
+      {% if can_hpo %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="align-items:end;">
+        <div>
+          <label class="form-label">Trials: <span id="rop-trials-val">{{ state.hpo_trials or 20 }}</span></label>
+          <input type="range" name="hpo_trials" min="10" max="80" step="5" value="{{ state.hpo_trials or 20 }}" style="width:100%;"
+                 oninput="document.getElementById('rop-trials-val').textContent=this.value;">
+        </div>
+        <div class="text-sm text-muted">More trials = better tuning, longer runtime.</div>
+      </div>
+      {% else %}
+      <p class="text-sm text-muted">{{ model_label }} has no hyperparameters to tune — continue to validation.</p>
+      {% endif %}
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      {# Back includes the SHELL's full-state form, not this step's own form:
+         this form deliberately omits best_params (so "Skip" below validates
+         with defaults), but Back must NOT lose the tuned params — including
+         only "closest form" here used to silently reset best_params to {},
+         making a later "Next: Validation" train with defaults unannounced. #}
+      <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/preselect" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="#rop-breadcrumb-form">&larr; Back</button>
+      <div class="flex items-center gap-3">
+        {% if can_hpo and hpo_estimate %}{{ m.estimate_line(hpo_estimate, 'to tune') }}{% endif %}
+        <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Working… (this can take a bit)</span></div>
+        {% if can_hpo %}<button type="submit" class="btn btn-primary">Run optimization</button>{% endif %}
+        <span class="text-sm" style="color:var(--color-border);">|</span>
+        {% if validation_estimate %}{{ m.estimate_line(validation_estimate, 'to validate') }}{% endif %}
+        {# NOT plain navigation: this LAUNCHES the full validation job, with
+           default hyperparameters — the label says so. #}
+        <button type="button" class="btn btn-secondary" title="Launches validation now, training with default hyperparameters (no tuning)"
+                hx-post="/analytics/rop-prediction/run/validation" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">Skip tuning &rarr; validate with defaults</button>
+      </div>
+    </div>
+  </form>
+
+  {% if hpo_result %}
+  {# Results first #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Optimized model — results</h3>
+      {# best_r2 can be none for a loaded experiment (only the history was
+         stored) — "CV R² -" read as broken. #}
+      <span class="text-sm text-muted">{% if hpo_result.best_r2 is not none %}CV R&sup2; {{ hpo_result.best_r2|fmt_number(4) }} over {% endif %}{{ hpo_result.history|length }} trials</span>
+    </div>
+
+    {% if hpo_result.tuned_metrics %}
+    <p class="text-sm text-muted" style="margin-bottom:8px">Default vs optimized hyperparameters, evaluated on both splits — if train improves a lot more than test, the tuning is overfitting.</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="margin-bottom:14px;">
+      {% for split_title, t, d in [('Train-set metric', hpo_result.tuned_train_metrics, hpo_result.default_train_metrics), ('Test-set metric', hpo_result.tuned_metrics, hpo_result.default_metrics)] %}
+      <div style="overflow-x:auto;">
+        <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+          <thead>
+            <tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border)">
+              <th style="padding:8px 10px;">{{ split_title }}</th>
+              <th style="padding:8px 10px; text-align:right;">Default</th>
+              <th style="padding:8px 10px; text-align:right;">Optimized</th>
+              <th style="padding:8px 10px; text-align:right;">Δ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for key, label, dec in [('r2','R²',4), ('rmse','RMSE (ft/hr)',2), ('mae','MAE (ft/hr)',2), ('mape','MAPE (%)',1)] %}
+            {% if t and d and t.get(key) is not none and d.get(key) is not none %}
+            {% set better = (t[key] > d[key]) if key == 'r2' else (t[key] < d[key]) %}
+            <tr style="border-bottom:1px solid var(--color-border);">
+              <td style="padding:8px 10px; color:var(--color-text);">{{ label }}</td>
+              <td class="text-muted" style="padding:8px 10px; text-align:right">{{ d[key]|fmt_number(dec) }}</td>
+              <td style="padding:8px 10px; text-align:right; font-weight:600; color:var(--color-primary);">{{ t[key]|fmt_number(dec) }}</td>
+              <td style="padding:8px 10px; text-align:right; color:{{ '#22c55e' if better else '#eab308' }};">{{ (t[key] - d[key])|fmt_number(dec) }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+      <thead><tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border)"><th style="padding:8px 10px;">Best hyperparameter</th><th style="padding:8px 10px; text-align:right;">Value</th></tr></thead>
+      <tbody>
+        {% for k, v in hpo_result.best_params.items() %}
+        {# Integers render as integers ("400", not "400.0000"); floats keep 4
+           decimals; anything non-numeric (strings, tuples) falls back to str. #}
+        <tr style="border-bottom:1px solid var(--color-border);"><td style="padding:8px 10px; color:var(--color-text);">{{ k }}</td><td class="text-muted" style="padding:8px 10px; text-align:right">
+          {%- if v is number and v == (v | round(0)) %}{{ v | int }}{% elif v is number %}{{ v | fmt_number(4) }}{% else %}{{ v }}{% endif -%}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Chart below — interactive convergence #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Convergence — CV R&sup2; per trial</h3>
+      <span class="text-sm text-muted">Gray = each trial's cross-validated R&sup2; on the training set; blue = best found so far. A flat blue line early on means more trials are unlikely to help.</span>
+    </div>
+    <div id="rop-hpo-chart" class="chart-container"></div>
+  </div>
+
+  <form hx-post="/analytics/rop-prediction/run/validation" hx-target="#rop-pred-content" hx-swap="innerHTML">
+    {{ h.hidden_state(state) }}
+    <div class="flex items-center justify-end gap-3">
+      {% if validation_estimate %}{{ m.estimate_line(validation_estimate, 'to validate') }}{% endif %}
+      <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Validating…</span></div>
+      <button type="submit" class="btn btn-primary">Next: Validation &rarr;</button>
+    </div>
+  </form>
+
+  <script>
+    (function () {
+      function boot() {
+        if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+        var hist = {{ hpo_result.history|tojson }};
+        if (!hist.length) return;
+        DrillingCharts.renderLineChart('rop-hpo-chart', {
+          data: hist, xKey: 'trial', xType: 'number', xTickFormat: 'number',
+          xLabel: 'Trial', height: 320, legend: true, brush: false,
+          series: [
+            { key: 'r2', label: 'CV R² (trial, search objective)', color: 'var(--color-text-muted)', yAxisId: 'default' },
+            { key: 'best', label: 'Best CV so far', color: 'var(--color-primary)', yAxisId: 'default' },
+          ],
+          yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left', label: 'R²', tickFormat: 'decimal2' }],
+        });
+      }
+      boot();
+    })();
+  </script>
+  {% endif %}
+  {% endif %}{# /not_ready #}
+</div>

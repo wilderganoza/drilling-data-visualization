@@ -1,0 +1,58 @@
+{% if not variable %}
+  <p class="text-sm text-muted">Choose a variable and click Visualize.</p>
+{% elif sample_count == 0 %}
+  <p class="text-sm text-muted">No numeric values available for {{ label }}.</p>
+{% else %}
+<div class="space-y-4">
+  <div>
+    <h4 class="text-sm font-semibold" style="color: var(--color-text); margin-bottom: 8px;">Distribution — {{ label }}</h4>
+    <div id="outlier-var-hist" class="chart-container"></div>
+  </div>
+  <div>
+    <h4 class="text-sm font-semibold" style="color: var(--color-text); margin-bottom: 8px;">Density — {{ label }}</h4>
+    <div id="outlier-var-density" class="chart-container"></div>
+  </div>
+  <div>
+    <h4 class="text-sm font-semibold" style="color: var(--color-text); margin-bottom: 8px;">Box &amp; whiskers — {{ label }}</h4>
+    <div id="outlier-var-box" class="chart-container"></div>
+  </div>
+</div>
+<script>
+(function () {
+  function boot() {
+    if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+    var histogram = {{ histogram|tojson }};
+
+    DrillingCharts.renderBarChart('outlier-var-hist', {
+      bins: histogram,
+      xLabel: {{ label|tojson }},
+      height: 260,
+      color: '#3B82F6',
+    });
+
+    var densityBins = histogram.map(function (b) { return { bin_center: b.bin_center, counts: { v: b.density_pct } }; });
+    var centers = histogram.map(function (b) { return b.bin_center; });
+    var tmin = Math.min.apply(null, centers), tmax = Math.max.apply(null, centers);
+    var step = (tmax - tmin) / 9 || 1;
+    var ticks = [];
+    for (var i = 0; i < 10; i++) ticks.push(tmin + step * i);
+
+    DrillingCharts.renderMultiHistogram('outlier-var-density', {
+      bins: densityBins,
+      ticks: ticks,
+      wells: [{ key: 'v', label: {{ label|tojson }}, color: '#3B82F6' }],
+      xLabel: {{ label|tojson }},
+      yLabel: 'Density %',
+      height: 260,
+    });
+
+    DrillingCharts.renderBoxPlot('outlier-var-box', {
+      box: {{ box|tojson }},
+      color: '#3B82F6',
+      height: 180,
+    });
+  }
+  boot();
+})();
+</script>
+{% endif %}

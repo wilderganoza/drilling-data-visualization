@@ -1,0 +1,34 @@
+{% if method == 'isolation_forest' %}
+  <div class="w-full">
+    <label class="form-label">Contamination (0-0.5)</label>
+    <input type="number" name="outlier_contamination" class="form-input" min="0.001" max="0.5" step="0.001" value="{{ outlier_params.contamination if outlier_params.contamination is defined else 0.05 }}" />
+  </div>
+  <div class="w-full">
+    <label class="form-label">Estimators</label>
+    <input type="number" name="outlier_n_estimators" class="form-input" min="10" step="10" value="{{ outlier_params.n_estimators if outlier_params.n_estimators is defined else '' }}" placeholder="100" />
+  </div>
+{% elif method == 'dbscan' %}
+  <div class="w-full">
+    <label class="form-label">Eps</label>
+    <input type="number" name="outlier_eps" class="form-input" min="0.01" step="0.01" value="{{ outlier_params.eps if outlier_params.eps is defined else 0.5 }}" />
+  </div>
+  <div class="w-full">
+    <label class="form-label">Min samples</label>
+    <input type="number" name="outlier_min_samples" class="form-input" min="1" step="1" value="{{ outlier_params.min_samples if outlier_params.min_samples is defined else 5 }}" />
+  </div>
+{% elif method == 'local_outlier_factor' %}
+  <div class="w-full">
+    <label class="form-label">Neighbors</label>
+    <input type="number" name="outlier_n_neighbors" class="form-input" min="1" step="1" value="{{ outlier_params.n_neighbors if outlier_params.n_neighbors is defined else 20 }}" />
+  </div>
+{% elif method == 'zscore' %}
+  <div class="w-full">
+    <label class="form-label">Threshold</label>
+    <input type="number" name="outlier_threshold" class="form-input" min="0.1" step="0.1" value="{{ outlier_params.threshold if outlier_params.threshold is defined else 3.0 }}" />
+  </div>
+{% elif method == 'iqr' %}
+  <div class="w-full">
+    <label class="form-label">IQR multiplier</label>
+    <input type="number" name="outlier_multiplier" class="form-input" min="0.1" step="0.1" value="{{ outlier_params.multiplier if outlier_params.multiplier is defined else 1.5 }}" />
+  </div>
+{% endif %}

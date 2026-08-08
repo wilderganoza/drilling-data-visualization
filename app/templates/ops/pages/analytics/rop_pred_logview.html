@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Actual vs Predicted — ROP Prediction{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/analytics/rop-prediction/experiments" class="text-sm" style="color: var(--color-primary);">&larr; Saved models</a>
+  {{ ui.page_header("Actual vs Predicted ROP", "Apply “" ~ exp.name ~ "” (" ~ (model_label if model_label is defined else exp.model_key) ~ ") to a well from the train/test/blind split used to validate it, and compare the real vs predicted ROP curve over depth — reuses the Well Logs multi-track viewer.") }}
+
+  {% if not split.train and not split.test and not split.blind %}
+  <div class="card p-4"><p class="text-muted">No wells found for this experiment's saved configuration.</p></div>
+  {% else %}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Pick a dataset and well</h3>
+      <span class="text-sm text-muted">Train wells show fit; Test/Blind wells show generalization to data the model didn't learn from.</span>
+    </div>
+    {% if split.grouped is defined and not split.grouped %}
+    <p class="text-sm mb-2" style="color:#eab308;">Note: this model was trained with too few wells for a by-well split, so the same wells appear under both Train and Test (the split was row-level) — "Test" here is not a fully unseen well.</p>
+    {% endif %}
+    <form hx-post="/analytics/rop-prediction/experiments/{{ exp.id }}/logview/open" hx-target="#rop-logview-result" hx-swap="innerHTML" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Dataset</label>
+          <select name="dataset" class="form-select"
+                  hx-get="/analytics/rop-prediction/experiments/{{ exp.id }}/logview/wells"
+                  hx-target="#rop-logview-well-wrapper" hx-swap="innerHTML" hx-trigger="change" hx-include="this">
+            {% if split.train %}<option value="train" {{ 'selected' if default_dataset == 'train' }}>Train ({{ split.train|length }} wells)</option>{% endif %}
+            {% if split.test %}<option value="test" {{ 'selected' if default_dataset == 'test' }}>Test ({{ split.test|length }} wells)</option>{% endif %}
+            {% if split.blind %}<option value="blind" {{ 'selected' if default_dataset == 'blind' }}>Blind ({{ split.blind|length }} well)</option>{% endif %}
+          </select>
+        </div>
+        <div id="rop-logview-well-wrapper">
+          {% include "ops/partials/analytics/rop_pred_logview_wells.html" %}
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading…</span></div>
+        <button type="submit" class="btn btn-primary">Open</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <div id="rop-logview-result">
+    <div class="card p-4"><div class="py-12 text-center"><p class="text-muted">Pick a dataset and well, then click Open.</p></div></div>
+  </div>
+</div>
+{% endblock %}

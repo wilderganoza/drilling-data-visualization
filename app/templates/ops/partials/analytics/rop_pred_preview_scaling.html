@@ -1,0 +1,29 @@
+{% if not rows %}
+  <p class="text-sm text-muted">Not enough data to preview.</p>
+{% else %}
+<p class="text-sm text-muted" style="margin-bottom:8px">{{ '{:,}'.format(n) }} pooled rows · method: <strong style="color:var(--color-text);">{{ {'none':'None','standard':'Standard (z-score)','minmax':'MinMax (0–1)','robust':'Robust (median/IQR)','maxabs':'MaxAbs (−1–1)'}.get(method, method) }}</strong></p>
+<div style="overflow-x:auto;">
+  <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+    <thead>
+      <tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border)">
+        <th style="padding:8px 10px;">Variable</th>
+        <th style="padding:8px 10px; text-align:right;">Raw min</th><th style="padding:8px 10px; text-align:right;">Raw mean</th><th style="padding:8px 10px; text-align:right;">Raw max</th>
+        <th style="padding:8px 10px; text-align:right;">Scaled min</th><th style="padding:8px 10px; text-align:right;">Scaled mean</th><th style="padding:8px 10px; text-align:right;">Scaled max</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr style="border-bottom:1px solid var(--color-border);">
+        <td style="padding:8px 10px; color:var(--color-text);">{{ r.feature }}</td>
+        <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.raw_min|fmt_number(2) }}</td>
+        <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.raw_mean|fmt_number(2) }}</td>
+        <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.raw_max|fmt_number(2) }}</td>
+        <td style="padding:8px 10px; text-align:right; color:var(--color-text);">{{ r.sc_min|fmt_number(2) }}</td>
+        <td style="padding:8px 10px; text-align:right; color:var(--color-text);">{{ r.sc_mean|fmt_number(2) }}</td>
+        <td style="padding:8px 10px; text-align:right; color:var(--color-text);">{{ r.sc_max|fmt_number(2) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}

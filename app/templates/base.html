@@ -1,0 +1,141 @@
+{% set path = request.url.path %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Drilling Data Visualization{% endblock %}</title>
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}" />
+  <script>
+    (function () {
+      var theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+      var sidebarOpen = localStorage.getItem('sidebarOpen');
+      document.documentElement.setAttribute('data-sidebar-pref', sidebarOpen === 'false' ? 'closed' : 'open');
+    })();
+  </script>
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  <script src="https://unpkg.com/d3@7" defer></script>
+  <script src="{{ asset('js/charts.js') }}" defer></script>
+  <script src="{{ asset('js/welllog.js') }}" defer></script>
+  {% block extra_head %}{% endblock %}
+</head>
+<body data-sidebar="open" {% if path == "/" %}data-no-sidebar="true"{% endif %}>
+  <header class="app-header">
+    <div class="flex items-center gap-4">
+      <button id="sidebar-toggle-btn" class="icon-btn" aria-label="Toggle sidebar">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <a href="/" class="flex items-center gap-3" style="text-decoration: none;">
+        <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--color-primary);">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h2v8H3zm6-4h2v12H9zm6-6h2v18h-2zm6 10h2v8h-2z" />
+        </svg>
+        <h1 class="text-base font-semibold" style="color: var(--color-text);">
+          Drilling Data Visualization
+          {%- if path.startswith("/master-data") %} <span class="text-muted" style="font-weight: 400">&middot; Master Data</span>
+          {%- elif path.startswith("/planning") %} <span class="text-muted" style="font-weight: 400">&middot; Planning</span>
+          {%- elif path.startswith("/ops") %} <span class="text-muted" style="font-weight: 400">&middot; Daily Operations</span>
+          {%- elif path.startswith("/analytics") %} <span class="text-muted" style="font-weight: 400">&middot; Analytics</span>
+          {%- endif %}
+        </h1>
+      </a>
+    </div>
+    <div class="flex items-center gap-3">
+      {% if current_user %}
+        <a href="/ops/search" class="icon-btn" title="Search" aria-label="Search" style="text-decoration:none;">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </a>
+      {% endif %}
+      <button id="theme-toggle-btn" class="theme-toggle-btn" title="Toggle theme">🌙</button>
+      {% if current_user %}
+        <div class="text-right">
+          <p class="text-sm font-medium" style="color: var(--color-text);">{{ current_user.full_name or current_user.username }}</p>
+          <p class="text-xs text-muted">{{ 'Admin' if current_user.is_admin else 'User' }}</p>
+        </div>
+        <div class="avatar">{{ current_user.username[0]|upper }}</div>
+        <form method="post" action="/logout">
+          <button type="submit" class="icon-btn" title="Logout" aria-label="Logout">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if current_user and path != "/" %}
+  <aside class="app-sidebar">
+    {% if path.startswith("/master-data") or path.startswith("/planning") or path.startswith("/ops") %}
+      {% set tree_url = "/master-data/tree" if path.startswith("/master-data") else ("/planning/tree" if path.startswith("/planning") else "/ops/tree") %}
+      <div class="sidebar-workspace-label">
+        <a href="/" class="nav-item" style="font-size: 12px;">&larr; Home</a>
+      </div>
+      <div id="ops-tree" class="ops-tree"
+           hx-get="{{ tree_url }}?chain={{ tree_open_ids|join(',') if tree_open_ids else '' }}&active={{ tree_active_id or '' }}"
+           hx-trigger="load" hx-swap="innerHTML"
+           data-open-ids="{{ tree_open_ids|join(',') if tree_open_ids else '' }}"
+           data-active-id="{{ tree_active_id or '' }}">
+        <p class="tree-loading">Loading…</p>
+      </div>
+    {% elif path.startswith("/analytics") %}
+      <nav>
+        <a href="/" class="nav-item" style="font-size: 12px; margin-bottom: 4px;">&larr; Home</a>
+        {% for m in submodules if not m.hidden %}
+          <a href="/analytics/{{ m.key }}" class="nav-item {{ 'active' if active == m.key else '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              {% for d in m.svg.split("|") %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}" />{% endfor %}
+            </svg>
+            <span>{{ m.title }}</span>
+          </a>
+        {% endfor %}
+      </nav>
+    {% else %}
+      <nav>
+        {% set nav_items = [
+          ("Wells", "/wells", path.startswith("/wells") and "/logs" not in path, "M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"),
+          ("Quality Report", "/quality", path == "/quality", "M9 17v-2a2 2 0 012-2h2a2 2 0 012 2v2m-8 0h8m-8 0a2 2 0 01-2-2V7a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2|M9 9h6m-6 4h6"),
+          ("Well Logs", "/logs", path == "/logs", "M4 3v18M9 3v18M4 7h5M4 12h5M4 17h5M15 3v18M15 8l3-3 3 3M18 5v13"),
+          ("Comparison", "/comparison", path == "/comparison", "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"),
+          ("Crossplots", "/crossplots", path == "/crossplots", "M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"),
+          ("Exports", "/exports", path.startswith("/exports"), "M12 10v6m0 0l-3-3m3 3l3-3M3 17v3a2 2 0 002 2h14a2 2 0 002-2v-3|M14 2H6a2 2 0 00-2 2v12M14 2l6 6M14 2v6h6"),
+        ] %}
+        <a href="/" class="nav-item" style="font-size: 12px; margin-bottom: 4px;">&larr; Home</a>
+        {% for label, href, is_active, icon_paths in nav_items %}
+          <a href="{{ href }}" class="nav-item {{ 'active' if is_active else '' }}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              {% for d in icon_paths.split("|") %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}" />{% endfor %}
+            </svg>
+            <span>{{ label }}</span>
+          </a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+  </aside>
+  {% endif %}
+
+  <main class="app-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <div id="toast-container"></div>
+
+  <div id="confirm-modal-backdrop">
+    <div id="confirm-modal">
+      <div class="modal-header">
+        <h3>Confirm</h3>
+      </div>
+      <div class="modal-body" id="confirm-modal-message"></div>
+      <div class="modal-footer">
+        <button type="button" id="confirm-modal-cancel-btn" class="btn btn-ghost btn-sm">Cancel</button>
+        <button type="button" id="confirm-modal-confirm-btn" class="btn btn-danger btn-sm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ asset('js/app.js') }}" defer></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

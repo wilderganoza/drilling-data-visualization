@@ -1,0 +1,40 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Stuck Pipe / Free-Point</h3>
+<p class="text-xs mb-3 text-muted">TVD {{ "{:,}".format(r.tvd) }} {{ depth_unit or "ft" }} · overbalance {{ "{:,}".format(r.overbalance_psi) }} psi ({{ r.overbalance_emw }} ppg) · {{ r.mechanism }}.</p>
+
+{% if r.high_risk %}
+  <div class="card p-3 mb-4" style="border-left:4px solid var(--color-danger);"><span class="badge badge-danger">High differential-sticking risk</span> <span class="text-sm">Minimise overbalance, keep pipe moving, consider ream / back-ream to avoid becoming differentially stuck.</span></div>
+{% endif %}
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">Overbalance</p><p style="font-size:19px;font-weight:600;color:{{ 'var(--color-danger)' if r.high_risk else 'var(--color-text)' }};">{{ "{:,}".format(r.overbalance_psi) }} <span class="text-xs">psi</span></p><p class="text-xs text-muted">{{ r.overbalance_emw }} ppg</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Differential sticking force</p><p style="font-size:19px;font-weight:600;color:var(--color-text);">{{ "{:,.1f}".format(r.stick_force_klbf) }} <span class="text-xs">klbf</span></p><p class="text-xs text-muted">pull to free</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Free point — weight</p><p style="font-size:19px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.freepoint_weight_ft) }} <span class="text-xs">{{ depth_unit or "ft" }}</span></p><p class="text-xs text-muted">stretch-based</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Free point — area</p><p style="font-size:19px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.freepoint_area_ft) }} <span class="text-xs">{{ depth_unit or "ft" }}</span></p><p class="text-xs text-muted">Hooke's law</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Spotting pill</p><p style="font-size:19px;font-weight:600;color:var(--color-text);">{{ "{:,.1f}".format(r.pill_bbl) }} <span class="text-xs">bbl</span></p><p class="text-xs text-muted">zone + 100 ft, 20% excess</p></div>
+</div>
+
+<div class="card p-4">
+  <table class="w-full text-sm" style="color:var(--color-text);">
+    <tbody>
+      <tr style="border-bottom:1px solid var(--color-border);">
+        <td class="py-2 text-muted">Free point — weight-based (735,000 constant)</td>
+        <td class="py-2 text-right" style="font-weight:600;">{{ "{:,}".format(r.freepoint_weight_ft) }} {{ depth_unit or "ft" }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--color-border);">
+        <td class="py-2 text-muted">Free point — area-based (E·A·ΔL / 12·F)</td>
+        <td class="py-2 text-right" style="font-weight:600;">{{ "{:,}".format(r.freepoint_area_ft) }} {{ depth_unit or "ft" }}</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--color-border);">
+        <td class="py-2 text-muted">Annular capacity</td>
+        <td class="py-2 text-right" style="font-weight:600;">{{ r.ann_cap_bblft }} bbl/ft</td>
+      </tr>
+      <tr>
+        <td class="py-2 text-muted">Recommended spotting-pill volume</td>
+        <td class="py-2 text-right" style="font-weight:600;">{{ "{:,.1f}".format(r.pill_bbl) }} bbl</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<p class="text-xs mt-3 text-muted">Planning estimate only. The free-point calculation assumes uniform pipe and purely elastic stretch (single string, no tool-joint or wall-friction correction); the sticking force is an order-of-magnitude guide for spotting-pill and jarring decisions, not a guaranteed pull-to-free.</p>

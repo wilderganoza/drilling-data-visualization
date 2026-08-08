@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Saved ROP models — Analytics{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/analytics/rop-prediction" class="text-sm" style="color: var(--color-primary);">&larr; ROP Prediction</a>
+  {{ ui.page_header("Saved ROP models", "Trained experiments — reuse them to score new wells or run what-if analysis.") }}
+  <div id="rop-exp-list">
+    {% include "ops/partials/analytics/rop_pred_experiments_list.html" %}
+  </div>
+</div>
+{% endblock %}

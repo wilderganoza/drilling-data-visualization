@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Analytics", "Advanced analytics on the operational record — forecasting, learning curves, NPT, ROP and data quality. Built to grow into trained models as more wells are loaded.") }}
+
+  <div class="home-cards">
+    {% for m in submodules %}
+      <a href="/analytics/{{ m.key }}" class="home-card">
+        <div class="home-card-icon">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {% for d in m.svg.split("|") %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ d }}" />{% endfor %}
+          </svg>
+        </div>
+        <h2>{{ m.title }}</h2>
+        <p>{{ m.desc }}</p>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% import "macros/ui.html" as ui %}
+<div id="cases-table-wrapper" class="card p-4">
+  <div class="card-header">
+    <h3 class="card-title">Cases ({{ rows|length }})</h3>
+    <span class="text-sm text-muted">Saved outlier-detection runs from the Data Cleaning wizard — one row per case, reopenable to re-run or export.</span>
+  </div>
+  <div>
+    {% if rows|length == 0 %}
+      <p class="text-muted">No cases saved yet. Run the <a href="/analytics/cleaning" style="color:var(--color-primary);">Data Cleaning wizard</a> and save the result to create one.</p>
+    {% else %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b">
+              <th class="text-left py-3 px-4 font-medium text-muted">Name</th>
+              <th class="text-left py-3 px-4 font-medium text-muted">Well</th>
+              <th class="text-center py-3 px-4 font-medium text-muted">Status</th>
+              <th class="text-right py-3 px-4 font-medium text-muted">Records</th>
+              <th class="text-right py-3 px-4 font-medium text-muted">Outliers</th>
+              <th class="text-left py-3 px-4 font-medium text-muted">Created</th>
+              <th class="text-right py-3 px-4 font-medium text-muted">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr class="border-b transition-colors" style="border-bottom: 1px solid var(--color-border);">
+                <td class="py-3 px-4 font-medium" style="color: var(--color-text);">{{ row.name }}</td>
+                <td class="py-3 px-4" style="color: var(--color-text);">{{ row.well_name }}</td>
+                <td class="py-3 px-4 text-center">
+                  {% if row.status == 'completed' %}
+                    <span class="badge badge-success">{{ row.status|title }}</span>
+                  {% elif row.status == 'failed' %}
+                    <span class="badge badge-danger">{{ row.status|title }}</span>
+                  {% else %}
+                    <span class="badge badge-muted">{{ row.status|title }}</span>
+                  {% endif %}
+                </td>
+                <td class="py-3 px-4 text-right" style="color: var(--color-text);">{{ '{:,}'.format(row.record_count) if row.record_count is not none else '—' }}</td>
+                <td class="py-3 px-4 text-right" style="color: var(--color-text);">
+                  {{ '{:,}'.format(row.outliers) }}{% if row.outlier_pct is not none %} ({{ '%.1f'|format(row.outlier_pct) }}%){% endif %}
+                </td>
+                <td class="py-3 px-4 text-muted">{{ row.created_at|fmt_datetime }}</td>
+                <td class="py-3 px-4 text-right">
+                  <div class="flex items-center justify-end gap-2">
+                    <a href="/analytics/cleaning?well_id={{ row.well_id }}" class="btn btn-secondary btn-sm" title="Reopen this well's cases in the Data Cleaning wizard">Open</a>
+                    <div id="case-delete-ind-{{ row.id }}" class="htmx-indicator inline-loader"><span class="spinner-el"></span></div>
+                    <button
+                      type="button"
+                      class="btn btn-danger btn-sm"
+                      hx-delete="/cases/{{ row.id }}"
+                      hx-target="#cases-table-wrapper"
+                      hx-swap="outerHTML"
+                      hx-indicator="#case-delete-ind-{{ row.id }}"
+                      hx-confirm="Are you sure you want to delete &quot;{{ row.name }}&quot;? This action cannot be undone."
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>

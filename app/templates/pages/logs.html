@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Well Logs — Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {{ ui.page_header("Well Logs Viewer", "Multi-track well log visualization for any well") }}
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Select Well</h3></div>
+    <form hx-post="/logs/open" hx-target="#welllog-section" hx-swap="innerHTML" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
+          <label class="form-label">Well</label>
+          <select
+            id="logs-well-select"
+            name="well_id"
+            class="form-select"
+            hx-get="/logs/datasets"
+            hx-target="#logs-dataset-select-wrapper"
+            hx-swap="innerHTML"
+            hx-trigger="change"
+            hx-indicator="#logs-dataset-ind"
+          >
+            <option value="">Select a well</option>
+            {% for w in wells %}<option value="{{ w.id }}">{{ w.well_name }}</option>{% endfor %}
+          </select>
+          <div id="logs-dataset-ind" class="htmx-indicator inline-loader" style="margin-top:6px;"><span class="spinner-el"></span><span>Loading datasets…</span></div>
+        </div>
+        <div id="logs-dataset-select-wrapper"></div>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <div id="logs-loading" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading data…</span></div>
+        <button type="submit" id="logs-apply-btn" class="btn btn-primary">Apply</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="welllog-section">
+    <div class="card p-4">
+      <div class="py-12 text-center">
+        <p class="text-muted">Select a well to view logs</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

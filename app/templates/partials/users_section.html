@@ -1,0 +1,114 @@
+{% set show_create_form = form_error is not none %}
+{% if current_user.is_admin %}
+<div id="create-user-form-wrapper" class="card p-4 mb-4" style="display: {{ 'block' if show_create_form else 'none' }};">
+  <div class="card-header"><h3 class="card-title">Create New User</h3></div>
+  <form hx-post="/users" hx-target="#users-section" hx-swap="innerHTML" class="space-y-4">
+    {% if form_error %}
+      <div class="px-4 py-3 text-sm" style="background-color: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: var(--radius); color: var(--color-danger);">
+        {{ form_error }}
+      </div>
+    {% endif %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="w-full">
+        <label class="form-label">Username</label>
+        <input name="username" type="text" class="form-input" placeholder="username" required />
+      </div>
+      <div class="w-full">
+        <label class="form-label">Password</label>
+        <input name="password" type="password" class="form-input" placeholder="Min 6 characters" required />
+      </div>
+      <div class="w-full">
+        <label class="form-label">Full Name</label>
+        <input name="full_name" type="text" class="form-input" placeholder="Full name" />
+      </div>
+      <div class="w-full">
+        <label class="form-label">Email</label>
+        <input name="email" type="email" class="form-input" placeholder="email@example.com" />
+      </div>
+    </div>
+    <label class="flex items-center gap-2" style="cursor: pointer;">
+      <input type="checkbox" name="is_admin" value="true" style="accent-color: var(--color-primary);" />
+      <span class="text-sm" style="color: var(--color-text);">Administrator</span>
+    </label>
+    <button type="submit" class="btn btn-primary">Create User</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="card p-4">
+  <div class="card-header"><h3 class="card-title">Users ({{ users|length }})</h3></div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b">
+          <th class="text-left py-3 px-4 font-medium text-muted">Username</th>
+          <th class="text-left py-3 px-4 font-medium text-muted">Full Name</th>
+          <th class="text-left py-3 px-4 font-medium text-muted">Email</th>
+          <th class="text-center py-3 px-4 font-medium text-muted">Status</th>
+          <th class="text-center py-3 px-4 font-medium text-muted">Role</th>
+          {% if current_user.is_admin %}<th class="text-right py-3 px-4 font-medium text-muted">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr class="border-b transition-colors" style="border-bottom: 1px solid var(--color-border);">
+            <td class="py-3 px-4 font-medium" style="color: var(--color-text);">{{ u.username }}</td>
+            <td class="py-3 px-4" style="color: var(--color-text);">{{ u.full_name or '-' }}</td>
+            <td class="py-3 px-4" style="color: var(--color-text);">{{ u.email or '-' }}</td>
+            <td class="py-3 px-4 text-center">
+              {% if u.is_active %}
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-900/30 text-green-400">Active</span>
+              {% else %}
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-900/30 text-red-400">Inactive</span>
+              {% endif %}
+            </td>
+            <td class="py-3 px-4 text-center">
+              {% if u.is_admin %}
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-purple-900/30 text-purple-400">Admin</span>
+              {% else %}
+                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-800 text-gray-400">User</span>
+              {% endif %}
+            </td>
+            {% if current_user.is_admin %}
+            <td class="py-3 px-4 text-right space-x-2">
+              <button type="button" class="btn btn-secondary btn-sm" hx-post="/users/{{ u.id }}/toggle-active" hx-target="#users-section" hx-swap="innerHTML">
+                {{ 'Deactivate' if u.is_active else 'Activate' }}
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" hx-post="/users/{{ u.id }}/toggle-admin" hx-target="#users-section" hx-swap="innerHTML">
+                {{ 'Remove Admin' if u.is_admin else 'Make Admin' }}
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pwd-row-{{ u.id }}').classList.toggle('hidden')">
+                Password
+              </button>
+              {% if u.id != current_user.id %}
+                <button
+                  type="button"
+                  class="btn btn-danger btn-sm"
+                  hx-delete="/users/{{ u.id }}"
+                  hx-target="#users-section"
+                  hx-swap="innerHTML"
+                  hx-confirm="Are you sure you want to delete user &quot;{{ u.username }}&quot;? This action cannot be undone."
+                >
+                  Delete
+                </button>
+              {% endif %}
+            </td>
+            {% endif %}
+          </tr>
+          {% if current_user.is_admin %}
+          <tr id="pwd-row-{{ u.id }}" class="hidden" style="border-bottom: 1px solid var(--color-border); background-color: var(--color-surface-hover);">
+            <td colspan="6" class="py-3 px-4">
+              <form hx-post="/users/{{ u.id }}/password" hx-target="#users-section" hx-swap="innerHTML" class="flex items-center gap-3">
+                <span class="text-sm text-muted">New password for {{ u.username }}:</span>
+                <input type="password" name="new_password" class="form-input" placeholder="Min 6 characters" style="max-width: 220px;" required />
+                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pwd-row-{{ u.id }}').classList.add('hidden')">Cancel</button>
+              </form>
+            </td>
+          </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

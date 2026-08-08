@@ -1,0 +1,19 @@
+{% import "macros/ops.html" as ops %}
+{% set can_edit = can_edit if can_edit is defined else true %}
+<div id="project-section">
+  {{ ops.hierarchy_table(projects, [("name", "Name")], "/master-data/projects", "#project-section", "No projects yet.", read_only=not can_edit) }}
+  {% if can_edit %}
+  {% call ops.modal("project-new-modal", "New Project") %}
+    <form hx-post="/master-data/companies/{{ company.id }}/projects" hx-target="#project-section" hx-swap="outerHTML" class="space-y-3">
+      <div>
+        <label class="form-label">Project name</label>
+        <input type="text" name="name" class="form-input" required />
+      </div>
+      <div class="flex justify-end gap-2 mt-2">
+        <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Project</button>
+      </div>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>

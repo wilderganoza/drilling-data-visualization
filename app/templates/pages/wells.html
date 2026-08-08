@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Wells — Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {{ ui.page_header("Wells", "Select a well to visualize drilling data") }}
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Select Well</h3></div>
+    <form hx-post="/wells/open" hx-target="#wells-charts-section" hx-swap="innerHTML" class="space-y-4">
+      {# 1) Choose the database (domain) first. #}
+      {% if has_time_data %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Database (domain)</label>
+          <select name="domain" class="form-select"
+                  hx-get="/wells/well-options" hx-target="#wells-well-select" hx-swap="innerHTML" hx-trigger="change"
+                  onchange="var w=document.getElementById('wells-dataset-select-wrapper'); if(w) w.innerHTML='';">
+            <option value="depth">Depth-indexed</option>
+            <option value="time">Time-indexed</option>
+          </select>
+        </div>
+      </div>
+      {% else %}<input type="hidden" name="domain" value="depth" />{% endif %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
+          <label class="form-label">Well</label>
+          <select
+            id="wells-well-select"
+            name="well_id"
+            class="form-select"
+            hx-get="/wells/datasets"
+            hx-target="#wells-dataset-select-wrapper"
+            hx-swap="innerHTML"
+            hx-trigger="change"
+            hx-include="[name='domain']"
+            hx-indicator="#wells-dataset-ind"
+          >
+            <option value="">Select a well</option>
+            {% for w in wells %}<option value="{{ w.id }}">{{ w.well_name }}</option>{% endfor %}
+          </select>
+          <div id="wells-dataset-ind" class="htmx-indicator inline-loader" style="margin-top:6px;"><span class="spinner-el"></span><span>Loading datasets…</span></div>
+        </div>
+        <div id="wells-dataset-select-wrapper"></div>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <div id="wells-loading" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading well data…</span></div>
+        <button type="submit" id="wells-open-btn" class="btn btn-primary">Open Well</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="wells-charts-section">
+    <div class="card p-4">
+      <div class="py-12 text-center">
+        <p class="text-muted">Select a well to start</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

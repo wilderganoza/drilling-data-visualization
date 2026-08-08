@@ -1,0 +1,82 @@
+{% import "macros/ops.html" as ops %}
+<div id="time-summary-tab-content">
+  <div class="subsection-toolbar">
+    <p class="text-sm text-muted">Total: {{ "%.2f"|format(total_hours or 0) }} hrs {{ "(should be 24.00 except the event's first/last report)" if rows else "" }}</p>
+    <div class="flex items-center gap-2">
+      {{ ops.new_button("time-summary-new-modal", "+ Add Row") }}
+      <span id="time-summary-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span></span>
+    </div>
+  </div>
+
+  {% if rows|length == 0 %}
+    <p class="text-sm text-muted">No time summary rows yet.</p>
+  {% else %}
+    <div class="overflow-x-auto mb-4">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b">
+            <th class="text-left py-2 px-3 font-medium text-muted">From</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">To</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Hrs</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Step</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Phase</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Class</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Operation</th>
+            <th class="text-right py-2 px-3 font-medium text-muted">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row, duration in rows %}
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ row.time_from or "—" }}</td>
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ row.time_to or "—" }}</td>
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ "%.2f"|format(duration) if duration is not none else "—" }}</td>
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ row.step_no if row.step_no is not none else "—" }}</td>
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ row.phase or "—" }}</td>
+              <td class="py-2 px-3">
+                {% if row.op_class == "NPT" %}<span class="badge badge-danger">NPT</span>
+                {% elif row.op_class == "SC" %}<span class="badge badge-warning">SC</span>
+                {% else %}<span class="badge badge-muted">{{ row.op_class or "P" }}</span>{% endif %}
+              </td>
+              <td class="py-2 px-3" style="color: var(--color-text); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.operation_detail or "—" }}</td>
+              <td class="py-2 px-3 text-right whitespace-nowrap">
+                <button type="button" class="icon-btn" title="Move up" hx-post="/ops/reports/{{ report.id }}/time-summary/rows/{{ row.id }}/move" hx-vals='{"direction": "up"}' hx-target="#time-summary-tab-content" hx-swap="outerHTML" hx-indicator="#time-summary-ind">&uarr;</button>
+                <button type="button" class="icon-btn" title="Move down" hx-post="/ops/reports/{{ report.id }}/time-summary/rows/{{ row.id }}/move" hx-vals='{"direction": "down"}' hx-target="#time-summary-tab-content" hx-swap="outerHTML" hx-indicator="#time-summary-ind">&darr;</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-open-modal="#row-edit-modal-{{ row.id }}">Edit</button>
+                <button type="button" class="btn btn-danger btn-sm"
+                        hx-delete="/ops/reports/{{ report.id }}/time-summary/rows/{{ row.id }}"
+                        hx-target="#time-summary-tab-content" hx-swap="outerHTML"
+                        hx-confirm="Delete this row?" hx-indicator="#time-summary-ind">
+                  Delete
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% call ops.modal("time-summary-new-modal", "Add Time Summary Row", size="modal-lg") %}
+    {{ ops.time_summary_row_form(report, step_catalog) }}
+  {% endcall %}
+
+  {% for row, duration in rows %}
+    {% call ops.modal("row-edit-modal-" ~ row.id, "Edit Time Summary Row", size="modal-lg") %}
+      {{ ops.time_summary_row_form(report, step_catalog, row) }}
+    {% endcall %}
+  {% endfor %}
+</div>
+
+<script>
+  (function () {
+    document.querySelectorAll('.ts-step-select').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        var opt = sel.options[sel.selectedIndex];
+        var form = sel.closest('form');
+        var phaseInput = form.querySelector('input[name="phase"]');
+        if (phaseInput && opt) phaseInput.value = opt.dataset.phase || '';
+      });
+    });
+  })();
+</script>

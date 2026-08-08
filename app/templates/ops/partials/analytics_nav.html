@@ -1,0 +1,5 @@
+<div class="tab-bar" style="margin-bottom:20px;">
+  {% for m in submodules %}
+    <a href="/analytics/{{ m.key }}" class="tab-btn {{ 'active' if active == m.key }}" style="text-decoration:none;">{{ m.icon }} {{ m.title }}</a>
+  {% endfor %}
+</div>

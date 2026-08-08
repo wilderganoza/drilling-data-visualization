@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Audit / Activity — Ops Admin{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Ops Administration", "Roles, catalogs and validation for the operations module") }}
+  <div class="card p-0">
+    {% include "ops/partials/admin_nav.html" %}
+    <div class="p-4">
+      <p class="text-sm mb-4 text-muted">
+        Approval trail across Daily Reports and Well Plans — who created, submitted and approved each record, and when.
+        Showing the {{ entries|length }} most recent actions.
+      </p>
+      <table class="w-full text-sm" style="border-collapse:collapse;">
+        <thead><tr class="text-muted" style="text-align:left;border-bottom:1px solid var(--color-border)">
+          <th class="p-2">When</th><th class="p-2">Action</th><th class="p-2">Entity</th>
+          <th class="p-2">Reference</th><th class="p-2">By</th><th class="p-2">Status</th></tr></thead>
+        <tbody>
+          {% for e in entries %}
+            <tr style="border-bottom:1px solid var(--color-border);">
+              <td class="p-2" style="white-space:nowrap;">{{ e.when.strftime("%Y-%m-%d %H:%M") }}</td>
+              <td class="p-2">
+                {% set c = 'var(--color-success)' if e.action == 'Approved' else ('var(--color-primary)' if e.action == 'Submitted' else 'var(--color-text-muted)') %}
+                <span style="color:{{ c }};font-weight:500;">{{ e.action }}</span>
+              </td>
+              <td class="p-2">{{ e.entity }}</td>
+              <td class="p-2" style="color:var(--color-text);">{{ e.ref }}</td>
+              <td class="p-2">{{ e.actor }}</td>
+              <td class="p-2"><span class="badge {{ 'badge-success' if e.status == 'Approved' else ('badge-warning' if e.status == 'Submitted' else 'badge-muted') }}">{{ e.status or "—" }}</span></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="p-3 text-muted">No activity recorded yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

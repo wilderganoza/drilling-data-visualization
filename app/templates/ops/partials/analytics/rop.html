@@ -1,0 +1,137 @@
+{% if not res or not res.ok %}
+  <div class="card p-4">
+    <p class="text-sm text-muted">
+      {{ res.error if res and res.error else "Select a well with captured drilling parameters to see ROP optimisation." }}
+    </p>
+  </div>
+{% else %}
+{% set f = res.founder %}
+{% set s = res.summary %}
+<div class="space-y-4">
+
+  <div class="card p-3" style="border-left:4px solid {{ 'var(--color-primary)' if res.source and res.source.startswith('sensor') else 'var(--color-border)' }};">
+    <span class="badge {{ 'badge-success' if res.source and res.source.startswith('sensor') else 'badge-muted' }}">
+      {{ 'Real sensor data' if res.source and res.source.startswith('sensor') else 'Manual drill-params grid' }}{% if res.source and res.source.startswith('sensor') %} · {{ res.source.split('-')[1] }}{% endif %}
+    </span>
+    {% if res.sensor_note %}<span class="text-xs text-muted" style="margin-left:8px">{{ res.sensor_note }}</span>{% endif %}
+  </div>
+
+  <p class="text-xs text-muted">
+    {% if res.source and res.source.startswith('sensor') %}ROP-vs-WOB founder-response analysis of {{ s.n_points }} sensor reading{{ '' if s.n_points == 1 else 's' }} (MSE/Teale needs torque and bit size, which the sensor channels don't carry).{% else %}MSE founder-point (Teale) analysis of {{ s.n_points }} reading{{ '' if s.n_points == 1 else 's' }} from this well's own data.{% endif %}
+    {% if res.coarse %}<span class="badge badge-warning">Coarse</span>{% endif %}
+  </p>
+
+  <!-- KPI cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="card p-3">
+      <p class="text-xs text-muted">Avg ROP</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ s.avg_rop if s.avg_rop is not none else "—" }} <span class="text-xs">ft/hr</span></p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Min MSE</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ f.mse_min if f.mse_min is not none else "—" }} <span class="text-xs">ksi</span></p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Recommended WOB</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-primary);">{{ f.wob_opt if f.wob_opt is not none else "—" }} <span class="text-xs">klbf</span></p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Founder WOB</p>
+      <p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ f.wob_founder if f.wob_founder is not none else "—" }} <span class="text-xs">klbf</span></p>
+    </div>
+  </div>
+
+  <!-- Founder-point narrative + regression -->
+  <div class="card p-4">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Founder-point analysis</h4>
+    {% if f.wob_opt is not none %}
+      <p class="text-sm" style="color:var(--color-text);">
+        Most efficient operating point: <strong>{{ f.wob_opt }} klbf</strong> WOB at
+        <strong>{{ f.mse_min }} ksi</strong> MSE{% if f.rop_at_opt is not none %}, delivering <strong>{{ f.rop_at_opt }} ft/hr</strong>{% endif %}.
+      </p>
+      {% if f.wob_founder is not none %}
+        <p class="text-sm mt-1 text-muted">
+          Founder point at <strong>{{ f.wob_founder }} klbf</strong> — beyond this WOB, ROP no longer increases (bit founders / MSE rises). Adding weight past it wastes energy.
+        </p>
+      {% endif %}
+    {% else %}
+      <p class="text-sm text-muted">{% if res.source and res.source.startswith('sensor') %}MSE can't be computed from the sensor channels (no torque / bit size), so the efficient operating point can't be located this way for this well.{% else %}No WOB / MSE readings available to locate the efficient operating point.{% endif %}</p>
+    {% endif %}
+    {% if res.regression.m is not none %}
+      <p class="text-xs mt-2 text-muted">
+        ROP-vs-WOB linear fit: ROP ≈ {{ res.regression.m }}·WOB {{ "+ %s"|format(res.regression.b) if res.regression.b >= 0 else "- %s"|format(-res.regression.b) }}
+        ({{ res.regression.m }} ft/hr per klbf).
+        {% if f.wob_founder is not none %}Diminishing returns are expected past the {{ f.wob_founder }} klbf founder point.{% endif %}
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- ROP vs WOB -->
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">ROP vs WOB</h4>
+    <div id="rop-wob" class="chart-container"></div>
+    <script id="rop-wob-data" type="application/json">{{ res.points|tojson }}</script>
+    <script>(function boot(){ if(!window.EngCharts||!window.d3){setTimeout(boot,40);return;}
+      var d=JSON.parse(document.getElementById('rop-wob-data').textContent).filter(function(p){return p.wob!=null && p.rop!=null;}).sort(function(a,b){return a.wob-b.wob;});
+      window.EngCharts.xyPlot('rop-wob',{ xLabel:'WOB (klbf)', yLabel:'ROP (ft/hr)', height:320, series:[{name:'ROP', color:'#10B981', points:d.map(function(p){return {x:p.wob,y:p.rop};})}]}); })();</script>
+  </div>
+
+  <!-- MSE vs WOB -->
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">MSE vs WOB</h4>
+    <div id="mse-wob" class="chart-container"></div>
+    <script id="mse-wob-data" type="application/json">{{ res.points|tojson }}</script>
+    <script>(function boot(){ if(!window.EngCharts||!window.d3){setTimeout(boot,40);return;}
+      var d=JSON.parse(document.getElementById('mse-wob-data').textContent).filter(function(p){return p.wob!=null && p.mse_ksi!=null;}).sort(function(a,b){return a.wob-b.wob;});
+      window.EngCharts.xyPlot('mse-wob',{ xLabel:'WOB (klbf)', yLabel:'MSE (ksi)', height:320, series:[{name:'MSE', color:'#F59E0B', points:d.map(function(p){return {x:p.wob,y:p.mse_ksi};})}]}); })();</script>
+  </div>
+
+  <!-- MSE vs depth -->
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">MSE vs depth</h4>
+    <div id="mse-depth" class="chart-container"></div>
+    <script id="mse-depth-data" type="application/json">{{ res.points|tojson }}</script>
+    <script>(function boot(){ if(!window.EngCharts||!window.d3){setTimeout(boot,40);return;}
+      var d=JSON.parse(document.getElementById('mse-depth-data').textContent).filter(function(p){return p.depth_md!=null && p.mse_ksi!=null;}).sort(function(a,b){return a.depth_md-b.depth_md;});
+      window.EngCharts.depthPlot('mse-depth',{ xLabel:'MSE (ksi)', yLabel:'Depth (ft)', height:360, series:[{name:'MSE', color:'#8B5CF6', points:d.map(function(p){return {x:p.mse_ksi,y:p.depth_md};})}]}); })();</script>
+  </div>
+
+  <!-- Recommendations by formation -->
+  <div class="card p-4">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Recommended parameters by formation</h4>
+    {% if res.recommendations %}
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs">
+        <thead><tr class="border-b">
+          <th class="text-left py-2 px-3 text-muted">Formation</th>
+          <th class="text-left py-2 px-3 text-muted">WOB (klbf)</th>
+          <th class="text-left py-2 px-3 text-muted">RPM</th>
+          <th class="text-left py-2 px-3 text-muted">Flow (gpm)</th>
+          <th class="text-left py-2 px-3 text-muted">Expected ROP (ft/hr)</th>
+          <th class="text-left py-2 px-3 text-muted">MSE (ksi)</th>
+        </tr></thead>
+        <tbody>
+          {% for r in res.recommendations %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="py-2 px-3" style="color:var(--color-text);">{{ r.formation }}</td>
+            <td class="py-2 px-3">{{ r.wob if r.wob is not none else "—" }}</td>
+            <td class="py-2 px-3">{{ r.rpm if r.rpm is not none else "—" }}</td>
+            <td class="py-2 px-3">{{ r.flow if r.flow is not none else "—" }}</td>
+            <td class="py-2 px-3">{{ r.rop_expected if r.rop_expected is not none else "—" }}</td>
+            <td class="py-2 px-3">{{ r.mse }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-sm text-muted">{% if res.source and res.source.startswith('sensor') %}The sensor channels carry no formation or MSE data, so per-formation recommendations aren't possible from this source — they need drill-params grid captures.{% else %}No per-formation WOB / MSE readings captured yet, so no operating-point recommendations can be made.{% endif %}</p>
+    {% endif %}
+    <p class="text-xs mt-3 text-muted">
+      Recommendations are derived from this well's own captured data using the MSE founder-point (Teale) method — the minimum-MSE reading per formation is the most mechanically efficient point observed, not a modelled optimum.
+      {% if res.coarse %} Only daily-average ROP is available for this well, so no WOB / RPM / flow recommendations can be produced.{% endif %}
+    </p>
+  </div>
+
+</div>
+{% endif %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% import "macros/ops.html" as ops %}
+{% block title %}{{ well.legal_well_name }} — Master Data{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/master-data/sites/{{ well.site_id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ site.name }}</a>
+  {{ ui.page_header(well.legal_well_name, "Well" + (" — UWI " + well.uwi if well.uwi else "")) }}
+  <div class="card p-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div><span class="text-muted">Operator</span><br>{{ well.operator or "—" }}</div>
+      <div><span class="text-muted">Target formation</span><br>{{ well.target_formation or "—" }}</div>
+      <div><span class="text-muted">Spud date</span><br>{{ well.spud_date or "—" }}</div>
+      <div><span class="text-muted">Classification</span><br>{{ well.well_classification or "—" }}</div>
+      <div><span class="text-muted">Country</span><br>{{ well.country or "—" }}</div>
+      <div><span class="text-muted">Datum elevation (KB)</span><br>{{ well.datum_elevation if well.datum_elevation is not none else "—" }} ft</div>
+      <div><span class="text-muted">Ground elevation</span><br>{{ well.ground_elevation if well.ground_elevation is not none else "—" }} ft</div>
+      <div><span class="text-muted">Air Gap</span><br>{{ (well.datum_elevation - well.ground_elevation) if (well.datum_elevation is not none and well.ground_elevation is not none) else "—" }} ft</div>
+    </div>
+  </div>
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Wellbores</h3>
+      {% if can_edit %}{{ ops.new_button("wellbore-new-modal", "+ New Wellbore") }}{% endif %}
+    </div>
+    {% include "ops/partials/wellbore_section.html" %}
+  </div>
+</div>
+{% endblock %}

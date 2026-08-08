@@ -1,0 +1,125 @@
+{% import "macros/ops.html" as ops %}
+{#
+  Generic editable grid, driven by `cfg` (a GridConfig). Shared by Daily-Ops
+  capture subsections and Planning program subsections — the two differ only in
+  `base_url` (where the CRUD endpoints live) and `content_id` (the element the
+  grid swaps itself into). Table columns = fields with table=true; the add/edit
+  form = fields with form=true.
+#}
+{% set modal_ns = content_id %}
+{# Defaults to true (shows controls) if a caller forgets to pass it — every
+   actual editor route (registers/capture/planning-program) does pass it,
+   computed from the user's ops role via has_ops_role(); a READ_ONLY (or no)
+   ops role used to see fully interactive Add/Edit/Delete/Move buttons that
+   just 403'd on click. #}
+{% set can_edit = can_edit if can_edit is defined else true %}
+{% macro grid_field(f, row) %}
+  {% set val = (row[f.name] if row else none) %}
+  <div class="{{ 'md:col-span-' ~ f.span if f.span > 1 else '' }}">
+    <label class="form-label">{{ f.label }}</label>
+    {% if f.kind == "textarea" %}
+      <textarea name="{{ f.name }}" class="form-input" rows="3">{{ val if val is not none else '' }}</textarea>
+    {% elif f.kind == "select" %}
+      <select name="{{ f.name }}" class="form-select">
+        <option value="">—</option>
+        {% for opt in f.options %}<option value="{{ opt }}" {{ "selected" if val == opt }}>{{ opt }}</option>{% endfor %}
+      </select>
+    {% elif f.kind == "time" %}
+      <input type="time" name="{{ f.name }}" class="form-input" value="{{ val if val is not none else '' }}" />
+    {% elif f.kind in ("number", "int") %}
+      <input type="number" {{ 'step=any' if f.kind == 'number' else 'step=1' }} name="{{ f.name }}" class="form-input" value="{{ val if val is not none else '' }}" />
+    {% else %}
+      <input type="text" name="{{ f.name }}" class="form-input" value="{{ val if val is not none else '' }}" />
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% macro grid_form(row=none) %}
+  {% set action = base_url ~ "/rows" ~ ("/" ~ row.id if row else "") %}
+  <form hx-{{ "put" if row else "post" }}="{{ action }}" hx-target="#{{ content_id }}" hx-swap="outerHTML" hx-indicator="#{{ content_id }}-ind"
+        class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    {% for f in cfg.fields if f.form %}{{ grid_field(f, row) }}{% endfor %}
+    <div class="md:col-span-3 flex justify-end gap-2 mt-2">
+      <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+      <button type="submit" class="btn btn-primary">{{ "Save" if row else "Add" }}</button>
+    </div>
+  </form>
+{% endmacro %}
+
+<div id="{{ content_id }}">
+  <div class="subsection-toolbar">
+    <p class="text-sm text-muted">{{ cfg.intro }}</p>
+    <div class="flex items-center gap-2">
+      {# The export.csv route only exists for capture/plan grids (reports.py)
+         — Registers has no such route, so this used to be a dead 404 link
+         on every register tab with rows. #}
+      {% if rows|length and ("/capture/" in base_url or "/plan/" in base_url) %}<a href="{{ base_url }}/export.csv" class="btn btn-ghost btn-sm" title="Export CSV">⬇ CSV</a>{% endif %}
+      {% if can_edit %}
+        {% if "/capture/" in base_url %}<button type="button" class="btn btn-ghost btn-sm" data-open-modal="#{{ modal_ns }}-import-modal">⬆ Import</button>{% endif %}
+        {{ ops.new_button(modal_ns ~ "-new-modal", cfg.add_label) }}
+      {% endif %}
+      <span id="{{ content_id }}-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span></span>
+    </div>
+  </div>
+
+  {% if "/capture/" in base_url %}
+  {% call ops.modal(modal_ns ~ "-import-modal", "Import — " ~ cfg.title, size="modal-lg") %}
+    <form hx-post="{{ base_url }}/import" hx-target="#{{ content_id }}" hx-swap="outerHTML" hx-indicator="#{{ content_id }}-ind">
+      <p class="text-sm mb-2 text-muted">
+        Paste rows from Excel or clipboard (tab, comma or space separated). Columns, in order:
+        <strong>{{ cfg.fields | selectattr("form") | map(attribute="label") | join(" · ") }}</strong>.
+        A header row is skipped automatically. Computed columns fill in on save.
+      </p>
+      <textarea name="pasted" class="form-input" rows="10" placeholder="e.g.&#10;2100	0.8	142&#10;2400	1.2	141"></textarea>
+      <div class="flex justify-end gap-2 mt-3">
+        <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+        <button type="submit" class="btn btn-primary">Import rows</button>
+      </div>
+    </form>
+  {% endcall %}
+  {% endif %}
+
+  {% set table_fields = cfg.fields | selectattr("table") | list %}
+  {% if rows|length == 0 %}
+    <p class="text-sm text-muted">Nothing captured yet. Use “{{ cfg.add_label }}”.</p>
+  {% else %}
+    <div class="overflow-x-auto mb-4">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b">
+            {% for f in table_fields %}<th class="text-left py-2 px-3 font-medium text-muted">{{ f.label }}</th>{% endfor %}
+            {% if can_edit %}<th class="text-right py-2 px-3 font-medium text-muted">Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rows %}
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              {% for f in table_fields %}
+                <td class="py-2 px-3" style="color: var(--color-text); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  {% set v = row[f.name] %}
+                  {% if f.kind == "select" and f.name == "severity" and v %}<span class="badge {{ 'badge-danger' if v == 'High' else ('badge-warning' if v == 'Medium' else 'badge-muted') }}">{{ v }}</span>
+                  {% else %}{{ v if v is not none and v != "" else "—" }}{% endif %}
+                </td>
+              {% endfor %}
+              {% if can_edit %}
+              <td class="py-2 px-3 text-right whitespace-nowrap">
+                <button type="button" class="icon-btn" title="Move up" hx-post="{{ base_url }}/rows/{{ row.id }}/move" hx-vals='{"direction": "up"}' hx-target="#{{ content_id }}" hx-swap="outerHTML" hx-indicator="#{{ content_id }}-ind">&uarr;</button>
+                <button type="button" class="icon-btn" title="Move down" hx-post="{{ base_url }}/rows/{{ row.id }}/move" hx-vals='{"direction": "down"}' hx-target="#{{ content_id }}" hx-swap="outerHTML" hx-indicator="#{{ content_id }}-ind">&darr;</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-open-modal="#{{ modal_ns }}-edit-modal-{{ row.id }}">Edit</button>
+                <button type="button" class="btn btn-danger btn-sm" hx-delete="{{ base_url }}/rows/{{ row.id }}" hx-target="#{{ content_id }}" hx-swap="outerHTML" hx-confirm="Delete this row?" hx-indicator="#{{ content_id }}-ind">Delete</button>
+              </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% if can_edit %}
+    {% call ops.modal(modal_ns ~ "-new-modal", "Add — " ~ cfg.title, size="modal-lg") %}{{ grid_form() }}{% endcall %}
+    {% for row in rows %}
+      {% call ops.modal(modal_ns ~ "-edit-modal-" ~ row.id, "Edit — " ~ cfg.title, size="modal-lg") %}{{ grid_form(row) }}{% endcall %}
+    {% endfor %}
+  {% endif %}
+</div>

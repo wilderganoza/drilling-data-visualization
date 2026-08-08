@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="home-chooser">
+  <h1 class="page-header-title">Drilling Data Visualization</h1>
+  <p class="page-header-subtitle">Choose a workspace</p>
+  <div class="home-cards">
+    <a href="/wells" class="home-card">
+      <div class="home-card-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      </div>
+      <h2>Dashboard</h2>
+      <p>Analyze drilling sensor data already on file: wells, crossplots, well-to-well comparison, well logs and data quality reports.</p>
+    </a>
+    <a href="/master-data" class="home-card">
+      <div class="home-card-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 1.1 3.6 2 8 2s8-.9 8-2V7M4 7c0 1.1 3.6 2 8 2s8-.9 8-2M4 7c0-1.1 3.6-2 8-2s8 .9 8 2m0 5c0 1.1-3.6 2-8 2s-8-.9-8-2" />
+        </svg>
+      </div>
+      <h2>Master Data</h2>
+      <p>Create and manage the well hierarchy: companies, projects, sites, wells, wellbores, and events — the setup that Planning and Daily Operations build on.</p>
+    </a>
+    <a href="/planning" class="home-card">
+      <div class="home-card-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      </div>
+      <h2>Planning</h2>
+      <p>Authorize the Well Planning / AFE for an event before operations begin — budget, authorized depths, and approval — ahead of daily report capture.</p>
+    </a>
+    <a href="/ops" class="home-card">
+      <div class="home-card-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2M5 21h2m0 0h10M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 8v-4a1 1 0 011-1h0a1 1 0 011 1v4" />
+        </svg>
+      </div>
+      <h2>Daily Operations</h2>
+      <p>Day-to-day report capture for an event once operations are underway: Daily Operations Reports and the rest of its capture modules.</p>
+    </a>
+    <a href="/analytics" class="home-card">
+      <div class="home-card-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14M13 7l3 3-3 3" />
+        </svg>
+      </div>
+      <h2>Analytics</h2>
+      <p>ROP prediction (ML) and the outlier-detection data-cleaning pipeline — cost/time forecast, learning curves, NPT and dysfunction analytics are in progress.</p>
+    </a>
+    {% if current_user and current_user.is_admin %}
+    <a href="/admin/ops" class="home-card">
+      <div class="home-card-icon">
+        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </div>
+      <h2>Ops Admin</h2>
+      <p>Configure the operations module: assign user roles, curate the Time-Summary step catalog, and review the active validation rules.</p>
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

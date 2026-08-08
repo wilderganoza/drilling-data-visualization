@@ -1,0 +1,55 @@
+{% set r = res %}
+{% set s = r.summary %}
+<h3 class="card-title mb-1">Directional design &amp; anti-collision</h3>
+<p class="text-xs mb-3 text-muted">Build-and-hold trajectory generated from the design inputs ({{ s.n_stations }} stations, minimum-curvature). Use <strong>Apply to Directional Plan</strong> to write it into the program.</p>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">KOP / Max inclination</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(s.kop) }} / {{ s.max_inc }}°</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Build rate / DLS max</p><p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if not s.dls_ok else 'var(--color-text)' }};">{{ s.build_rate }} / {{ s.dls_max }}</p><p class="text-xs text-muted">°/100ft</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">TD MD / TVD</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(s.td_md) }} / {{ "{:,}".format(s.td_tvd) }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Closure / VS</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(s.closure) }} {{ depth_unit or "ft" }}</p><p class="text-xs text-muted">@ {{ s.closure_azi }}°</p></div>
+</div>
+
+<div class="space-y-4">
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Anti-collision — vs {{ r.collisions|length }} offset well(s)</h4>
+    {% if r.collisions|length == 0 %}
+      <p class="text-xs text-muted">No offset wells with a directional plan to scan against.</p>
+    {% else %}
+    <table class="w-full text-xs mb-2">
+      <thead><tr class="border-b"><th class="text-left py-1 px-2 text-muted">Offset well</th><th class="text-left py-1 px-2 text-muted">Min SF</th><th class="text-left py-1 px-2 text-muted">Min distance</th><th class="text-left py-1 px-2 text-muted">At MD</th></tr></thead>
+      <tbody>
+        {% for c in r.collisions %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ c.well }}</td>
+            <td class="py-1 px-2"><span class="badge {{ 'badge-success' if c.ok else 'badge-danger' }}">{{ c.min_sf }}</span></td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ c.min_dist }} {{ depth_unit or "ft" }}</td>
+            <td class="py-1 px-2 text-muted">{{ "{:,}".format(c.at_md) }} {{ depth_unit or "ft" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-xs text-muted">Pad slot spacing {{ r.slot_spacing }} {{ depth_unit or "ft" }}. Alarm SF &lt; {{ r.sf_alarm }}. 🔴 = nudge required.</p>
+    {% endif %}
+  </div>
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Separation factor vs depth (nearest offset)</h4>
+    <div id="eng-dir-sf" class="chart-container"></div>
+  </div>
+</div>
+
+<script id="eng-dir-data" type="application/json">{{ r.profile|tojson }}</script>
+<script>
+  (function boot() {
+    if (!window.EngCharts || !window.d3) { setTimeout(boot, 40); return; }
+    var d = JSON.parse(document.getElementById("eng-dir-data").textContent);
+    if (!d.length) return;
+    window.EngCharts.depthPlot("eng-dir-sf", {
+      yLabel: "TVD ({{ depth_unit or 'ft' }})", xLabel: "Separation factor", height: 380,
+      series: [
+        { name: "Separation factor", color: "#10B981", points: d.map(function (p) { return { x: p.sf, y: p.tvd }; }) },
+        { name: "Alarm ({{ r.sf_alarm }})", color: "#EF4444", dashed: true, points: d.map(function (p) { return { x: {{ r.sf_alarm }}, y: p.tvd }; }) },
+      ],
+    });
+  })();
+</script>

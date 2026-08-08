@@ -1,0 +1,22 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Cementing — primary job design</h3>
+<p class="text-xs mb-3 text-muted">Per string: cement column + shoe track + {{ (r.excess*100)|int }}% open-hole excess. Volumes from casing/hole geometry; displacement at pump output {{ r.pump_output }} bbl/stk.</p>
+{% if r.jobs|length == 0 %}
+  <p class="text-sm text-muted">No casing strings to cement. Add a Casing Program first.</p>
+{% else %}
+{% for j in r.jobs %}
+  <div class="card p-4 mb-3">
+    <div class="flex items-center justify-between mb-2">
+      <h4 class="text-sm font-medium" style="color:var(--color-text);">{{ j.string }} — {{ j.od }}" in {{ j.hole }}" hole {% if j.is_liner %}<span class="badge badge-muted">liner</span>{% endif %}</h4>
+      <span class="text-xs text-muted">TOC {{ "{:,}".format(j.toc) }} → shoe {{ "{:,}".format(j.shoe) }} {{ depth_unit or "ft" }} ({{ "{:,}".format(j.col_len) }} {{ depth_unit or "ft" }} column)</span>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div><p class="text-xs text-muted">Slurry (lead+tail)</p><p style="font-size:18px;font-weight:600;color:var(--color-text);">{{ j.slurry_bbl }} bbl</p><p class="text-xs text-muted">{{ j.lead_bbl }} + {{ j.tail_bbl }} · avg {{ j.avg_slurry }} ppg</p></div>
+      <div><p class="text-xs text-muted">Cement</p><p style="font-size:18px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(j.sacks) }} sacks</p><p class="text-xs text-muted">spacer {{ j.spacer_bbl }} bbl</p></div>
+      <div><p class="text-xs text-muted">Displacement</p><p style="font-size:18px;font-weight:600;color:var(--color-text);">{{ j.displacement_bbl }} bbl</p><p class="text-xs text-muted">{{ "{:,}".format(j.strokes) }} strokes</p></div>
+      <div><p class="text-xs text-muted">Differential @ bump</p><p style="font-size:18px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(j.differential) }} psi</p><p class="text-xs text-muted">standoff ~{{ j.standoff }}%{{ " · U-tube/free-fall" if j.free_fall }}</p></div>
+    </div>
+  </div>
+{% endfor %}
+<p class="text-xs text-muted">Positive differential at bump indicates U-tube tendency (hold back-pressure). Standoff ≥ 67% recommended for good mud removal.</p>
+{% endif %}

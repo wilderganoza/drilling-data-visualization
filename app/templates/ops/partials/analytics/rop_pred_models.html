@@ -1,0 +1,57 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+{% import "ops/partials/analytics/rop_pred_macros.html" as m %}
+<form hx-post="/analytics/rop-prediction/run/preselect" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+  {{ h.hidden_state(state, skip=['models']) }}
+  {% if error %}<div class="card p-4"><p class="text-sm" style="color:var(--color-danger,#ef4444);">{{ error }}</p></div>{% endif %}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Models</h3>
+      <span class="text-sm text-muted">Each selected model is trained with default hyperparameters and ranked by test R&sup2; in the next step — pick several to compare families cheaply before tuning one.</span>
+    </div>
+    <div class="flex items-center gap-2 mb-3">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropMdl(true)">Select all</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropMdl(false)">Clear</button>
+      <span id="rop-mdl-count" class="text-sm text-muted"></span>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% for m in models %}
+      <label class="card p-3" style="display:flex; align-items:flex-start; gap:10px; cursor:pointer; margin:0;">
+        <input type="checkbox" class="rop-mdl-cb" name="models" value="{{ m.key }}" {{ 'checked' if m.selected }} style="margin-top:3px;">
+        <span>
+          <span style="color:var(--color-text); font-weight:600;">{{ m.label }}</span><br>
+          <span class="text-sm text-muted">{{ m.family }}</span>
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="flex items-center justify-between gap-3">
+    <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/pca" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Back</button>
+    <div class="flex items-center gap-3">
+      {% if estimate %}{{ m.estimate_line(estimate) }}{% endif %}
+      <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Training models…</span></div>
+      <button type="submit" id="rop-mdl-run" class="btn btn-primary">Run pre-selection &rarr;</button>
+    </div>
+  </div>
+</form>
+<script>
+  function ropMdlCount() {
+    var n = document.querySelectorAll('.rop-mdl-cb:checked').length;
+    var c = document.getElementById('rop-mdl-count'); if (c) c.textContent = n + ' selected';
+    // No silent DEFAULT_MODELS fallback: with nothing selected there is nothing
+    // to run, so the button disables itself instead of training unrequested models.
+    var run = document.getElementById('rop-mdl-run');
+    if (run) { run.disabled = n === 0; run.title = n === 0 ? 'Select at least one model first' : ''; }
+  }
+  function ropMdl(v) {
+    document.querySelectorAll('.rop-mdl-cb').forEach(function (cb) { cb.checked = v; });
+    ropMdlCount();
+  }
+  if (!window.__ropMdlChangeBound) {  // scripts re-run on every htmx swap — bind once
+    window.__ropMdlChangeBound = true;
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains('rop-mdl-cb')) ropMdlCount();
+    });
+  }
+  ropMdlCount();
+</script>

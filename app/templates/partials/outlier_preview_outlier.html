@@ -1,0 +1,28 @@
+{% if error %}
+  <p class="text-sm text-danger">{{ error }}</p>
+{% else %}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div>
+      <p class="text-sm text-muted">Total records</p>
+      <p class="text-2xl font-bold text-blue-500">{{ '{:,}'.format(result.metrics.total_records) }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-muted">Processed</p>
+      <p class="text-2xl font-bold text-purple-500">{{ '{:,}'.format(result.metrics.processed_records) }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-muted">Outliers</p>
+      <p class="text-2xl font-bold text-red-500">{{ '{:,}'.format(result.metrics.outlier_records) }} ({{ '%.1f'|format(result.metrics.outlier_percentage) }}%)</p>
+    </div>
+    <div>
+      <p class="text-sm text-muted">Dropped (non-numeric)</p>
+      <p class="text-2xl font-bold text-orange-500">{{ '{:,}'.format(result.metrics.dropped_records) }}</p>
+    </div>
+  </div>
+  {% if result.metrics.explained_variance_ratio %}
+    <p class="text-sm mt-4 text-muted">
+      Cumulative explained variance ({{ result.component_labels|length }} components):
+      {{ '%.1f'|format((result.metrics.explained_variance_ratio|sum) * 100) }}%
+    </p>
+  {% endif %}
+{% endif %}

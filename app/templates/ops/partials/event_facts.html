@@ -1,0 +1,11 @@
+<div class="card p-4">
+  <div class="card-header"><h3 class="card-title">Event details</h3></div>
+  <dl class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+    <div><dt class="text-muted">Type</dt><dd style="color: var(--color-text);">{{ event.event_type or "—" }}</dd></div>
+    <div><dt class="text-muted">Contractor</dt><dd style="color: var(--color-text);">{{ event.contractor or "—" }}</dd></div>
+    <div><dt class="text-muted">Rig</dt><dd style="color: var(--color-text);">{{ event.rig_name or "—" }}</dd></div>
+    <div><dt class="text-muted">Start date</dt><dd style="color: var(--color-text);">{{ event.start_date or "—" }}</dd></div>
+    <div><dt class="text-muted">End date</dt><dd style="color: var(--color-text);">{{ event.end_date or "—" }}</dd></div>
+    <div><dt class="text-muted">Authorized cost</dt><dd style="color: var(--color-text);">{{ event.authorized_cost or "—" }}</dd></div>
+  </dl>
+</div>

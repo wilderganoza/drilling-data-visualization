@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Step Catalog — Ops Admin{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Ops Administration", "Roles, catalogs and validation for the operations module") }}
+  <div class="card p-0">
+    {% include "ops/partials/admin_nav.html" %}
+    <div class="p-4">
+      {% include "ops/partials/admin_steps_table.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

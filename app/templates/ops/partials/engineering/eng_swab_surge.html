@@ -1,0 +1,62 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Swab &amp; Surge — trip-speed pressure envelope</h3>
+<p class="text-xs mb-3 text-muted">Burkhardt clinging method · trip speed {{ "{:,}".format(r.trip_speed) }} ft/min ({{ "closed end" if r.closed else "open end" }}) · TD {{ "{:,}".format(r.tvd) }} {{ depth_unit or "ft" }} TVD · equivalent rate {{ "{:,}".format(r.q_equiv) }} gpm.</p>
+
+{% if not r.window_ok %}
+<div class="card p-3 mb-4" style="border-color:var(--color-danger);">
+  <div class="flex items-center gap-2">
+    <span class="badge badge-danger">Outside window</span>
+    <p class="text-sm" style="color:var(--color-text);">
+      {% if r.surge_over_frac %}Surge ECD {{ r.surge_emw }} ppg exceeds the fracture limit {{ r.frac_emw }} ppg — <strong>risk of losses</strong> running in.{% endif %}
+      {% if r.surge_over_frac and r.swab_under_pore %}<br>{% endif %}
+      {% if r.swab_under_pore %}Swab EMW {{ r.swab_emw }} ppg is below pore pressure {{ r.pore_emw }} ppg — <strong>risk of a kick</strong> pulling out.{% endif %}
+    </p>
+  </div>
+  <p class="text-xs mt-2 text-muted">Reduce trip speed to {{ "{:,}".format(r.max_safe_speed) }} ft/min or below.</p>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">Surge ΔP</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.surge_dp) }} <span class="text-xs">psi</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Swab ΔP</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.swab_dp) }} <span class="text-xs">psi</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Surge ECD</p><p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if r.surge_over_frac else 'var(--color-text)' }};">{{ r.surge_emw }} <span class="text-xs">ppg</span></p><p class="text-xs text-muted">frac {{ r.frac_emw }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Swab EMW</p><p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if r.swab_under_pore else 'var(--color-text)' }};">{{ r.swab_emw }} <span class="text-xs">ppg</span></p><p class="text-xs text-muted">pore {{ r.pore_emw }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Max safe trip speed</p><p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if r.max_safe_speed < r.trip_speed else 'var(--color-text)' }};">{{ "{:,}".format(r.max_safe_speed) }} <span class="text-xs">ft/min</span></p></div>
+</div>
+
+<div class="space-y-4">
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Operating window at TD</h4>
+    <table class="w-full text-xs"><tbody>
+      <tr><td class="py-1 text-muted">Fracture limit</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.frac_emw }} ppg</td></tr>
+      <tr><td class="py-1 text-muted">Surge ECD (running in)</td><td class="py-1 text-right"><span class="badge {{ 'badge-danger' if r.surge_over_frac else 'badge-success' }}">{{ r.surge_emw }} ppg</span></td></tr>
+      <tr><td class="py-1 text-muted">Static mud weight</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "%.2f"|format((r.surge_emw + r.swab_emw) / 2) }} ppg</td></tr>
+      <tr><td class="py-1 text-muted">Swab EMW (pulling out)</td><td class="py-1 text-right"><span class="badge {{ 'badge-danger' if r.swab_under_pore else 'badge-success' }}">{{ r.swab_emw }} ppg</span></td></tr>
+      <tr><td class="py-1 text-muted">Pore pressure</td><td class="py-1 text-right" style="color:var(--color-text);">{{ r.pore_emw }} ppg</td></tr>
+      <tr style="border-top:1px solid var(--color-border);"><td class="py-1 text-muted">Surge-limited speed</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.max_surge_speed) }} ft/min</td></tr>
+      <tr><td class="py-1 text-muted">Swab-limited speed</td><td class="py-1 text-right" style="color:var(--color-text);">{{ "{:,}".format(r.max_swab_speed) }} ft/min</td></tr>
+    </tbody></table>
+  </div>
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Surge / swab EMW vs depth &amp; window</h4>
+    <div id="eng-ss-window" class="chart-container"></div>
+  </div>
+</div>
+
+<script id="eng-ss-data" type="application/json">{{ r.profile|tojson }}</script>
+<script>
+  (function boot() {
+    if (!window.EngCharts || !window.d3) { setTimeout(boot, 40); return; }
+    var d = JSON.parse(document.getElementById("eng-ss-data").textContent);
+    if (!d.length) return;
+    window.EngCharts.depthPlot("eng-ss-window", {
+      yLabel: "TVD ({{ depth_unit or 'ft' }})", xLabel: "EMW (ppg)", height: 380,
+      series: [
+        { name: "Pore", color: "#3B82F6", dashed: true, points: d.map(function (p) { return { x: p.pore, y: p.tvd }; }) },
+        { name: "Swab EMW", color: "#F59E0B", points: d.map(function (p) { return { x: p.swab_emw, y: p.tvd }; }) },
+        { name: "Surge ECD", color: "#10B981", points: d.map(function (p) { return { x: p.surge_emw, y: p.tvd }; }) },
+        { name: "Frac", color: "#EF4444", dashed: true, points: d.map(function (p) { return { x: p.frac, y: p.tvd }; }) },
+      ],
+    });
+  })();
+</script>

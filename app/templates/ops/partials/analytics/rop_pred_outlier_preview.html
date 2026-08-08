@@ -1,0 +1,40 @@
+{# ROP-Prediction-owned variant of the shared partials/outlier_preview_outlier.html
+   — needed to ALSO OOB-swap the X/Y component selects with real names when
+   "Calculate preview" runs (same pattern already used by the PCA step's own
+   outlier_preview_pca.html), since the shared template doesn't do that and we
+   don't want to change behavior for the Data-Cleaning wizard that owns it.
+   Always 2 PCA components (real trained PCA, or a diagnostic-only one when PCA
+   is disabled for training — see _diagnostic_pca() in rop_prediction.py). #}
+{% if error %}
+  <p class="text-sm text-danger">{{ error }}</p>
+{% else %}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div>
+      <p class="text-sm text-gray-400">Total records</p>
+      <p class="text-2xl font-bold text-blue-500">{{ '{:,}'.format(result.metrics.total_records) }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-400">Processed</p>
+      <p class="text-2xl font-bold text-purple-500">{{ '{:,}'.format(result.metrics.processed_records) }}</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-400">Outliers</p>
+      <p class="text-2xl font-bold text-red-500">{{ '{:,}'.format(result.metrics.outlier_records) }} ({{ '%.1f'|format(result.metrics.outlier_percentage) }}%)</p>
+    </div>
+    <div>
+      <p class="text-sm text-gray-400">Dropped (non-numeric)</p>
+      <p class="text-2xl font-bold text-orange-500">{{ '{:,}'.format(result.metrics.dropped_records) }}</p>
+    </div>
+  </div>
+
+  {% if labels %}
+    <select id="outlier-scatter-x" class="form-select" hx-swap-oob="true">
+      {% for lbl in labels %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == 0 else '' }}>{{ lbl }}</option>{% endfor %}
+    </select>
+    {% if labels|length > 1 %}
+    <select id="outlier-scatter-y" class="form-select" hx-swap-oob="true">
+      {% for lbl in labels %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == 1 else '' }}>{{ lbl }}</option>{% endfor %}
+    </select>
+    {% endif %}
+  {% endif %}
+{% endif %}

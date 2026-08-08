@@ -1,0 +1,56 @@
+{% set r = res %}
+<h3 class="card-title mb-1">AFE Builder</h3>
+<p class="text-xs mb-3 text-muted">Rolled up from the Cost Estimate program grid. {{ r.currency }} · TD {{ "{:,}".format(r.td) }} {{ depth_unit or "ft" }}{% if r.days %} · {{ r.days }} planned days{% endif %}.</p>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">Dry-hole (incl. {{ r.contingency_pct }}% cont.)</p><p style="font-size:19px;font-weight:600;color:var(--color-text);">${{ "{:,}".format(r.dry_hole) }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Total AFE (+ completion)</p><p style="font-size:19px;font-weight:600;color:var(--color-primary);">${{ "{:,}".format(r.total_afe) }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Cost / ft</p><p style="font-size:19px;font-weight:600;color:{{ 'var(--color-danger)' if r.cpf_vs_bench == 'above' else 'var(--color-text)' }};">${{ r.cost_per_ft }}</p><p class="text-xs text-muted">{% if r.avg_bench_cpf %}{{ r.cpf_vs_bench }} offset avg ${{ r.avg_bench_cpf }}{% endif %}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">P10 / P50 / P90</p><p style="font-size:15px;font-weight:600;color:var(--color-text);">{{ "{:,.1f}".format(r.p10/1e6) }} / {{ "{:,.1f}".format(r.p50/1e6) }} / {{ "{:,.1f}".format(r.p90/1e6) }}M</p><p class="text-xs text-muted">±{{ r.uncertainty }}%</p></div>
+</div>
+
+<div class="space-y-4">
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Cost by category</h4>
+    {% if r.categories|length == 0 %}
+      <p class="text-xs text-muted">No cost estimate rows — add them in the AFE Cost Estimate program tab.</p>
+    {% else %}
+      {% for c in r.categories %}
+        <div style="margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--color-text);"><span>{{ c.category }}</span><span>${{ "{:,}".format(c.amount) }} · {{ c.pct }}%</span></div>
+          <div style="height:6px;background:var(--color-bg);border-radius:3px;overflow:hidden;"><div style="height:100%;width:{{ c.pct }}%;background:var(--color-primary);"></div></div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+  <div class="card p-3">
+    <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">AFE cost curve (cumulative vs day)</h4>
+    <div id="eng-afe-curve" class="chart-container"></div>
+  </div>
+</div>
+
+{% if r.benchmark %}
+<div class="card p-3 mt-4">
+  <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Benchmark — cost/ft vs offset wells</h4>
+  <table class="w-full text-xs">
+    <thead><tr class="border-b"><th class="text-left py-1 px-2 text-muted">Well</th><th class="text-left py-1 px-2 text-muted">Cost / ft</th><th class="text-left py-1 px-2 text-muted">Days</th></tr></thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--color-border);"><td class="py-1 px-2" style="color:var(--color-text);font-weight:600;">This well</td><td class="py-1 px-2" style="color:var(--color-text);">${{ r.cost_per_ft }}</td><td class="py-1 px-2 text-muted">{{ r.days }}</td></tr>
+      {% for b in r.benchmark %}<tr style="border-bottom:1px solid var(--color-border);"><td class="py-1 px-2 text-muted">{{ b.well }}</td><td class="py-1 px-2" style="color:var(--color-text);">${{ b.cost_per_ft }}</td><td class="py-1 px-2 text-muted">{{ b.days }}</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<script id="eng-afe-data" type="application/json">{{ r.curve|tojson }}</script>
+<script>
+  (function boot() {
+    if (!window.EngCharts || !window.d3) { setTimeout(boot, 40); return; }
+    var d = JSON.parse(document.getElementById("eng-afe-data").textContent);
+    if (!d.length) return;
+    window.EngCharts.xyPlot("eng-afe-curve", {
+      xLabel: "Planned day", yLabel: "Cumulative cost ($)", height: 340,
+      series: [{ name: "Cumulative AFE", color: "#3B82F6", points: d.map(function (p) { return { x: p.day, y: p.cost }; }) }],
+    });
+  })();
+</script>

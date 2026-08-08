@@ -1,0 +1,16 @@
+{% import "ops/partials/analytics/rop_pred_macros.html" as m %}
+{% for w in wells %}
+<tr style="border-bottom:1px solid var(--color-border);">
+  <td style="padding:8px 10px;"><input type="checkbox" class="rop-well-cb" name="well_ids" value="{{ w.id }}" {{ 'checked' if selected_ids and w.id in selected_ids }}></td>
+  <td data-sort="{{ w.name }}" style="padding:8px 10px; color:var(--color-text); font-weight:500;">{{ w.name }}</td>
+  <td data-sort="{{ w.field or '' }}" class="text-muted" style="padding:8px 10px">{{ w.field or '—' }}</td>
+  <td data-sort="{{ w.feature_completeness }}" style="padding:8px 10px;">{{ m.bar(w.feature_completeness) }}</td>
+  <td data-sort="{{ w.target_completeness }}" style="padding:8px 10px;">{{ m.bar(w.target_completeness) }}</td>
+  <td data-sort="{{ w.n_rows }}" class="text-muted" style="padding:8px 10px; text-align:right">{{ '{:,}'.format(w.n_rows) }}</td>
+  <td data-sort="{{ w.start_date or '' }}" class="text-muted" style="padding:8px 10px">{{ w.start_date or '—' }}</td>
+  <td data-sort="{{ w.start_depth if w.start_depth is not none else -1 }}" class="text-muted" style="padding:8px 10px; text-align:right">{{ w.start_depth|fmt_number(0) if w.start_depth is not none else '—' }}</td>
+  <td data-sort="{{ w.final_depth if w.final_depth is not none else -1 }}" class="text-muted" style="padding:8px 10px; text-align:right">{{ w.final_depth|fmt_number(0) if w.final_depth is not none else '—' }}</td>
+</tr>
+{% else %}
+<tr><td colspan="9" class="text-muted" style="padding:16px 10px; text-align:center">No wells have data in this range.</td></tr>
+{% endfor %}

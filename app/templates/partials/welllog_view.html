@@ -1,0 +1,50 @@
+{% if not has_data %}
+  <div class="card p-4">
+    <div class="py-12 text-center">
+      <p class="text-muted">No data available for this well</p>
+    </div>
+  </div>
+{% else %}
+<div class="card p-4" id="welllog-widget">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Well Log View</h3>
+      <p class="text-sm mt-1 text-muted">Click and drag vertically to zoom &bull; Double-click to reset</p>
+    </div>
+    <div class="flex gap-2">
+      <button type="button" data-action="reset-zoom" class="btn btn-secondary btn-sm" disabled>Reset Zoom</button>
+      <button type="button" data-action="add-track" class="btn btn-secondary btn-sm">+ Add Track</button>
+      <button type="button" data-action="export-csv" class="btn btn-secondary btn-sm">Export CSV</button>
+    </div>
+  </div>
+
+  <div class="relative">
+    <div class="welllog-controls" style="padding: 16px 16px 0;"></div>
+    <div class="welllog-tracks-inner" style="overflow-x: auto; overflow-y: hidden; max-height: 900px; padding: 16px; padding-top: 8px; display: flex; gap: 20px;"></div>
+    <div class="welllog-tooltip" style="display: none; position: fixed; z-index: 60; background-color: var(--color-tooltip-bg); border: 1px solid var(--color-tooltip-border); border-radius: 8px; padding: 12px; box-shadow: var(--shadow-md); pointer-events: none;"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function boot() {
+    if (!window.WellLogView) { setTimeout(boot, 30); return; }
+    WellLogView.init('welllog-widget', {
+      data: {{ records|tojson }},
+      depthKey: {{ depth_key|tojson }},
+      availableParameters: {{ available_parameters|tojson }},
+      paramLabels: {{ param_labels|tojson }},
+      height: 800,
+      {# Optional — absent for /logs (its own route never sets these), so that
+         usage is completely unaffected. A caller that already knows what it
+         wants compared (e.g. ROP Prediction's actual-vs-predicted view) can
+         start pre-populated instead of forcing "+ Add Track"/"Add parameter". #}
+      {% if initial_tracks %}initialTracks: {{ initial_tracks|tojson }},{% endif %}
+      {% if param_colors %}paramColor: {{ param_colors|tojson }},{% endif %}
+      {% if param_styles %}paramStyle: {{ param_styles|tojson }},{% endif %}
+    });
+  }
+  boot();
+})();
+</script>
+{% endif %}

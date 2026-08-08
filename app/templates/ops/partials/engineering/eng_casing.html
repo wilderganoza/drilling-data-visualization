@@ -1,0 +1,93 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Casing Design — results</h3>
+<p class="text-xs mb-3 text-muted">
+  Ratings from OD·weight·grade (Barlow burst · API&nbsp;5C3 4-regime collapse · body/connection tension). Buoyancy factor {{ r.buoyancy_factor }}.
+  Governing load case per criterion shown; collapse is biaxially corrected for axial tension; triaxial = von&nbsp;Mises. DF: burst {{ r.df.burst }} · collapse {{ r.df.collapse }} · axial {{ r.df.tension }} · triaxial {{ r.df.triaxial }}.
+</p>
+{% if r.strings|length == 0 %}
+  <p class="text-sm text-muted">No casing program defined. Add strings in the <strong>Casing Program</strong> tab first.</p>
+{% else %}
+{% macro sf(v, ok, case) %}
+  <td class="py-2 px-3"><span class="badge {{ 'badge-success' if ok else 'badge-danger' }}">{{ v if v is not none else "—" }}</span>{% if case %}<br><span class="text-xs text-muted">{{ case }}</span>{% endif %}</td>
+{% endmacro %}
+<div class="overflow-x-auto mb-4">
+  <table class="w-full text-sm">
+    <thead><tr class="border-b">
+      <th class="text-left py-2 px-3 font-medium text-muted">String</th>
+      <th class="text-left py-2 px-3 font-medium text-muted">Pipe</th>
+      <th class="text-left py-2 px-3 font-medium text-muted">SF Burst</th>
+      <th class="text-left py-2 px-3 font-medium text-muted">SF Collapse</th>
+      <th class="text-left py-2 px-3 font-medium text-muted">SF Axial</th>
+      <th class="text-left py-2 px-3 font-medium text-muted">SF Triaxial</th>
+    </tr></thead>
+    <tbody>
+      {% for s in r.strings %}
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td class="py-2 px-3" style="color:var(--color-text); font-weight:500;">{{ s.string }}<br><span class="text-xs text-muted">@ {{ "{:,.0f}".format(s.setting_md) }} {{ depth_unit or "ft" }}</span></td>
+          <td class="py-2 px-3" style="color:var(--color-text);">{{ s.od }}"·{{ s.ppf }}#·{{ s.grade }}<br><span class="text-xs text-muted">wall {{ s.wall }}" · D/t {{ s.dt }} · Yp {{ "{:,}".format(s.yp) }}</span></td>
+          {{ sf(s.sf_burst, s.ok_burst, s.burst_case) }}
+          {{ sf(s.sf_collapse, s.ok_collapse, s.collapse_case) }}
+          {{ sf(s.sf_tension, s.ok_tension, s.axial_case) }}
+          {{ sf(s.sf_triaxial, s.ok_triaxial, "VME " ~ "{:,}".format(s.vme) ~ " psi") }}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<details class="mb-2">
+  <summary class="text-sm" style="cursor:pointer; color:var(--color-primary);">Load cases &amp; ratings detail</summary>
+  <div class="overflow-x-auto mt-2">
+    <table class="w-full text-xs">
+      <thead><tr class="border-b">
+        <th class="text-left py-1 px-2 text-muted">String</th>
+        <th class="text-left py-1 px-2 text-muted">Burst load / rating (psi)</th>
+        <th class="text-left py-1 px-2 text-muted">Collapse load / rating (raw→biax)</th>
+        <th class="text-left py-1 px-2 text-muted">Axial load / conn rating (klbf)</th>
+      </tr></thead>
+      <tbody>
+        {% for s in r.strings %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ s.string }}</td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ "{:,}".format(s.burst_load) }} / {{ "{:,}".format(s.burst_rating) }}<br><span class="text-muted">{% for k,v in s.burst_cases.items() %}{{ k }}: {{ "{:,}".format(v) }}{{ " · " if not loop.last }}{% endfor %}</span></td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ "{:,}".format(s.collapse_load) }} / {{ "{:,}".format(s.collapse_rating) }}→{{ "{:,}".format(s.collapse_rating_biax) }}<br><span class="text-muted">{% for k,v in s.collapse_cases.items() %}{{ k }}: {{ "{:,}".format(v) }}{{ " · " if not loop.last }}{% endfor %}</span></td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ "{:,.0f}".format(s.axial_load/1000) }} / {{ "{:,.0f}".format(s.tension_conn/1000) }}<br><span class="text-muted">body {{ "{:,.0f}".format(s.tension_body/1000) }} klbf</span></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</details>
+<h4 class="text-sm font-medium mb-2 mt-4" style="color:var(--color-text);">Connections, buckling, fatigue &amp; thermal</h4>
+<div class="overflow-x-auto mb-2">
+  <table class="w-full text-xs">
+    <thead><tr class="border-b">
+      <th class="text-left py-2 px-3 text-muted">String</th>
+      <th class="text-left py-2 px-3 text-muted">Connection</th>
+      <th class="text-left py-2 px-3 text-muted">SF conn tension</th>
+      <th class="text-left py-2 px-3 text-muted">SF conn leak</th>
+      <th class="text-left py-2 px-3 text-muted">Thermal ΔF</th>
+      <th class="text-left py-2 px-3 text-muted">Buckling</th>
+      <th class="text-left py-2 px-3 text-muted">SF fatigue</th>
+      <th class="text-left py-2 px-3 text-muted">SF triaxial (T+buckle)</th>
+    </tr></thead>
+    <tbody>
+      {% for s in r.strings %}
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td class="py-2 px-3" style="color:var(--color-text);font-weight:500;">{{ s.string }}<br><span class="text-muted">drift {{ s.drift }}" · inc {{ s.incl }}°</span></td>
+          <td class="py-2 px-3" style="color:var(--color-text);">{{ s.conn_name }}<br><span class="text-muted">{{ "🔒 gas-tight" if s.gas_tight else "thread & coupling" }}{{ "" if s.gas_ok else " ⚠ needs gas seal" }}</span></td>
+          <td class="py-2 px-3"><span class="badge {{ 'badge-success' if s.ok_connection else 'badge-danger' }}">{{ s.sf_conn_tension if s.sf_conn_tension is not none else "—" }}</span></td>
+          <td class="py-2 px-3" style="color:var(--color-text);">{{ s.sf_conn_leak if s.sf_conn_leak is not none else "—" }}</td>
+          <td class="py-2 px-3" style="color:var(--color-text);">{{ "{:,.0f}".format(s.thermal_force/1000) }} klbf<br><span class="text-muted">ΔT {{ s.dT }}°F</span></td>
+          <td class="py-2 px-3"><span class="badge {{ 'badge-success' if s.ok_buckle else 'badge-danger' }}">{{ s.buckle_mode }}</span><br><span class="text-muted">σ_b {{ "{:,}".format(s.buckle_stress) }} psi</span></td>
+          <td class="py-2 px-3"><span class="badge {{ 'badge-success' if s.ok_fatigue else 'badge-danger' }}">{{ s.sf_fatigue if s.sf_fatigue is not none else "—" }}</span></td>
+          <td class="py-2 px-3"><span class="badge {{ 'badge-success' if (s.sf_triaxial_buckled is not none and s.sf_triaxial_buckled >= r.df.triaxial) else 'badge-danger' }}">{{ s.sf_triaxial_buckled if s.sf_triaxial_buckled is not none else "—" }}</span></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="text-xs text-muted">🟢 SF ≥ design factor · 🔴 below. Burst cases: gas kick, tubing leak (production), pressure test. Collapse: cementation, full evacuation, losses next section. Axial: installation (buoyed), overpull, green-cement bump.</p>
+<p class="text-xs mt-1 text-muted">Connection ratings from the tubular catalog (tension/leak efficiency, gas-seal). Buckling = sinusoidal/helical (Dawson-Paslay) under post-cement thermal compression, with Lubinski helical bending stress. Fatigue = rotating-bending screening at the design dogleg vs a corrosion-fatigue endurance limit. Thermal ΔF = −E·α·A·ΔT (production heating → compression), folded into the triaxial (T+buckle) check. DF connection {{ r.df.connection }} · fatigue {{ r.df.fatigue }}.</p>
+{% endif %}

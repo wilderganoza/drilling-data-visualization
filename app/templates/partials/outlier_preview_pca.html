@@ -1,0 +1,26 @@
+{% if error %}
+  <p class="text-sm text-danger">{{ error }}</p>
+{% else %}
+  <div id="outlier-pca-variance-chart" class="chart-container"></div>
+  <script>
+  (function () {
+    function boot() {
+      if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+      DrillingCharts.renderVarianceChart('outlier-pca-variance-chart', {
+        labels: {{ result.component_labels|tojson }},
+        ratios: {{ result.explained_variance_ratio|tojson }},
+        cumulative: {{ cumulative|tojson }},
+        height: 300,
+      });
+    }
+    boot();
+  })();
+  </script>
+
+  <select id="outlier-pca-scatter-x" class="form-select" hx-swap-oob="true">
+    {% for lbl in result.component_labels %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == 0 else '' }}>{{ lbl }}</option>{% endfor %}
+  </select>
+  <select id="outlier-pca-scatter-y" class="form-select" hx-swap-oob="true">
+    {% for lbl in result.component_labels %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == 1 else '' }}>{{ lbl }}</option>{% endfor %}
+  </select>
+{% endif %}

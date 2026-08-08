@@ -1,0 +1,285 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+{% macro metric_card(title, m, accent, subtitle) %}
+  <div class="card p-4">
+    <div class="text-sm text-muted" style="margin-bottom:8px">{{ title }}{% if subtitle %} <span style="opacity:.7;">· {{ subtitle }}</span>{% endif %}</div>
+    <div style="display:flex; align-items:baseline; gap:6px;">
+      <span style="font-size:26px; font-weight:700; color:{{ accent }};">{{ m.r2|fmt_number(4) }}</span>
+      <span class="text-sm text-muted">R²</span>
+    </div>
+    <div class="text-sm text-muted" style="margin-top:6px; line-height:1.6">
+      RMSE {{ m.rmse|fmt_number(2) }} ft/hr<br>
+      MAE {{ m.mae|fmt_number(2) }} ft/hr{% if m.mape is not none %}<br>MAPE {{ m.mape|fmt_number(1) }}%{% endif %}
+      {% if m.coverage is not none %}<br><span style="color:var(--color-text);">PI coverage {{ m.coverage|fmt_number(1) }}%</span>{% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+{% if error %}
+  <form>{{ h.hidden_state(state) }}
+    <div class="card p-4">
+      <p style="color:var(--color-danger,#ef4444);">{{ error }}</p>
+      <div class="flex mt-3">
+        <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/hpo" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Back to Hyperparameters</button>
+      </div>
+    </div>
+  </form>
+{% elif result %}
+<div class="space-y-4">
+  <div class="card p-3" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+    <span class="text-sm text-muted">
+      Model: <strong style="color:var(--color-text);">{{ model_label }}</strong> ·
+      Train {{ ds_info.n_train if ds_info.n_train else '—' }} · Test {{ ds_info.n_test if ds_info.n_test else '—' }}{% if ds_info.n_blind %} · Blind {{ ds_info.n_blind }}{% endif %} rows · {{ ds_info.n_features }} features
+      {% if ds_info.used_params %} · tuned{% else %} · default params{% endif %}
+    </span>
+    <form style="display:flex; gap:8px; margin:0;">
+      {{ h.hidden_state(state) }}
+      <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/hpo" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Back</button>
+      <a href="/analytics/rop-prediction" class="btn btn-secondary"
+         onclick="if (confirm('Start over? This discards the whole configured wizard and its results (saved models are kept).')) { window.__ropSkipUnloadGuard = true; return true; } return false;">&#8635; Start over</a>
+    </form>
+  </div>
+
+  {# Results first #}
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    {{ metric_card('Train', result.train, 'var(--color-text)', none) }}
+    {{ metric_card('Test', result.test, 'var(--color-primary)', 'grouped' if result.split_grouped else 'random') }}
+    {% if result.blind %}{{ metric_card('Blind — unseen well', result.blind, '#22c55e', 'most honest') }}
+    {% else %}
+    <div class="card p-4">
+      <div class="text-sm text-muted">Blind</div>
+      {% if ds_info.blind_well_id %}
+        <p class="text-sm" style="color:#eab308; margin-top:8px;">A blind well was selected, but none of its rows survived the completeness + physical-range filters for the chosen features. Try fewer features or another blind well.</p>
+      {% else %}
+        <p class="text-sm text-muted" style="margin-top:8px">No blind well selected.</p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  {# Charts below — one row per split, interactive with axes #}
+  {% for split, title, color in [('train','Train','#94a3b8'), ('test','Test','#3B82F6'), ('blind','Blind — unseen well','#22c55e')] %}
+    {% if result.plots and result.plots.get(split) %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="card p-4">
+        <div class="card-header">
+          <h3 class="card-title">Predicted vs actual — {{ title }}</h3>
+          <span class="text-sm text-muted">Each point is one row (up to a 900-point sample); the closer to the diagonal, the better. ft/hr.</span>
+        </div>
+        <div id="rop-val-scatter-{{ split }}" class="chart-container"></div>
+      </div>
+      <div class="card p-4">
+        <div class="card-header">
+          <h3 class="card-title">Residuals — {{ title }}</h3>
+          <span class="text-sm text-muted">Actual − predicted vs. predicted — should hover around 0 with no visible pattern or funnel shape.</span>
+        </div>
+        <div id="rop-val-resid-{{ split }}" class="chart-container"></div>
+      </div>
+    </div>
+    {% if result.error_bands and result.error_bands.get(split) %}
+    <div class="card p-4">
+      <div class="card-header">
+        <h3 class="card-title">Error distribution — {{ title }}</h3>
+        <span class="text-sm text-muted">% of predictions per absolute-%-error band, and cumulative — n={{ result.error_bands[split].n }}</span>
+      </div>
+      <div id="rop-val-errbands-{{ split }}" class="chart-container"></div>
+    </div>
+    {% endif %}
+  {% endif %}
+  {% endfor %}
+
+  {# Drift #}
+  {% if result.drift %}
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Blind-well drift</h3><span class="text-sm text-muted">How far the blind well sits from training (σ). &gt;2σ = out-of-distribution.</span></div>
+    {% for d in result.drift[:8] %}
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+      <span class="text-sm" style="width:200px; color:var(--color-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ d.label }}">{{ d.label }}</span>
+      <div style="flex:1; height:12px; background:var(--color-bg-subtle); border-radius:3px; overflow:hidden;">
+        <div style="height:100%; width:{{ [d.shift_sigma/4*100, 100]|min }}%; background:{{ '#ef4444' if d.strong else 'var(--color-primary)' }};"></div>
+      </div>
+      <span class="text-sm" style="width:56px; text-align:right; color:{{ '#ef4444' if d.strong else 'var(--color-text-muted)' }};">{{ d.shift_sigma|fmt_number(2) }}σ</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Overfitting/underfitting diagnostics #}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="card p-4">
+      <div class="card-header"><h3 class="card-title">Learning curve</h3><span class="text-sm text-muted">Train vs. CV R² as training-set size grows</span></div>
+      {% if result.learning_curve %}
+        <div id="rop-val-learning-curve" class="chart-container"></div>
+      {% else %}
+        <p class="text-sm text-muted">Could not be computed for this configuration.</p>
+      {% endif %}
+    </div>
+    <div class="card p-4">
+      <div class="card-header"><h3 class="card-title">Validation curve</h3><span class="text-sm text-muted">{% if result.validation_curve %}Train vs. CV R² vs. {{ result.validation_curve.param_name }}{% else %}No single tunable complexity knob for this model{% endif %}</span></div>
+      {% if result.validation_curve %}
+        <div id="rop-val-validation-curve" class="chart-container"></div>
+      {% else %}
+        <p class="text-sm text-muted">Not available for this model — it either has no meaningful hyperparameter to sweep, or the sweep failed.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Explainability: permutation importance + SHAP #}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="card p-4">
+      <div class="card-header"><h3 class="card-title">Permutation importance</h3><span class="text-sm text-muted">model-agnostic, unbiased</span></div>
+      {% set maxp = (result.perm_importance[0].importance if result.perm_importance else 1) or 1 %}
+      {% for f in result.perm_importance[:12] %}
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+        <span class="text-sm" style="width:180px; color:var(--color-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ f.label }}">{{ f.label }}</span>
+        <div style="flex:1; height:12px; background:var(--color-bg-subtle); border-radius:3px; overflow:hidden;">
+          <div style="height:100%; width:{{ [f.importance/maxp*100, 0]|max }}%; background:var(--color-primary);"></div>
+        </div>
+        <span class="text-sm text-muted" style="width:64px; text-align:right">{{ f.importance|fmt_number(3) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="card p-4">
+      <div class="card-header"><h3 class="card-title">SHAP importance</h3><span class="text-sm text-muted">mean |SHAP| (tree models)</span></div>
+      {% if result.shap %}
+        {% set maxs = (result.shap[0].mean_abs_shap if result.shap else 1) or 1 %}
+        {% for f in result.shap[:12] %}
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:5px;">
+          <span class="text-sm" style="width:180px; color:var(--color-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="{{ f.label }}">{{ f.label }}</span>
+          <div style="flex:1; height:12px; background:var(--color-bg-subtle); border-radius:3px; overflow:hidden;">
+            <div style="height:100%; width:{{ f.mean_abs_shap/maxs*100 }}%; background:#8b5cf6;"></div>
+          </div>
+          <span class="text-sm text-muted" style="width:64px; text-align:right">{{ f.mean_abs_shap|fmt_number(3) }}</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-sm text-muted">SHAP is computed for tree models without PCA. Not available for this configuration.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Actual vs predicted ROP over depth, for a well from train/test/blind —
+     reuses the Well Logs multi-track viewer. Auto-loaded since it needs a DB
+     session to compute the train/test/blind well split (same convention as
+     Variable distribution / Correlation in the Features step). #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Actual vs Predicted ROP</h3>
+      <span class="text-sm text-muted">Depth-track view of one well at a time: the model's prediction overlaid on the measured ROP, plus the residual — the clearest way to see WHERE along the well it does well or poorly.</span>
+    </div>
+    <div id="rop-logview-card-body"
+         hx-get="/analytics/rop-prediction/job/{{ result_token }}/logview/init"
+         hx-trigger="load" hx-swap="innerHTML" hx-target="this">
+      <p class="text-sm text-muted">Loading…</p>
+    </div>
+  </div>
+
+  {# Save experiment #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Save model</h3>
+      <span class="text-sm text-muted">Stores this trained model with its full configuration and all validation metrics under "Saved models" — required to use it later for scoring, What-if, or the log view.</span>
+    </div>
+    <form hx-post="/analytics/rop-prediction/save" hx-target="#rop-save-result" hx-swap="innerHTML" class="space-y-3">
+      <input type="hidden" name="result_token" value="{{ result_token }}">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><label class="form-label">Name</label><input type="text" name="name" class="form-input" placeholder="e.g. ROP model — field X"></div>
+        <div><label class="form-label">Description (optional)</label><input type="text" name="description" class="form-input"></div>
+      </div>
+      <div class="flex justify-end"><button type="submit" class="btn btn-primary">Save model</button></div>
+    </form>
+    <div id="rop-save-result" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function boot() {
+    if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+    var plots = {{ result.plots|tojson if result.plots else '{}' }};
+    var errBands = {{ result.error_bands|tojson if result.error_bands else '{}' }};
+    var colors = { train: '#94a3b8', test: '#3B82F6', blind: '#22c55e' };
+    Object.keys(plots).forEach(function (split) {
+      var sc = plots[split].scatter || [];
+      var rs = plots[split].residuals || [];
+      if (sc.length) {
+        var vals = sc.map(function (p) { return p.x; }).concat(sc.map(function (p) { return p.y; }));
+        var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+        DrillingCharts.renderScatterChart('rop-val-scatter-' + split, {
+          points: sc, xScale: 'linear', yScale: 'linear',
+          xLabel: 'Actual ROP (ft/hr)', yLabel: 'Predicted ROP (ft/hr)',
+          color: colors[split], height: 380,
+          refLine: [{ x: lo, y: lo }, { x: hi, y: hi }], refLineLabel: 'perfect model (45°)',
+        });
+      }
+      if (rs.length) {
+        var xs = rs.map(function (p) { return p.x; });
+        var xlo = Math.min.apply(null, xs), xhi = Math.max.apply(null, xs);
+        DrillingCharts.renderScatterChart('rop-val-resid-' + split, {
+          points: rs, xScale: 'linear', yScale: 'linear',
+          xLabel: 'Predicted ROP (ft/hr)', yLabel: 'Residual (ft/hr)',
+          color: colors[split], height: 380,
+          refLine: [{ x: xlo, y: 0 }, { x: xhi, y: 0 }], refLineLabel: 'zero error',
+        });
+      }
+      var eb = errBands[split];
+      if (eb && eb.labels && eb.labels.length) {
+        var ebData = eb.labels.map(function (lbl, i) {
+          return { label: lbl, freq: eb.freq[i], cumulative: eb.cumulative[i] };
+        });
+        DrillingCharts.renderLineChart('rop-val-errbands-' + split, {
+          data: ebData, xKey: 'label', xType: 'point', xTickFormat: 'raw', xLabel: 'Absolute % error', height: 320, legend: true, brush: false,
+          series: [
+            { key: 'freq', label: '% in band', color: colors[split], yAxisId: 'default' },
+            { key: 'cumulative', label: 'Cumulative %', color: 'var(--color-text)', yAxisId: 'default' },
+          ],
+          yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left', label: '%', tickFormat: 'decimal2' }],
+        });
+      }
+    });
+
+    var lc = {{ result.learning_curve|tojson if result.learning_curve else 'null' }};
+    if (lc) {
+      var lcData = lc.sizes.map(function (n, i) {
+        return { size: n, train: lc.train_mean[i], cv: lc.cv_mean[i] };
+      });
+      DrillingCharts.renderLineChart('rop-val-learning-curve', {
+        data: lcData, xKey: 'size', xType: 'number', xTickFormat: 'number',
+        xLabel: 'Training rows', height: 340, legend: true, brush: false,
+        series: [
+          { key: 'train', label: 'Train R²', color: 'var(--color-text-muted)', yAxisId: 'default' },
+          { key: 'cv', label: 'CV R²', color: 'var(--color-primary)', yAxisId: 'default' },
+        ],
+        yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left', label: 'R²', tickFormat: 'decimal2' }],
+      });
+    }
+
+    var vc = {{ result.validation_curve|tojson if result.validation_curve else 'null' }};
+    if (vc) {
+      var vcData = vc.param_values.map(function (v, i) {
+        return { x: v, train: vc.train_mean[i], cv: vc.cv_mean[i] };
+      });
+      DrillingCharts.renderLineChart('rop-val-validation-curve', {
+        data: vcData, xKey: 'x', xType: 'point', xTickFormat: 'decimal',
+        xLabel: vc.param_name, height: 340, legend: true, brush: false,
+        series: [
+          { key: 'train', label: 'Train R²', color: 'var(--color-text-muted)', yAxisId: 'default' },
+          { key: 'cv', label: 'CV R²', color: 'var(--color-primary)', yAxisId: 'default' },
+        ],
+        yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left', label: 'R²', tickFormat: 'decimal2' }],
+      });
+    }
+  }
+  boot();
+})();
+</script>
+{% else %}
+  <form>
+    {{ h.hidden_state(state) }}
+    <div class="card p-4">
+      <p class="text-sm text-muted" style="margin-bottom:10px">
+        Validation hasn't been run yet for the current configuration{{ ' (or the configuration changed since it last ran)' if state.validation_job_id }}.
+      </p>
+      <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/hpo" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Back to Hyperparameters</button>
+    </div>
+  </form>
+{% endif %}

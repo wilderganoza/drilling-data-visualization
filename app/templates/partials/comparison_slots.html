@@ -1,0 +1,17 @@
+{% for slot in slots %}
+  <div class="space-y-2">
+    <div class="flex items-center gap-2 text-sm font-medium text-muted">
+      Well {{ slot + 1 }}
+      <span class="rounded-full" style="width: 12px; height: 12px; display: inline-block; background-color: {{ colors[slot] }};"></span>
+    </div>
+    <select name="well_id_{{ slot }}" class="form-select comparison-well-select" data-slot="{{ slot }}"
+            hx-get="/comparison/datasets" hx-target="#comparison-dataset-wrapper-{{ slot }}" hx-swap="innerHTML"
+            hx-trigger="change" hx-vals='js:{"well_id": event.target.value, "slot": {{ slot }}}'
+            hx-indicator="#comparison-dataset-ind-{{ slot }}">
+      <option value="">Select a well...</option>
+      {% for w in wells %}<option value="{{ w.id }}">{{ w.well_name }}</option>{% endfor %}
+    </select>
+    <div id="comparison-dataset-ind-{{ slot }}" class="htmx-indicator inline-loader" style="margin-top:6px;"><span class="spinner-el"></span><span>Loading…</span></div>
+    <div id="comparison-dataset-wrapper-{{ slot }}"></div>
+  </div>
+{% endfor %}

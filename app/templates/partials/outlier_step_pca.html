@@ -1,0 +1,107 @@
+{% import "macros/ui.html" as ui %}
+{% if request.headers.get('HX-Request') %}<div id="outlier-step-pills" hx-swap-oob="true">{{ ui.step_pills(steps, step_titles, current_step) }}</div>{% endif %}
+<div class="space-y-6">
+  {% if errors %}
+    <div class="card p-4" style="border-color: var(--color-danger);">
+      {% for e in errors %}<p class="text-sm text-danger">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">PCA configuration</h3>
+      <span class="text-sm text-muted">Optional dimensionality reduction: compresses the (scaled) variables into fewer uncorrelated components before the pipeline runs — useful with many correlated sensor variables, at the cost of per-variable explainability. Off by default.</span>
+    </div>
+    <form id="outlier-pca-form" hx-post="/outliers/steps/review" hx-target="#wizard-content" hx-swap="innerHTML" class="space-y-4">
+      {{ ui.wizard_hidden(ctx, skip_pca=True) }}
+
+      <label class="check-label">
+        <input type="checkbox" id="outlier-pca-enabled" name="pca_enabled" value="true" {{ 'checked' if pca_enabled else '' }} onchange="outlierPcaFields()" />
+        Enable PCA
+      </label>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="w-full">
+          <label class="form-label">Number of components</label>
+          <input type="number" id="outlier-pca-ncomp" name="pca_n_components" class="form-input" min="1" step="1" value="{{ pca_n_components or '' }}" placeholder="Auto" />
+        </div>
+        <div class="w-full">
+          <label class="form-label">SVD solver</label>
+          <select id="outlier-pca-solver" name="pca_svd_solver" class="form-select" title="Numerical algorithm only — 'auto' picks for you; results are equivalent.">
+            {% for s in ['auto', 'full', 'arpack', 'randomized'] %}
+              <option value="{{ s }}" {{ 'selected' if s == pca_svd_solver else '' }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="w-full" style="display: flex; align-items: center;">
+          <label class="check-label" title="Rescales each component to unit variance — occasionally helps distance-based methods.">
+            <input type="checkbox" id="outlier-pca-whiten" name="pca_whiten" value="true" {{ 'checked' if pca_whiten else '' }} />
+            Whiten
+          </label>
+        </div>
+      </div>
+
+      <p class="text-sm text-muted">The preview below is optional — this configuration is applied automatically when the pipeline runs.</p>
+      <div class="flex justify-between">
+        <button type="button" class="btn btn-secondary" hx-post="/outliers/steps/scaling" hx-target="#wizard-content" hx-swap="innerHTML" hx-include="#outlier-pca-form">&larr; Back</button>
+        <div class="flex items-center gap-2">
+          <div id="outlier-pca-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Computing…</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="if(window.htmx){htmx.trigger(document.getElementById('outlier-pca-calc'),'htmx:abort');}">Cancel</button>
+          </div>
+          <button type="button" id="outlier-pca-calc" class="btn btn-secondary" hx-post="/outliers/preview/pca" hx-target="#outlier-pca-preview" hx-swap="innerHTML" hx-include="#outlier-pca-form" hx-indicator="#outlier-pca-ind">Calculate preview</button>
+          <button type="submit" class="btn btn-primary">Next: Review &rarr;</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    function outlierPcaFields() {
+      var on = document.getElementById('outlier-pca-enabled').checked;
+      ['outlier-pca-ncomp', 'outlier-pca-solver', 'outlier-pca-whiten'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = !on;
+      });
+    }
+    outlierPcaFields();
+  </script>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Explained variance</h3>
+      <span class="text-sm text-muted">How much of the data's total variance each component captures — pick a component count where the cumulative curve flattens.</span>
+    </div>
+    <div id="outlier-pca-preview">
+      <p class="text-sm text-muted">Click "Calculate preview" to run PCA.</p>
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Component scatter</h3>
+      <span class="text-sm text-muted">2D projection of the sampled rows onto two chosen components — a quick look at the structure PCA finds.</span>
+    </div>
+    <div class="flex items-center gap-4" style="max-width: 420px;">
+      <div class="w-full">
+        <label class="form-label">X component</label>
+        <select id="outlier-pca-scatter-x" class="form-select"><option value="0">PC1</option></select>
+      </div>
+      <div class="w-full">
+        <label class="form-label">Y component</label>
+        <select id="outlier-pca-scatter-y" class="form-select"><option value="1">PC2</option></select>
+      </div>
+      <button type="button" id="outlier-pca-scatter-btn" class="btn btn-secondary" style="white-space: nowrap; margin-top: 20px;"
+              hx-post="/outliers/preview/pca-scatter" hx-target="#outlier-pca-scatter" hx-swap="innerHTML"
+              hx-include="#outlier-pca-form" hx-indicator="#outlier-pca-scatter-ind"
+              hx-vals='js:{"pca_scatter_x": document.getElementById("outlier-pca-scatter-x").value, "pca_scatter_y": document.getElementById("outlier-pca-scatter-y").value}'>
+        Plot
+      </button>
+      <div id="outlier-pca-scatter-ind" class="htmx-indicator inline-loader" style="margin-top:20px;"><span class="spinner-el"></span><span>Plotting…</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="if(window.htmx){htmx.trigger(document.getElementById('outlier-pca-scatter-btn'),'htmx:abort');}">Cancel</button>
+      </div>
+    </div>
+    <div id="outlier-pca-scatter" class="mt-4">
+      <p class="text-sm text-muted">Pick components and click "Plot" (run "Calculate preview" first if the component list above is empty).</p>
+    </div>
+  </div>
+</div>

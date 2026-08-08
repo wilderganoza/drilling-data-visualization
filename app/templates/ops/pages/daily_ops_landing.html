@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Daily Operations — Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {{ ui.page_header("Daily Operations", "Day-to-day report capture") }}
+  <div class="card p-4">
+    <p class="text-sm text-muted">Select an event from the tree on the left to view its Daily Operations Reports.</p>
+  </div>
+</div>
+{% endblock %}

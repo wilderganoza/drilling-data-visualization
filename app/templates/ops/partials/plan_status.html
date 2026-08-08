@@ -1,0 +1,24 @@
+{% set st = (plan.status if plan else None) or "Draft" %}
+<div id="plan-status" class="card p-3" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <span class="text-sm text-muted">Plan status</span>
+    <span class="badge {{ 'badge-success' if st == 'Approved' else ('badge-warning' if st == 'Submitted' else 'badge-muted') }}">{{ st }}</span>
+    {% if plan and plan.is_locked %}<span class="text-sm text-muted">🔒 Locked</span>{% endif %}
+    <span class="text-xs text-muted">
+      {% if submitter %}Submitted by {{ submitter.full_name or submitter.username }}{% if plan.submitted_at %} ({{ plan.submitted_at.strftime("%Y-%m-%d %H:%M") }}){% endif %}{% endif %}
+      {% if approver %} · Approved by {{ approver.full_name or approver.username }}{% if plan.approved_at %} ({{ plan.approved_at.strftime("%Y-%m-%d %H:%M") }}){% endif %}{% endif %}
+    </span>
+  </div>
+  <div class="flex items-center gap-2">
+    {% if not plan %}
+      <span class="text-xs text-muted">Create the AFE / Summary header to start the approval flow.</span>
+    {% elif st == "Draft" %}
+      <button type="button" class="btn btn-primary btn-sm" hx-post="/planning/events/{{ event.id }}/plan/submit" hx-target="#plan-status" hx-swap="outerHTML">Submit for approval</button>
+    {% elif st == "Submitted" %}
+      <button type="button" class="btn btn-primary btn-sm" hx-post="/planning/events/{{ event.id }}/plan/approve" hx-target="#plan-status" hx-swap="outerHTML" hx-confirm="Approve and lock this plan?">Approve &amp; lock</button>
+      <button type="button" class="btn btn-ghost btn-sm" hx-post="/planning/events/{{ event.id }}/plan/reopen" hx-target="#plan-status" hx-swap="outerHTML">Back to Draft</button>
+    {% elif st == "Approved" %}
+      <button type="button" class="btn btn-secondary btn-sm" hx-post="/planning/events/{{ event.id }}/plan/reopen" hx-target="#plan-status" hx-swap="outerHTML" hx-confirm="Reopen this approved plan for editing?">Reopen</button>
+    {% endif %}
+  </div>
+</div>

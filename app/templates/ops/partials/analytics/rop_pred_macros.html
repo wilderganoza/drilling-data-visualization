@@ -1,0 +1,34 @@
+{# Shared macros for the ROP Prediction wizard — import with:
+   {% import "ops/partials/analytics/rop_pred_macros.html" as m %} then call m.bar(pct). #}
+{% macro bar(pct, min_width=60, label_width=42) %}
+  {% set color = '#22c55e' if pct >= 80 else ('#eab308' if pct >= 50 else '#ef4444') %}
+  <div style="display:flex; align-items:center; gap:8px;">
+    <div style="flex:1; height:6px; border-radius:3px; background:var(--color-bg-subtle); overflow:hidden; min-width:{{ min_width }}px;">
+      <div style="height:100%; width:{{ pct }}%; background:{{ color }};"></div>
+    </div>
+    <span class="text-sm text-muted" style="width:{{ label_width }}px; text-align:right">{{ pct|fmt_number(0) }}%</span>
+  </div>
+{% endmacro %}
+
+{# Renders a rop_ml.estimate_seconds() (low, high) tuple as a rough, clearly-labeled
+   time hint above a Run/Re-run button — e.g. "~2–4 min to tune". `suffix` says
+   WHAT is being estimated (e.g. "to tune" / "to validate") — required whenever
+   more than one estimate can appear on the same screen (e.g. HPO step: one for
+   "Run optimisation", one for "Skip → Validation"), so it's never ambiguous
+   which button a given number belongs to. #}
+{% macro estimate_line(est, suffix='estimated') %}
+  {% set lo, hi = est %}
+  <span class="text-sm text-muted">
+    {% if hi < 90 %}~{{ lo|round(0, 'floor')|int }}–{{ hi|round(0, 'ceil')|int }}s {{ suffix }}
+    {% else %}~{{ (lo / 60)|round(1) }}–{{ (hi / 60)|round(1) }} min {{ suffix }}
+    {% endif %}
+  </span>
+{% endmacro %}
+
+{# A single-value ETA (seconds remaining) for the live running screen — same
+   rough-and-labeled spirit as estimate_line, just one number instead of a range. #}
+{% macro eta_line(seconds) %}
+  <span class="text-sm text-muted">
+    ~{% if seconds < 90 %}{{ seconds|round(0, 'ceil')|int }}s{% else %}{{ (seconds / 60)|round(1) }} min{% endif %} remaining
+  </span>
+{% endmacro %}

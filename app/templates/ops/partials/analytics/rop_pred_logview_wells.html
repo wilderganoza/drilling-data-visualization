@@ -1,0 +1,10 @@
+{# Well <select>, scoped to whichever dataset (train/test/blind) is currently
+   chosen — swapped in by the dataset select's hx-get on change. Shared by both
+   the saved-experiment logview page and the live-wizard Validation card. #}
+<div>
+  <label class="form-label">Well</label>
+  <select name="well_id" class="form-select">
+    {% if not wells %}<option value="">No wells in this split</option>{% endif %}
+    {% for w in wells %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
+  </select>
+</div>

@@ -1,0 +1,23 @@
+{% if error %}
+  <p class="text-sm text-danger">{{ error }}</p>
+{% elif points|length == 0 %}
+  <p class="text-sm text-muted">Not enough components to plot this pair.</p>
+{% else %}
+  <div id="outlier-pca-scatter-chart" class="chart-container"></div>
+  <script>
+  (function () {
+    function boot() {
+      if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+      DrillingCharts.renderScatterChart('outlier-pca-scatter-chart', {
+        points: {{ points|tojson }},
+        xScale: 'linear',
+        yScale: 'linear',
+        xLabel: {{ labels[x_idx]|tojson }},
+        yLabel: {{ labels[y_idx]|tojson }},
+        height: 420,
+      });
+    }
+    boot();
+  })();
+  </script>
+{% endif %}

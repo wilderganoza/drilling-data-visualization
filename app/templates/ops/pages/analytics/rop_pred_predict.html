@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Score well — ROP Prediction{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/analytics/rop-prediction/experiments" class="text-sm" style="color: var(--color-primary);">&larr; Saved models</a>
+  {{ ui.page_header("Score a well", "Apply “" ~ exp.name ~ "” (" ~ (model_label if model_label is defined else exp.model_key) ~ ") to a well and compare predicted vs actual ROP.") }}
+
+  <div class="card p-4">
+    <form hx-post="/analytics/rop-prediction/experiments/{{ exp.id }}/score" hx-target="#rop-score-result" hx-swap="innerHTML" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Well</label>
+          <select name="well_id" class="form-select" required>
+            <option value="" disabled selected>Select a well</option>
+            {% for w in wells %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Scoring…</span></div>
+        <button type="submit" class="btn btn-primary">Score</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="rop-score-result">
+    <div class="card p-4"><div class="py-12 text-center"><p class="text-muted">Select a well to score.</p></div></div>
+  </div>
+</div>
+{% endblock %}

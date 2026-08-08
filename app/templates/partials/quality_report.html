@@ -1,0 +1,109 @@
+{% set score = report.quality_score %}
+{% set score_color = 'text-green-500' if score >= 90 else ('text-yellow-500' if score >= 70 else 'text-red-500') %}
+{% set score_label = 'Excellent' if score >= 90 else ('Good' if score >= 70 else ('Fair' if score >= 50 else 'Poor')) %}
+{% set bar_color = 'background:var(--color-success)' if score >= 90 else ('background:var(--color-warning)' if score >= 70 else 'background:var(--color-danger)') %}
+
+{% if report.total_records == 0 %}
+  <div class="card p-4">
+    <div class="py-12 text-center">
+      <p class="text-muted">No quality data available for this selection.</p>
+    </div>
+  </div>
+{% else %}
+<div class="space-y-6">
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Data Quality Score</h3>
+      <span class="text-sm text-muted">100 minus penalties for missing/zero readings and IQR outliers per column, averaged across up to 50,000 sampled rows. Zero is treated as "no reading" for sensor channels, not a real value.</span>
+    </div>
+    <div class="text-center">
+      <div class="text-6xl font-bold {{ score_color }}">{{ '%.1f'|format(score) }}</div>
+      <p class="text-xl text-gray-400 mt-2">{{ score_label }}</p>
+      <div class="mt-4 w-full bg-gray-700 rounded-full h-4">
+        <div class="h-4 rounded-full" style="width: {{ score }}%; {{ bar_color }};"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="card p-4">
+      <div class="text-center">
+        <p class="text-3xl font-bold text-blue-500">{{ '{:,}'.format(report.total_records) }}</p>
+        <p class="text-sm text-gray-400 mt-2">Total Records</p>
+      </div>
+    </div>
+    <div class="card p-4">
+      <div class="text-center">
+        <p class="text-3xl font-bold text-purple-500">{{ report.columns_analyzed }}</p>
+        <p class="text-sm text-gray-400 mt-2">Columns Analyzed</p>
+      </div>
+    </div>
+    <div class="card p-4">
+      <div class="text-center">
+        <p class="text-3xl font-bold text-orange-500">{{ report.data_ranges|length }}</p>
+        <p class="text-sm text-gray-400 mt-2">Parameters Tracked</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Column Completeness</h3></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+      {% for c in completeness %}
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm text-gray-300 truncate" style="max-width: 200px;">{{ c.label }}</span>
+            <span class="text-sm text-green-400">{{ '%.1f'|format(c.completeness) }}%</span>
+          </div>
+          <div class="w-full bg-gray-700 rounded-full h-2">
+            <div class="bg-green-500 h-2 rounded-full" style="width: {{ c.completeness }}%;"></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Parameter Ranges</h3></div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-700">
+            <th class="text-left py-2 px-3 text-gray-400">Parameter</th>
+            <th class="text-right py-2 px-3 text-gray-400" title="Null or zero readings, treated the same — zero means no reading for these sensor channels.">Null/zero %</th>
+            <th class="text-right py-2 px-3 text-gray-400">Min</th>
+            <th class="text-right py-2 px-3 text-gray-400">P25</th>
+            <th class="text-right py-2 px-3 text-gray-400">P50</th>
+            <th class="text-right py-2 px-3 text-gray-400">P75</th>
+            <th class="text-right py-2 px-3 text-gray-400">Max</th>
+            <th class="text-right py-2 px-3 text-gray-400">Mean</th>
+            <th class="text-right py-2 px-3 text-gray-400">Std Dev</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in ranges %}
+            {% if not r.range %}
+              <tr class="border-b border-gray-800">
+                <td class="py-2 px-3 text-gray-300 truncate" style="max-width: 150px;">{{ r.label }}</td>
+                <td class="text-right py-2 px-3 text-gray-500" colspan="8">No data available</td>
+              </tr>
+            {% else %}
+              <tr class="border-b border-gray-800">
+                <td class="py-2 px-3 text-gray-300 truncate" style="max-width: 150px;">{{ r.label }}</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.null_pct|fmt_number(1) }}%</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.min|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.p25|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.p50|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.p75|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.max|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.mean|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-gray-400">{{ r.range.std|fmt_number(2) }}</td>
+              </tr>
+            {% endif %}
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}

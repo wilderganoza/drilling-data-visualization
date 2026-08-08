@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% import "macros/ops.html" as ops %}
+{% block title %}{{ event.event_code or "Event" }} — Daily Operations{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/ops/events/{{ event.id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ event.event_code or "Event" }}</a>
+  {{ ui.page_header("Daily Operations Reports", wellbore.name + " — " + (event.event_code or "Event")) }}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Reports</h3>
+      {{ ops.new_button("report-new-modal", "+ New Report") }}
+    </div>
+    {% include "ops/partials/daily_report_list_section.html" %}
+  </div>
+</div>
+{% endblock %}

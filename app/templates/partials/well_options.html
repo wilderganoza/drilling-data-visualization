@@ -1,0 +1,2 @@
+<option value="">{{ placeholder or "Select a well" }}</option>
+{% for w in wells %}<option value="{{ w.id }}">{{ w.well_name }}</option>{% endfor %}

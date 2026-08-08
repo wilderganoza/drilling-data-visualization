@@ -1,0 +1,103 @@
+{% import "ops/partials/analytics/rop_pred_macros.html" as m %}
+<div id="rop-run-poll" class="card p-4"
+     hx-get="/analytics/rop-prediction/job/{{ job_id }}?since={{ progress_done or 0 }}"
+     hx-target="#rop-pred-content" hx-swap="innerHTML"
+     hx-trigger="load delay:900ms, every 2s">
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 14px {{ '6px' if progress_rows else '14px' }};">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="spinner-el"></span>
+      <span style="color:var(--color-text);">{{ running_msg or 'Working…' }}{% if progress_total %} ({{ progress_done }}/{{ progress_total }}){% endif %}</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      {% if eta_seconds %}{{ m.eta_line(eta_seconds) }}{% endif %}
+      {% if cancel_url %}
+      {# onclick aborts the in-flight poll BEFORE posting the cancel — without
+         it, a poll dispatched in the same instant could land AFTER the cancel
+         response and overwrite the correctly-restored previous step with a
+         false "server restarted" dead-end (the cancel handler pops the job's
+         context, which is exactly what that poll would then observe). #}
+      <button type="button" class="btn btn-danger btn-sm" title="Stop this run and go back to the previous step"
+              onclick="ropAbort('rop-run-poll')"
+              hx-post="{{ cancel_url }}" hx-target="#rop-pred-content" hx-swap="innerHTML">&#10005; Cancel run</button>
+      {% endif %}
+    </div>
+  </div>
+  {# `is defined and is not none`, not truthiness: 0.0 at a stage boundary is
+     a real value — plain `if progress_pct` made the bar flicker off at every
+     stage start. (`defined` guard because preselect/HPO renders don't pass
+     progress_pct at all.) #}
+  {% if progress_pct is defined and progress_pct is not none %}
+  <div style="padding:0 14px 10px;">{{ m.bar(progress_pct * 100) }}</div>
+  {% endif %}
+  {% if progress_rows %}
+  <div style="padding:0 14px 10px; max-height:320px; overflow-y:auto;">
+    <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+      <tbody>
+        {% for row in progress_rows %}
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td style="padding:6px 10px; width:22px;">
+            {% if row.result %}
+              {% if row.result.ok %}<span style="color:#22c55e; font-weight:700;">&#10003;</span>{% else %}<span style="color:#ef4444; font-weight:700;">&#10007;</span>{% endif %}
+            {% elif row.current %}
+              <span class="spinner-el" style="width:13px; height:13px; border-width:2px;"></span>
+            {% else %}
+              <span class="text-muted">&#8226;</span>
+            {% endif %}
+          </td>
+          <td style="padding:6px 10px; color:{{ 'var(--color-text)' if row.result or row.current else 'var(--color-text-muted)' }};">{{ row.label }}</td>
+          <td class="text-muted" style="padding:6px 10px; text-align:right">
+            {% if row.result and row.result.ok %}Test R&sup2; {{ row.result.r2|fmt_number(3) }}
+            {% elif row.result %}failed
+            {% elif row.current %}training&hellip;
+            {% else %}pending{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+  <p class="text-sm text-muted" style="padding:0 14px 14px">Running in the background — you can keep this tab open; results appear here automatically.</p>
+</div>
+{% if hpo_progress_history %}
+<div class="card p-4" style="margin-top:16px;">
+  <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 class="card-title">Convergence — R&sup2; per trial (live)</h3>
+    <span id="rop-early-stop-area">
+      {% if stop_requested %}
+      <span class="text-sm text-muted" style="display:inline-flex; align-items:center; gap:6px">
+        <span class="spinner-el" style="width:12px; height:12px; border-width:2px;"></span>Stopping after this trial&hellip;
+      </span>
+      {% else %}
+      <button type="button" class="btn btn-secondary btn-sm"
+              hx-post="/analytics/rop-prediction/job/{{ job_id }}/stop-early" hx-target="#rop-early-stop-area" hx-swap="innerHTML">
+        Stop early — keep best so far
+      </button>
+      {% endif %}
+    </span>
+  </div>
+  <p class="text-sm text-muted" style="margin:-4px 0 10px">
+    Each trial is scored by cross-validated R&sup2; computed only on the <strong style="color:var(--color-text);">training</strong> set (grouped by well) — the test set is never touched by the search itself, only used afterward to report train/test on the results screen.
+  </p>
+  <div id="rop-hpo-live-chart" class="chart-container"></div>
+</div>
+<script>
+  (function () {
+    function boot() {
+      if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+      var hist = {{ hpo_progress_history|tojson }};
+      if (!hist.length) return;
+      DrillingCharts.renderLineChart('rop-hpo-live-chart', {
+        data: hist, xKey: 'trial', xType: 'number', xTickFormat: 'number',
+        xLabel: 'Trial', height: 320, legend: true, brush: false,
+        series: [
+          { key: 'r2', label: 'CV R² (trial, search objective)', color: 'var(--color-text-muted)', yAxisId: 'default' },
+          { key: 'best', label: 'Best CV so far', color: 'var(--color-primary)', yAxisId: 'default' },
+        ],
+        yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left', label: 'R²', tickFormat: 'decimal2' }],
+      });
+    }
+    boot();
+  })();
+</script>
+{% endif %}

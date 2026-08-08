@@ -1,0 +1,89 @@
+{% import "macros/ui.html" as ui %}
+{% if request.headers.get('HX-Request') %}<div id="outlier-step-pills" hx-swap-oob="true">{{ ui.step_pills(steps, step_titles, current_step) }}</div>{% endif %}
+<div class="space-y-6">
+  {% if errors %}
+    <div class="card p-4" style="border-color: var(--color-danger);">
+      {% for e in errors %}<p class="text-sm text-danger">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Well &amp; case</h3>
+      <span class="text-sm text-muted">Pick the well to clean and name this case — the outlier-detection pipeline you configure over the next steps runs against this well's sensor data and is saved under this name.</span>
+    </div>
+    <form hx-post="/outliers/steps/variables" hx-target="#wizard-content" hx-swap="innerHTML" class="space-y-4">
+      <input type="hidden" name="scaling_method" value="{{ scaling_method }}" />
+      <input type="hidden" name="pca_enabled" value="{{ 'true' if pca_enabled else 'false' }}" />
+      <input type="hidden" name="pca_n_components" value="{{ pca_n_components or '' }}" />
+      <input type="hidden" name="pca_whiten" value="{{ 'true' if pca_whiten else 'false' }}" />
+      <input type="hidden" name="pca_svd_solver" value="{{ pca_svd_solver }}" />
+      <input type="hidden" name="outlier_method" value="{{ outlier_method }}" />
+      {% for k, v in outlier_params.items() %}<input type="hidden" name="outlier_{{ k }}" value="{{ v }}" />{% endfor %}
+      <input type="hidden" name="outlier_mark_outliers" value="{{ 'true' if outlier_mark_outliers else 'false' }}" />
+      <input type="hidden" name="selected_dataset_id" value="{{ selected_dataset_id or '' }}" />
+      {# Carries the variable selection across Back-to-well-step — without this,
+         Back silently dropped it and the next step re-defaulted to the
+         recommended set with no notice. #}
+      {% for v in variables %}<input type="hidden" name="variables" value="{{ v }}" />{% endfor %}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
+          <label class="form-label">Well</label>
+          <select name="well_id" id="outlier-well-select" class="form-select"
+                  hx-get="/outliers/case-options" hx-target="#outlier-case-wrapper" hx-swap="innerHTML" hx-trigger="change" hx-indicator="#outlier-loadcase-ind">
+            <option value="">Select a well</option>
+            {% for w in wells %}<option value="{{ w.id }}" {{ 'selected' if well_id == w.id else '' }}>{{ w.well_name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="w-full">
+          <label class="form-label">Case name</label>
+          <input type="text" name="dataset_name" class="form-input" value="{{ dataset_name }}" placeholder="e.g. isolation-forest-run-1" />
+        </div>
+      </div>
+      <div class="w-full">
+        <label class="form-label">Description (optional)</label>
+        <input type="text" name="description" class="form-input" value="{{ description }}" placeholder="Notes about this case" />
+      </div>
+
+      <div class="flex justify-end">
+        <div id="outlier-well-ind" class="htmx-indicator inline-loader" style="margin-right:10px;"><span class="spinner-el"></span><span>Loading…</span></div>
+        <button type="submit" class="btn btn-primary" hx-indicator="#outlier-well-ind">Next: Variables &rarr;</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Load an existing case</h3>
+      <span class="text-sm text-muted">Reopens a previously saved case's full configuration (variables, scaling, PCA, outlier method) directly at the Review step.</span>
+    </div>
+    <form hx-post="/outliers/load-case" hx-target="#wizard-content" hx-swap="innerHTML" class="space-y-4">
+      <input type="hidden" name="well_id" id="outlier-load-case-well-id" value="{{ well_id or '' }}" />
+      {# Pre-rendered when a well is already selected (Back / validation error) —
+         previously stayed empty until the well <select>'s change event fired,
+         so revisiting this step showed a dead-looking empty card with a
+         clickable-but-pointless "Load case" button. #}
+      <div id="outlier-case-wrapper" class="w-full max-w-sm">
+        {% if well_id %}
+          {% include "partials/outlier_case_select.html" with context %}
+        {% else %}
+          <p class="text-sm text-muted">Select a well above to list its saved cases.</p>
+        {% endif %}
+      </div>
+      <div class="flex justify-end">
+        <div id="outlier-loadcase-ind" class="htmx-indicator inline-loader" style="margin-right:10px;"><span class="spinner-el"></span><span>Loading…</span></div>
+        <button type="submit" class="btn btn-secondary" hx-indicator="#outlier-loadcase-ind">Load case</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  (function () {
+    var sel = document.getElementById('outlier-well-select');
+    var hidden = document.getElementById('outlier-load-case-well-id');
+    if (sel && hidden) {
+      sel.addEventListener('change', function () { hidden.value = sel.value; });
+    }
+  })();
+</script>

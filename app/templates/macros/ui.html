@@ -1,0 +1,70 @@
+{% macro card_open(extra_class="") %}<div class="card p-4 {{ extra_class }}">{% endmacro %}
+{% macro card_close() %}</div>{% endmacro %}
+
+{% macro card_header(title) %}
+<div class="card-header">
+  <h3 class="card-title">{{ title }}</h3>
+</div>
+{% endmacro %}
+
+{% macro page_header(title, subtitle="") %}
+<div class="flex items-center justify-between w-full gap-4">
+  <div>
+    <h1 class="page-header-title">{{ title }}</h1>
+    {% if subtitle %}<p class="page-header-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if caller %}<div>{{ caller() }}</div>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro badge(text, variant="muted") %}<span class="badge badge-{{ variant }}">{{ text }}</span>{% endmacro %}
+
+{% macro btn(label, variant="primary", size="md", type="button", attrs="") %}
+<button type="{{ type }}" class="btn btn-{{ variant }} {% if size != 'md' %}btn-{{ size }}{% endif %}" {{ attrs|safe }}>{{ label }}</button>
+{% endmacro %}
+
+{% macro inline_loader(message="Loading…") %}
+<div class="inline-loader" role="status" aria-live="polite"><span class="spinner-el"></span><span>{{ message }}</span></div>
+{% endmacro %}
+
+{% macro wizard_hidden(ctx, skip_well=False, skip_variables=False, skip_scaling=False, skip_pca=False, skip_outlier=False) %}
+{% if not skip_well %}
+<input type="hidden" name="well_id" value="{{ ctx.well_id or '' }}" />
+<input type="hidden" name="dataset_name" value="{{ ctx.dataset_name or '' }}" />
+<input type="hidden" name="description" value="{{ ctx.description or '' }}" />
+{% endif %}
+{% if not skip_variables %}
+{% for v in ctx.variables %}<input type="hidden" name="variables" value="{{ v }}" />{% endfor %}
+{% endif %}
+{% if not skip_scaling %}
+<input type="hidden" name="scaling_method" value="{{ ctx.scaling_method }}" />
+{% endif %}
+{% if not skip_pca %}
+<input type="hidden" name="pca_enabled" value="{{ 'true' if ctx.pca_enabled else 'false' }}" />
+<input type="hidden" name="pca_n_components" value="{{ ctx.pca_n_components or '' }}" />
+<input type="hidden" name="pca_whiten" value="{{ 'true' if ctx.pca_whiten else 'false' }}" />
+<input type="hidden" name="pca_svd_solver" value="{{ ctx.pca_svd_solver }}" />
+{% endif %}
+{% if not skip_outlier %}
+<input type="hidden" name="outlier_method" value="{{ ctx.outlier_method }}" />
+{% for k, v in ctx.outlier_params.items() %}<input type="hidden" name="outlier_{{ k }}" value="{{ v }}" />{% endfor %}
+<input type="hidden" name="outlier_mark_outliers" value="{{ 'true' if ctx.outlier_mark_outliers else 'false' }}" />
+{% endif %}
+<input type="hidden" name="selected_dataset_id" value="{{ ctx.selected_dataset_id or '' }}" />
+{% endmacro %}
+
+{% macro step_pills(steps, step_titles, current_step) %}
+<div class="flex items-center" style="gap: 4px; margin-bottom: 8px; flex-wrap: wrap;">
+  {% for s in steps %}
+    <span class="badge {{ 'badge-primary' if s == current_step else 'badge-muted' }}">{{ loop.index }}. {{ step_titles[s] }}</span>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro error_state(message="Failed to load data") %}
+<div class="flex flex-col items-center justify-center gap-2 py-12 text-center" role="alert" style="color: var(--color-text-muted);">
+  <span aria-hidden="true" style="font-size: 24px;">⚠️</span>
+  <p class="text-sm font-medium" style="color: var(--color-text);">Failed to load data</p>
+  <p class="text-sm">{{ message }}</p>
+</div>
+{% endmacro %}

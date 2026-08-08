@@ -1,0 +1,29 @@
+{% if error %}
+  <p class="text-sm text-danger">{{ error }}</p>
+{% else %}
+  <p class="text-sm mb-2 text-muted">{{ '{:,}'.format(result.total_rows) }} rows processed. Showing first 50.</p>
+  <div class="overflow-x-auto" style="max-height: 420px;">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b">
+          <th class="text-left py-2 px-3 text-muted">#</th>
+          {% for v in result.variables %}
+            <th class="text-right py-2 px-3 text-muted">{{ v }} (raw)</th>
+            <th class="text-right py-2 px-3 text-muted">{{ v }} (scaled)</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in result.rows[:50] %}
+          <tr style="border-bottom: 1px solid var(--color-border);">
+            <td class="py-2 px-3 text-muted">{{ row.index }}</td>
+            {% for v in result.variables %}
+              <td class="text-right py-2 px-3" style="color: var(--color-text);">{{ '%.3f'|format(row.raw[v]) if row.raw[v] is not none else '-' }}</td>
+              <td class="text-right py-2 px-3" style="color: var(--color-text);">{{ '%.3f'|format(row.scaled[v]) if row.scaled[v] is not none else '-' }}</td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}

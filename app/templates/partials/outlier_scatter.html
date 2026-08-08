@@ -1,0 +1,30 @@
+{% if error %}
+  <p class="text-sm text-danger">{{ error }}</p>
+{% else %}
+  <div id="outlier-detection-scatter-chart" class="chart-container"></div>
+  <script>
+  (function () {
+    function boot() {
+      if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+      DrillingCharts.renderGroupedScatter('outlier-detection-scatter-chart', {
+        groups: [
+          { label: 'Inliers', color: '#3B82F6', points: {{ inliers|tojson }} },
+          { label: 'Outliers', color: '#EF4444', points: {{ outliers|tojson }} },
+        ],
+        xLabel: {{ (labels[x_idx] if labels else "")|tojson }},
+        height: 460,
+      });
+    }
+    boot();
+  })();
+  </script>
+
+  {% if labels %}
+    <select id="outlier-scatter-x" class="form-select" hx-swap-oob="true">
+      {% for lbl in labels %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == x_idx else '' }}>{{ lbl }}</option>{% endfor %}
+    </select>
+    <select id="outlier-scatter-y" class="form-select" hx-swap-oob="true">
+      {% for lbl in labels %}<option value="{{ loop.index0 }}" {{ 'selected' if loop.index0 == y_idx else '' }}>{{ lbl }}</option>{% endfor %}
+    </select>
+  {% endif %}
+{% endif %}

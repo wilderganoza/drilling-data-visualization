@@ -6,7 +6,6 @@ __pycache__/
 venv/
 
 # Build
-frontend/dist/
 *.egg-info/
 
 # Environment
@@ -25,11 +24,14 @@ Thumbs.db
 
 # Data
 data/
+database/
 *.db
 *.sqlite3
+*.sql
 
 # Logs
 *.log
 
 # Temp
 .vite/
+model_store/

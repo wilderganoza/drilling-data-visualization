@@ -1,0 +1,25 @@
+{% set r = res %}
+<h3 class="card-title mb-1">BHA Design &amp; Analysis</h3>
+<p class="text-xs mb-3 text-muted">{{ r.bit_size }}" bit · buoyancy factor {{ r.bf }} · collar {{ r.collar_ppf }} ppf · {{ r.stab_count }} stabilizers ({{ r.gauge }}% gauge).</p>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">BHA weight (air / buoyed)</p><p style="font-size:19px;font-weight:600;color:var(--color-text);">{{ "{:,.0f}".format(r.bha_air/1000) }} / {{ "{:,.0f}".format(r.bha_buoyed/1000) }}</p><p class="text-xs text-muted">klbf</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Max WOB (NP in collars)</p><p style="font-size:19px;font-weight:600;color:{{ 'var(--color-danger)' if not r.wob_ok else 'var(--color-text)' }};">{{ r.max_wob }} <span class="text-xs">klbf</span></p><p class="text-xs text-muted">design {{ r.wob }} klbf</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Neutral point</p><p style="font-size:19px;font-weight:600;color:{{ 'var(--color-danger)' if not r.np_ok else 'var(--color-text)' }};">{{ "{:,}".format(r.np_ft) }} {{ depth_unit or "ft" }}</p><p class="text-xs text-muted">in {{ r.np_zone }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Weight below jars</p><p style="font-size:19px;font-weight:600;color:var(--color-text);">{{ r.weight_below_jars }} <span class="text-xs">klbf</span></p><p class="text-xs text-muted">jar @ {{ r.jar_position }} {{ depth_unit or "ft" }}</p></div>
+</div>
+
+<div class="card p-4">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-xs text-muted">Directional tendency (stabilizer configuration)</p>
+      <p style="font-size:22px;font-weight:600;color:var(--color-text);">{{ r.tendency }}</p>
+    </div>
+    <span class="badge {{ 'badge-warning' if 'Build' in r.tendency else ('badge-primary' if 'Hold' in r.tendency else 'badge-muted') }}" style="font-size:13px;">{{ r.tendency.split(' ')[0] }}</span>
+  </div>
+</div>
+
+{% if not r.np_ok %}
+  <div class="card p-3 mt-3" style="border-left:4px solid var(--color-danger);"><span class="badge badge-danger">Neutral point</span> <span class="text-sm">Neutral point is above the drill collars ({{ r.np_zone }}) — add drill collars or reduce WOB to keep it in compression-rated members.</span></div>
+{% endif %}
+<p class="text-xs mt-3 text-muted">Collar weight {{ "{:,}".format(r.collar_wt) }} lbf + HWDP {{ "{:,}".format(r.hwdp_wt) }} lbf. Keep the neutral point within the drill collars (safety factor applied) so drill pipe never sees compression.</p>
