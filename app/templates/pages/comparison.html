@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Well Comparison — Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {{ ui.page_header("Well Comparison", "Compare drilling performance across multiple wells") }}
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Select Wells to Compare (Max 5)</h3></div>
+    <form hx-post="/comparison/plot" hx-target="#comparison-section" hx-swap="innerHTML" class="space-y-4">
+      <div id="comparison-slots" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% include "partials/comparison_slots.html" %}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="w-full">
+          <label class="form-label">Comparison Parameter</label>
+          <select name="comparison_parameter" class="form-select">
+            {% for p in parameters %}<option value="{{ p.value }}" {{ 'selected' if p.value == default_param else '' }}>{{ p.label }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-3">
+        <div id="comparison-loading" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading data…</span></div>
+        <button type="submit" id="comparison-apply-btn" class="btn btn-primary">Apply Selection</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="comparison-section">
+    <div class="card p-4">
+      <div class="py-12 text-center">
+        <p class="text-muted">Select wells to start comparison</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.addEventListener("change", function (e) {
+    if (!e.target.classList || !e.target.classList.contains("comparison-well-select")) return;
+    var changed = e.target;
+    var value = changed.value;
+    if (!value) return;
+    document.querySelectorAll(".comparison-well-select").forEach(function (sel) {
+      if (sel !== changed && sel.value === value) {
+        sel.value = "";
+        var slot = sel.getAttribute("data-slot");
+        var wrapper = document.getElementById("comparison-dataset-wrapper-" + slot);
+        if (wrapper) wrapper.innerHTML = "";
+      }
+    });
+  });
+</script>
+{% endblock %}

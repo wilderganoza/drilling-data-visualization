@@ -1,0 +1,1960 @@
+/* ============================================================
+   Drilling Data Visualization — hoja de estilos de la aplicación.
+   Los tokens viven en tokens.css (copia sincronizada de
+   "00. Design System/tokens.css"). Aquí solo van componentes y layout.
+   ============================================================ */
+
+/* La tipografía se carga con <link> en base.html. */
+
+:root 
+{
+  --bg: var(--color-bg);
+  --surface: var(--color-surface);
+  --hover: var(--color-surface-hover);
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --border-focus: var(--color-border-focus);
+  --text-primary: var(--color-text);
+  --text-muted: var(--color-text-muted);
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --success: var(--color-success);
+  --warning: var(--color-warning);
+  --danger: var(--color-danger);
+}
+
+/*  */
+* 
+{ 
+  box-sizing: border-box; 
+}
+
+/*  */
+body 
+{
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: 'Inter', 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+/*  */
+h1, h2, h3, h4, h5, h6 { margin: 0; font-weight: 600; color: var(--color-text); }
+
+/*  */
+p { margin: 0; }
+
+/*  */
+a { color: var(--color-primary); text-decoration: none; transition: color var(--transition-fast); }
+
+/*  */
+a:hover { color: var(--color-primary-hover); }
+
+/*  */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+
+/*  */
+::-webkit-scrollbar-track { background: var(--color-bg); }
+
+/*  */
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+
+/*  */
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
+
+/*  */
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+
+/*  */
+button, input, select, textarea { font-family: inherit; }
+
+/*  */
+dd { margin: 0; }
+
+/*  */
+@keyframes spin 
+{to {
+  transform: translateX(0);
+  opacity: 1;
+} 
+}
+
+/*  */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/*  */
+@keyframes slide-in 
+{
+  from { transform: translateX(16px); opacity: 0; }
+}
+.animate-slide-in { animation: slide-in 0.18s ease; }
+
+/*  */
+.status-message 
+{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+/*  */
+.status-message.success {
+  background: var(--color-success-bg);
+  border: 1px solid var(--color-success-border);
+  color: var(--color-success);
+}
+
+/*  */
+.status-message.error {
+  background: var(--color-danger-bg);
+  border: 1px solid var(--color-danger-border);
+  color: var(--color-danger);
+}
+
+/*  */
+.status-message.warning {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning-border);
+  color: var(--color-warning);
+}
+
+/*  */
+.status-message.info {
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
+  color: var(--color-secondary);
+}
+
+/*  */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--color-surface);
+}
+
+/*  */
+.data-table th, .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--color-border); text-align: left; }
+
+/* Las celdas no parten linea, como el tdStyle del producto original. Para el
+   texto largo esta .cell-wrap. */
+.data-table td { white-space: nowrap; }
+
+/* 12px y peso 600, sin mayusculas ni espaciado: el thStyle canonico. */
+.data-table th {
+  white-space: nowrap;
+  /* 12px y peso 600, sin mayusculas ni espaciado: es el thStyle canonico del
+     original. Antes aqui habia 11px en mayusculas con letter-spacing, que le
+     daba a las cabeceras un aire distinto al del producto. */
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+/*  */
+.data-table tbody tr { transition: background-color var(--transition-fast); }/* */ .data-table tbody tr:hover,
+/* ============================================================ Componentes tomados de Field Data Platform, que es la referencia visual. Estas reglas son identicas a las de FDA, SPA, FDP y EDG: un boton de DDV es ahora el mismo boton. ============================================================ */ .btn:hover,
+.step:hover {
+  background: var(--color-surface-hover);
+}/* */ .data-table tbody tr.active,
+/* */ .bg-primary {
+  background: rgba(var(--color-primary-rgb), 0.12);
+}
+
+/*  */
+.form-group { margin-bottom: 16px; }
+
+/*  */
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+/*  */
+.text-success { color: var(--color-success); }
+
+/*  */
+.text-warning { color: var(--color-warning); }
+
+/*  */
+.text-danger { color: var(--color-danger); }
+
+/*  */
+.text-primary { color: var(--color-primary); }/* */ .text-muted,
+.breadcrumb a,
+.data-table th.grp-pot {
+  color: var(--color-text-muted);
+}
+
+/*  */
+.bg-success { background: rgba(var(--color-success-rgb), 0.12); }
+
+/*  */
+.bg-warning { background: rgba(var(--color-warning-rgb), 0.12); }
+
+/*  */
+.bg-danger { background: rgba(var(--color-danger-rgb), 0.12); }
+
+/*  */
+.transition-fast { transition: all var(--transition-fast); }/* */ .transition-normal,
+.transition-all {
+  transition: all var(--transition-base);
+}
+
+/*  */
+[data-theme="light"] select { background-color: var(--color-surface) !important; color: var(--color-text) !important; border-color: var(--color-border) !important; }
+
+/*  */
+[data-theme="light"] select option { background-color: var(--color-surface) !important; color: var(--color-text) !important; }
+
+/*  */
+[data-theme="light"] input { background-color: var(--color-bg) !important; color: var(--color-text) !important; }
+
+/*  */
+[data-theme="light"] .data-table th { background: var(--color-surface-hover) !important; color: var(--color-text) !important; }/* */ [data-theme="light"] .data-table tbody tr:hover,
+/* */ [data-theme="light"] .bg-gray-800 {
+  background: var(--color-surface-hover) !important;
+}
+
+/*  */
+[data-theme="light"] h1, [data-theme="light"] h2, [data-theme="light"] h3,
+
+/*  */
+[data-theme="light"] h4, [data-theme="light"] h5, [data-theme="light"] h6 { color: #000000 !important; }
+
+/*  */
+[data-theme="light"] label, [data-theme="light"] strong { color: #111827 !important; }
+
+/*  */
+[data-theme="light"] td, [data-theme="light"] th { color: #111827 !important; }
+
+/*  */
+[data-theme="light"] .text-gray-300 { color: var(--color-text) !important; }/* */ [data-theme="light"] .text-gray-400,
+/* */ [data-theme="light"] .text-gray-500 {
+  color: var(--color-text-muted) !important;
+}
+
+/*  */
+[data-theme="light"] .bg-gray-700 { background: var(--color-border) !important; }/* */ [data-theme="light"] .border-gray-700,
+/* */ [data-theme="light"] .border-gray-800 {
+  border-color: var(--color-border) !important;
+}
+
+/*  */
+.flex { display: flex; }
+
+/*  */
+.inline-flex { display: inline-flex; }
+
+/*  */
+.grid { display: grid; }
+
+/*  */
+.hidden { display: none; }
+
+/*  */
+.block { display: block; }
+
+/*  */
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1 1 0%; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }.justify-between,
+.u-between {
+  justify-content: space-between;
+}
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+.flex-wrap { flex-wrap: wrap; }
+
+.gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+.gap-x-6 { column-gap: 24px; } .gap-y-3 { row-gap: 12px; }
+
+.space-y-1 > * + * { margin-top: 4px; }
+.space-y-2 > * + * { margin-top: 8px; }
+.space-y-3 > * + * { margin-top: 12px; }
+.space-y-4 > * + * { margin-top: 16px; }
+.space-y-6 > * + * { margin-top: 24px; }
+.space-x-2 > * + * { margin-left: 8px; }
+.space-x-3 > * + * { margin-left: 12px; }
+.space-x-4 > * + * { margin-left: 16px; }
+
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (min-width: 768px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .md\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .md\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.col-span-1 { grid-column: span 1 / span 1; }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.col-span-full { grid-column: 1 / -1; }
+@media (min-width: 768px) {
+  .md\:col-span-1 { grid-column: span 1 / span 1; }
+  .md\:col-span-2 { grid-column: span 2 / span 2; }
+  .md\:col-span-3 { grid-column: span 3 / span 3; }
+  .md\:col-span-4 { grid-column: span 4 / span 4; }
+  .md\:col-span-full { grid-column: 1 / -1; }
+}
+@media (min-width: 1024px) {
+  .lg\:col-span-1 { grid-column: span 1 / span 1; }
+  .lg\:col-span-2 { grid-column: span 2 / span 2; }
+  .lg\:col-span-3 { grid-column: span 3 / span 3; }
+  .lg\:col-span-4 { grid-column: span 4 / span 4; }
+  .lg\:col-span-full { grid-column: 1 / -1; }
+}
+
+.p-0 { padding: 0; } .p-2 { padding: 8px; } .p-3 { padding: 12px; } .p-4 { padding: 16px; } .p-6 { padding: 24px; } .p-8 { padding: 32px; }
+.px-2 { padding-left: 8px; padding-right: 8px; }
+.px-3 { padding-left: 12px; padding-right: 12px; }
+.px-4 { padding-left: 16px; padding-right: 16px; }
+.py-1 { padding-top: 4px; padding-bottom: 4px; }
+.py-2 { padding-top: 8px; padding-bottom: 8px; }
+.py-3 { padding-top: 12px; padding-bottom: 12px; }
+.py-4 { padding-top: 16px; padding-bottom: 16px; }
+.py-12 { padding-top: 48px; padding-bottom: 48px; }
+.pt-2 { padding-top: 8px; } .pt-6 { padding-top: 24px; } .pb-4 { padding-bottom: 16px; }
+.mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+.mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; } .mb-8 { margin-bottom: 32px; }
+
+.w-4 { width: 16px; } .w-5 { width: 20px; } .w-7 { width: 28px; } .w-8 { width: 32px; } .w-14 { width: 56px; }
+.h-2 { height: 8px; } .h-4 { height: 16px; } .h-5 { height: 20px; } .h-7 { height: 28px; } .h-8 { height: 32px; } .h-14 { height: 56px; }
+.w-full { width: 100%; }
+.max-w-sm { max-width: 384px; }
+.min-h-screen { min-height: 100vh; }
+
+.text-xs { font-size: 11px; }
+.text-sm { font-size: 13px; }
+.text-base { font-size: 15px; }
+.text-xl { font-size: 20px; }
+.text-2xl { font-size: 24px; }
+.text-3xl { font-size: 30px; }
+.text-6xl { font-size: 60px; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-left { text-align: left; }
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.whitespace-nowrap { white-space: nowrap; }
+.uppercase { text-transform: uppercase; }
+
+.rounded { border-radius: var(--radius); }
+.rounded-md { border-radius: var(--radius-sm); }
+.rounded-full { border-radius: 999px; }
+.border { border: 1px solid var(--color-border); }
+.border-b { border-bottom: 1px solid var(--color-border); }
+
+.overflow-auto { overflow: auto; }
+.overflow-x-auto { overflow-x: auto; }
+.overflow-y-auto { overflow-y: auto; }
+.cursor-pointer { cursor: pointer; }
+.cursor-not-allowed { cursor: not-allowed; }
+
+.fixed { position: fixed; }
+.relative { position: relative; }
+.absolute { position: absolute; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.top-0 { top: 0; } .left-0 { left: 0; } .right-0 { right: 0; } .bottom-0 { bottom: 0; }
+.z-40 { z-index: 40; } .z-50 { z-index: 50; }
+.transition-colors { transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast); }
+.duration-300 { transition-duration: 0.3s; }
+
+.disabled\:opacity-50:disabled { opacity: 0.5; }
+.disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }button:disabled, input:disabled, select:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Raw Tailwind palette classes used verbatim by QualityReport/status pills
+   (not yet expressed as CSS-variable tokens in the source component). */
+.bg-green-900\/30 { background: rgba(20, 83, 45, 0.3); } .text-green-400 { color: #4ade80; } .text-green-500 { color: #22c55e; } .bg-green-500 { background: #22c55e; }
+.bg-red-900\/30 { background: rgba(127, 29, 29, 0.3); } .text-red-400 { color: #f87171; } .text-red-500 { color: #ef4444; }
+.bg-purple-900\/30 { background: rgba(88, 28, 135, 0.3); } .text-purple-400 { color: #c084fc; } .text-purple-500 { color: #a855f7; }
+.bg-gray-800 { background: #1f2937; } .bg-gray-700 { background: #374151; }
+.text-gray-300 { color: #d1d5db; } .text-gray-400 { color: #9ca3af; } .text-gray-500 { color: #6b7280; }
+.text-yellow-500 { color: #eab308; } .text-blue-500 { color: #3b82f6; } .text-orange-500 { color: #f97316; }
+.border-gray-700 { border-color: #374151; } .border-gray-800 { border-color: #1f2937; }
+
+/* ==========================================================================
+   Component classes (parity with Card.tsx / Button.tsx / Badge.tsx / Input.tsx)
+   ========================================================================== */
+
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; }.card-title,
+.provider-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.btn {
+  /* Medidas del producto original: 6px 14px y 13px. Es el btnStyle que se
+     repite 30 veces en su codigo, asi que es el canonico. Antes aqui habia
+     8px 18px y 14px, que engordaba todos los botones de las cinco apps. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+.btn-sm { padding: 4px 8px; font-size: 12px; }
+.btn-lg { padding: 12px 28px; font-size: 15px; font-weight: 600; }
+.btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+.btn-primary:hover:not(:disabled) { background-color: var(--color-primary-hover); border-color: var(--color-primary-hover); }
+.btn-secondary { background-color: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); }.btn-secondary:hover:not(:disabled),
+.tree-node > summary:hover {
+  background-color: var(--color-surface-hover);
+}
+.btn-danger {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: transparent;
+}
+.btn-danger:hover:not(:disabled) { background-color: rgba(var(--color-danger-rgb), 0.12); }
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-text-muted);
+}
+.btn-ghost:hover:not(:disabled) { background-color: var(--color-surface-hover); color: var(--color-text); }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-success { background: rgba(var(--color-success-rgb), 0.15); color: var(--color-success); }
+.badge-warning { background: rgba(var(--color-warning-rgb), 0.15); color: var(--color-warning); }
+.badge-danger { background: rgba(var(--color-danger-rgb), 0.15); color: var(--color-danger); }
+.badge-primary { background: rgba(var(--color-primary-rgb), 0.15); color: var(--color-primary); }
+.badge-muted { background: rgba(139, 143, 163, 0.15); color: var(--color-text-muted); }
+.badge-purple { background: rgba(167, 139, 250, 0.15); color: #a78bfa; }
+
+.form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: var(--color-text); }
+input[type="checkbox"] { accent-color: var(--color-primary); }
+.check-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text); cursor: pointer; }
+.check-chip { border: 1px solid var(--color-border); border-radius: var(--radius); padding: 6px 10px; }
+.form-input, .form-select {
+  width: 100%; font-size: 13px; padding: 8px 12px; outline: none;
+  background-color: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius); color: var(--color-text); transition: border-color var(--transition-fast);
+}
+.form-input:focus, .form-select:focus { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.18); }
+.form-input-error { border-color: var(--color-danger) !important; }
+
+/* Print / document layout for Daily Drilling Report & End-of-Well report. */
+.doc { max-width: 1000px; margin: 0 auto; background: var(--color-surface); color: var(--color-text); padding: 32px; }
+.doc h1 { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+.doc h2 { font-size: 15px; font-weight: 600; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--color-border); }
+.doc table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 8px; }
+.doc th, .doc td { border: 1px solid var(--color-border); padding: 5px 8px; text-align: left; vertical-align: top; }
+.doc th { background: var(--color-bg); font-weight: 600; color: var(--color-text-muted); }
+.doc .facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 16px; font-size: 12px; }
+.doc .facts dt { color: var(--color-text-muted); font-size: 11px; }
+.doc .facts dd { margin: 0; color: var(--color-text); font-weight: 500; }
+.doc-toolbar { max-width: 1000px; margin: 0 auto 12px; display: flex; justify-content: space-between; gap: 8px; }
+@media print {
+.app-sidebar {
+  position: fixed;
+  left: 0;
+  top: var(--header-height);
+  bottom: 0;
+  width: var(--sidebar-width);
+  z-index: 40;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  transition: transform var(--transition-slow);
+  overflow-y: auto;
+}
+.app-main {
+  min-width: 0;
+  margin-top: var(--header-height);
+  margin-left: var(--sidebar-width);
+  padding: 24px;
+  transition: margin-left var(--transition-slow);
+}
+  .doc { max-width: none; padding: 0; }
+  .doc th { background: #f2f2f2 !important; color: #000 !important; }
+  .doc th, .doc td { border-color: #999 !important; }
+  .doc h2 { border-color: #999 !important; }
+  @page { margin: 1.5cm; }
+}
+
+/* Toolbar above an editable grid (Total / intro text on the left, the
+   primary "+ Add …" action on the right). Given real height so the action
+   button isn't crammed against the table — reused by Time Summary, NPT and
+   every capture subsection grid. */
+.subsection-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  min-height: 52px; padding: 6px 4px 14px; margin-bottom: 4px; flex-wrap: wrap;
+}
+/* The intro text yields space; the action buttons keep their size and stay on one line. */
+.subsection-toolbar > p { flex: 1 1 320px; min-width: 0; margin: 0; }
+.subsection-toolbar > div { flex: 0 0 auto; flex-wrap: nowrap; }
+.subsection-toolbar .btn { white-space: nowrap; }
+
+/* Engineering KPI cards: keep the label on its own line, but put the big value
+   and its small unit/context on the SAME line (different font sizes preserve the
+   hierarchy). Targets only 3-child cards that end in a <p> (via :has), so warning
+   and non-KPI cards are untouched. Applies in the module view and the Design Report. */
+#eng-module .card.p-3 > p:nth-child(2):nth-last-child(2):has(+ p:last-child),
+.doc .card.p-3 > p:nth-child(2):nth-last-child(2):has(+ p:last-child) { display: inline; }
+#eng-module .card.p-3 > p:nth-child(2):nth-last-child(2):has(+ p:last-child) + p,
+.doc .card.p-3 > p:nth-child(2):nth-last-child(2):has(+ p:last-child) + p { display: inline; margin-left: 6px; }
+
+/* Scenario bar on the Engineering modules — every control shares one height so
+   the select, text input and buttons line up cleanly. */
+.eng-scenario-bar { min-height: 52px; }
+.eng-scenario-bar .form-select,
+.eng-scenario-bar .form-input,
+.eng-scenario-bar .btn {
+  height: 34px; padding-top: 0; padding-bottom: 0; font-size: 13px; line-height: 32px;
+}
+.eng-scenario-bar .form-select,
+.eng-scenario-bar .form-input { padding-top: 0; padding-bottom: 0; }
+.eng-scenario-bar form { margin: 0; }
+
+/* Segmented control (e.g. Plan | Engineering on the well-plan page). */
+.seg-control { display: inline-flex; gap: 2px; padding: 3px; background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius); }
+.seg-btn { font-size: 13px; font-weight: 500; padding: 6px 18px; border: none; background: none; color: var(--color-text-muted); cursor: pointer; border-radius: calc(var(--radius) - 2px); transition: background var(--transition-fast), color var(--transition-fast); }
+.seg-btn:hover { color: var(--color-text); }
+.seg-btn.active { background: var(--color-surface); color: var(--color-primary); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+
+.tab-bar {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 16px;
+}
+.tab-group-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  color: var(--color-text-muted); opacity: 0.7; padding: 0 8px 0 12px; margin-left: 4px;
+  border-left: 1px solid var(--color-border); align-self: center;
+}
+.tab-bar > .tab-group-label:first-child { border-left: none; margin-left: 0; }
+.tab-btn {
+  /* En una sola linea: con once pestanas, partirlas en dos
+     descuadra la fila entera respecto al original. */
+  white-space: nowrap;
+  padding: 7px 18px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.tab-btn:hover { color: var(--color-text); }
+.tab-btn.active { color: var(--color-primary); border-bottom-color: var(--color-primary); font-weight: 600; }
+.tab-btn-disabled { font-size: 13px; padding: 8px 14px; color: var(--color-text-muted); opacity: 0.4; cursor: not-allowed; }
+
+.page-header-title { font-size: 22px; font-weight: 700; line-height: 1.2; color: var(--color-text); }
+.page-header-subtitle { font-size: 13px; line-height: 1.5; color: var(--color-text-muted); margin-top: 4px; }
+
+.spinner-el {
+  display: inline-block; width: 32px; height: 32px; border: 3px solid var(--color-border);
+  border-top-color: var(--color-primary); border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+.inline-loader { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--color-text-muted); }
+.inline-loader .spinner-el { width: 14px; height: 14px; border-width: 2px; }
+
+/* htmx request feedback. A .htmx-indicator is hidden until an *ancestor* is
+   mid-request, then revealed. We deliberately DON'T use hx-indicator on the form
+   (htmx would inherit it to every child request — the domain/well <select>s — and
+   flash the loader when merely switching domain). Instead the loader lives inside
+   the form and only the form's OWN submit adds .htmx-request to that ancestor, so
+   it shows solely while the form is posting. Child <select> requests add
+   .htmx-request to the select, which is not an ancestor of the loader. */
+.htmx-indicator { display: none; }
+.htmx-request > .htmx-indicator,
+.htmx-indicator.htmx-request,
+form.htmx-request .htmx-indicator { display: flex; }
+/* Disable a form's own submit button while that form is posting. */
+form.htmx-request button[type="submit"] { opacity: 0.6; pointer-events: none; }
+
+/* ==========================================================================
+   Chart engine (parity with the recharts-based ROP/DepthTime/MultiParameter charts)
+   ========================================================================== */
+
+.chart-container { width: 100%; }
+.chart-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  background: var(--color-tooltip-bg);
+  border: 1px solid var(--color-tooltip-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.chart-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin-bottom: 8px; }
+.chart-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-muted); }
+
+.hover-preview-tooltip {
+  display: none;
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  width: 300px;
+  background: var(--color-tooltip-bg);
+  border: 1px solid var(--color-tooltip-border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  box-shadow: var(--shadow-md);
+}
+.chart-legend-swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* ==========================================================================
+   App shell layout (parity with Layout.tsx / Header.tsx / Sidebar.tsx)
+   ========================================================================== */
+
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  z-index: 50;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}.icon-btn:hover,
+.nav-item:hover,
+.btn-ghost:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+.theme-toggle-btn { padding: 6px 10px; background: none; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 16px; cursor: pointer; color: var(--color-text-muted); }
+.theme-toggle-btn:hover { background-color: var(--color-surface-hover); border-color: var(--color-primary); }
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.app-sidebar {
+  position: fixed;
+  left: 0;
+  top: var(--header-height);
+  bottom: 0;
+  width: var(--sidebar-width);
+  z-index: 40;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  transition: transform var(--transition-slow);
+  overflow-y: auto;
+}
+.app-sidebar nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}.nav-item.active,
+.step.active {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.sidebar-workspace-label { padding: 16px 12px 4px; }
+.ops-tree { padding: 4px 12px 16px; overflow-y: auto; }
+.ops-tree .tree-loading, .ops-tree .tree-empty { font-size: 12px; color: var(--color-text-muted); padding: 4px 8px; }
+.tree-node { font-size: 13px; }
+.tree-node > summary {
+  display: flex; align-items: center; gap: 4px; padding: 5px 6px; border-radius: 6px;
+  cursor: pointer; color: var(--color-text-muted); list-style: none;
+}
+.tree-node > summary::-webkit-details-marker { display: none; }
+.tree-node > summary::before { content: "▸"; font-size: 10px; flex-shrink: 0; transition: transform var(--transition-fast); }
+.tree-node[open] > summary::before { transform: rotate(90deg); }
+.tree-node > summary a { color: inherit; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tree-node > summary a:hover { color: var(--color-text); }
+.tree-children { padding-left: 14px; border-left: 1px solid var(--color-border); margin-left: 10px; }
+.tree-leaf { padding: 5px 6px 5px 20px; }.tree-leaf a,
+.page-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.tree-leaf a:hover { color: var(--color-text); }
+.tree-active { color: var(--color-primary) !important; font-weight: 600; }
+.tree-node > summary a.tree-active { color: var(--color-primary); }
+
+.home-chooser { max-width: 900px; margin: 8vh auto 0; text-align: center; }
+.home-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 32px; }
+@media (max-width: 640px) { .home-cards { grid-template-columns: 1fr; } }
+.home-card {
+  display: block; text-align: left; padding: 32px; text-decoration: none;
+  background-color: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow); transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+.home-card:hover { border-color: var(--color-primary); transform: translateY(-2px); }
+.home-card-icon {
+  width: 48px; height: 48px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center;
+  background-color: rgba(var(--color-primary-rgb), 0.12); color: var(--color-primary); margin-bottom: 16px;
+}
+
+/*  */
+.home-card h2 { font-size: 18px; font-weight: 600; color: var(--color-text); margin-bottom: 8px; }
+
+/*  */
+.home-card p 
+{ 
+  font-size: 13px; 
+  color: var(--color-text-muted); 
+  line-height: 1.6; 
+}
+
+/*  */
+.app-main 
+{
+  min-width: 0;
+  margin-top: var(--header-height);
+  margin-left: var(--sidebar-width);
+  padding: 24px;
+  transition: margin-left var(--transition-slow);
+}
+
+/*  */
+body[data-sidebar="closed"] .app-sidebar { display: none; }
+
+/*  */
+body[data-sidebar="closed"] .app-main { margin-left: 0; }
+
+/*  */
+body[data-no-sidebar="true"] .app-main { margin-left: 0; }
+
+/*  */
+#toast-container 
+{ 
+  position: fixed; top: 16px; right: 16px; z-index: 60; display: flex; flex-direction: column; gap: 8px; 
+}
+
+/*  */
+.toast 
+{
+  border-left: 4px solid transparent;
+  color: #fff;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 300px;
+  max-width: 420px;
+}
+
+/*  */
+.toast.success { background: #22c55e; border-color: #16a34a; }
+
+/*  */
+.toast.error { background: #ef4444; border-color: #dc2626; }
+
+/*  */
+.toast.warning { background: #eab308; border-color: #ca8a04; }
+
+/*  */
+.toast.info { background: #3b82f6; border-color: #2563eb; }
+
+/*  */
+.toast button 
+{ 
+  background: none; 
+  border: none; 
+  color: #fff; 
+  font-weight: 700; 
+  font-size: 18px; 
+  cursor: pointer; 
+  line-height: 1; 
+}/* */ #confirm-modal-backdrop,
+/* */ .modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(15, 23, 42, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/*  */
+#confirm-modal-backdrop.open { display: flex; }
+
+/*  */
+#confirm-modal {
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+}/* */ #confirm-modal .modal-header,
+/* */ .modal-backdrop .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/*  */
+#confirm-modal .modal-header h3 { font-size: 18px; font-weight: 600; color: var(--color-text); }
+
+/*  */
+#confirm-modal .modal-body { padding: 12px 20px 20px; font-size: 14px; color: var(--color-text-muted); line-height: 1.6; }
+
+/*  */
+#confirm-modal .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--color-border); }
+
+/*  */
+.modal-backdrop.open { display: flex; }
+
+/*  */
+.modal-backdrop .modal 
+{
+  background: var(--color-surface);
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+
+/*  */
+.modal-backdrop .modal.modal-lg { max-width: 720px; }
+
+/*  */
+.modal-backdrop .modal.modal-xl { max-width: 1040px; }
+
+/*  */
+.modal-backdrop .modal-header h3 { font-size: 18px; font-weight: 600; color: var(--color-text); margin: 0; }
+
+/*  */
+.modal-backdrop .modal-body { padding: 20px; }
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}.btn-danger:hover,
+.badge.sev-critical,
+.icon-btn.danger:hover {
+  background: var(--color-danger-bg);
+}
+.btn-outline { background: transparent; color: var(--color-text); }
+.btn-icon { min-width: 32px; height: 32px; padding: 0 8px; font-size: 13px; }
+.btn-block { width: 100%; }
+.textarea { min-height: 120px; resize: vertical; }
+.input-color { padding: 4px; height: 36px; cursor: pointer; }
+.field-row { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.field-row .form-group { margin-bottom: 0; }
+.field-hint { font-size: 11px; color: var(--color-text-muted); margin-top: 3px; display: block; }
+.check-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.check-inline input { width: 16px; height: 16px; accent-color: var(--color-primary); cursor: pointer; }
+.required-mark { color: var(--color-danger); }
+.card-footer { display: flex; justify-content: flex-end; gap: 8px; }
+.page-header { margin-bottom: 24px; }
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.page-title {
+  /* 22px y 700, con 4px hasta el subtitulo: son las medidas del producto
+     original. Aqui habia 24px y 2px, que hacia los titulos mas grandes y
+     los pegaba mas al subtitulo que en el producto. */
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+.table-card { padding: 0; gap: 0; overflow: hidden; }
+.table-scroll { overflow-x: auto; }
+.table-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  /* El conteo y el selector van juntos a la derecha, como el original: con
+     space-between el conteo se quedaba pegado al borde izquierdo */
+  justify-content: flex-end;
+  gap: 16px;
+}
+.table-more {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.pagination { display: flex; align-items: center; gap: 8px; }
+.pagination-info {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}.badge.primary,
+.phase-card.active > summary {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}.badge.success,
+.provider-test.ok {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+.badge.warning { background: var(--color-warning-bg); color: var(--color-warning); }.badge.danger,
+.provider-test.ko {
+  background: var(--color-danger-bg);
+  color: var(--color-danger);
+}
+.badge.info { background: var(--color-info-bg);    color: var(--color-secondary); }
+.empty-state {
+  padding: 80px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-muted);
+}
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.empty-state-text { font-size: 13px; text-align: center; }
+.spinner-inline { display: none; }
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.header-brand .logo { color: var(--color-primary); }
+.header-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 2px;
+}
+.sidebar-section-label {
+  padding: 12px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.icon-btn.danger:hover { color: var(--color-danger); background: var(--color-danger-bg); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.filter-bar {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+.filter-field { display: flex; flex-direction: column; gap: 4px; min-width: 160px; }
+.filter-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.kpi-card { gap: 4px; padding: 16px 20px; }
+.kpi-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+}
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+.kpi-value-sm { font-size: 14px; font-weight: 500; }
+.kpi-unit { font-size: 13px; font-weight: 500; color: var(--color-text-muted); }
+.chart-box { width: 100%; min-height: 260px; }
+.chart-card { gap: 12px; }
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.chart-wide { grid-column: 1 / -1; }
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.prose { font-size: 13px; line-height: 1.6; color: var(--color-text); }
+.prose p { margin: 0 0 10px; }
+.prose table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+.code-block {
+  margin: 0;
+  padding: 12px;
+  max-height: 400px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.inline-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}/* Los campos de formulario, tal como los declara FDP: agrupados. */ .input, .select, .textarea,
+/* DDV llama .form-input a lo que las otras cuatro llaman .input. Se le da el mismo cuerpo para no renombrarlo en decenas de plantillas: el aspecto queda unificado y todo sigue funcionando. */ .form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 14px;
+  transition: border-color var(--transition-fast);
+}.input:focus, .select:focus, .textarea:focus,
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-bg);
+}
+.input-sm, .select-sm { padding: 6px 10px; font-size: 13px; }
+
+/* ============================================================
+   UTILIDADES
+   Las cinco aplicaciones comparten estas: alineacion, anchos de
+   columna, separaciones y los envoltorios de pantalla. Estan aqui
+   para que ninguna plantilla lleve estilos en linea, que es lo que
+   hace que dos apps hermanas acaben pareciendose solo de lejos.
+   ============================================================ */
+
+/* --- Alineacion --- */
+.u-right     { text-align: right; }
+.u-center    { text-align: center; }
+.u-grow      { flex: 1; }
+.u-noshrink  { flex-shrink: 0; }
+
+/* --- Campos de filtro que crecen, con un minimo legible --- */
+.u-grow-sm   { flex: 1; min-width: 180px; }
+.u-grow-md   { flex: 1; min-width: 200px; }
+.u-grow-lg   { flex: 1; min-width: 220px; }
+
+/* --- Anchos de columna de tabla. Son los del producto original: las
+       columnas de fecha, cantidad y acciones tienen ancho fijo para
+       que las filas no bailen al cambiar de pagina. --- */
+.col-xs   { width: 90px; }
+.col-sm   { width: 100px; }
+.col-md   { width: 110px; }
+.col-lg   { width: 120px; }
+.col-xl   { width: 130px; }
+.col-2xl  { width: 150px; }
+.col-3xl  { width: 160px; }
+.col-4xl  { width: 170px; }
+.col-5xl  { width: 200px; }
+
+/* --- Separaciones --- */
+.u-mt-sm { margin-top: 12px; }
+.u-mt    { margin-top: 16px; }
+.u-mb-xs { margin-bottom: 10px; }
+.u-mb-sm { margin-bottom: 12px; }
+.u-mb    { margin-bottom: 16px; }
+.u-mb-lg { margin-bottom: 24px; }
+.u-m0    { margin: 0; }
+
+/* --- Relleno interior de un bloque dentro de una tarjeta --- */
+.u-pad      { padding: 12px; }
+.u-pad-card { padding: 0 16px 16px; }
+
+/* --- Pantalla centrada: la usan el acceso y la recuperacion de clave --- */
+.screen-center {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+  padding: 24px;
+}
+
+/* --- Lista de casillas con desplazamiento, para elegir entre muchas --- */
+.check-scroll {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+}
+
+/* ============================================================
+   COMPONENTES DE PANTALLA
+   Los valores son los del producto original de FDP, medidos en su
+   codigo. Viven aqui, no en las plantillas, porque las cinco
+   aplicaciones tienen que renderizar lo mismo.
+   ============================================================ */
+
+/* --- Acceso y recuperacion de clave --- */
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.auth-brand-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.auth-field      { margin-bottom: 14px; }
+.auth-field-last { margin-bottom: 18px; }
+
+.auth-error {
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--color-danger);
+}
+
+.auth-aside {
+  text-align: right;
+  margin-bottom: 14px;
+}
+
+.auth-link {
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+/* --- Catalogo de dashboards: rejilla y tarjeta con icono de acento --- */
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.catalog-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--transition), border-color var(--transition);
+}.catalog-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--acento);
+}
+
+/* El recuadro del icono. El color lo pone cada tarjeta con --acento,
+   que es una variable, no un estilo en linea. */
+.catalog-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--acento) 10%, transparent);
+  color: var(--acento);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.catalog-title {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.catalog-desc {
+  display: block;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+/* --- Pagina con pestanas: la tarjeta envuelve pestanas y contenido --- */
+.tabbed-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.tabbed-card > .tab-bar {
+  gap: 4px;
+  padding: 8px 12px;
+  margin-bottom: 0;
+  background: var(--color-bg);
+  overflow-x: auto;
+  align-items: stretch;
+}
+
+.tabbed-panel { padding: 16px; }
+
+/* --- El bloque de administracion, al fondo de la barra lateral --- */
+.sidebar-bottom {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* --- Campos dentro de la barra de filtros. El .form-group trae margen
+       inferior, y en una barra horizontal ese margen descuadra la fila,
+       asi que estas variantes lo anulan y fijan el ancho. --- */
+.filter-bar .form-group { margin-bottom: 0; }
+
+.field-w-sm  { width: 140px; }
+.field-w     { width: 160px; }
+.field-w-md  { width: 180px; }
+.field-w-lg  { width: 220px; }
+.field-grow  { flex: 1; min-width: 220px; }
+.field-grow-x{ flex: 1; min-width: 260px; }
+.field-grow-2{ flex: 2; }
+
+/* --- Anchos porcentuales de columna, para las tablas que reparten el
+       espacio en vez de fijarlo en pixeles --- */
+.col-p12 { width: 12%; }
+.col-p14 { width: 14%; }
+.col-p15 { width: 15%; }
+.col-tiny { width: 50px; }
+.col-min { min-width: 150px; }
+
+/* --- Separaciones finas dentro de un fragmento --- */
+.u-mt-xs { margin-top: 6px; }
+.u-mt-x  { margin-top: 10px; }
+.u-pad-x { padding: 0 16px; }
+.u-inset { margin: 0 16px 12px; }
+
+/* --- Rejilla de casillas del editor de agentes --- */
+.check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 4px;
+}
+
+/* --- Barra de filtros compacta, en linea --- */
+.filter-inline {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+  margin: 0;
+}
+.u-start { justify-content: flex-start; }
+
+/* Segunda fila de pestanas, para las secciones que agrupan por categoria */
+.tab-bar-sub {
+  gap: 4px;
+  padding: 6px 12px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+/* Enlace con forma de boton: sin fondo ni borde, en el color primario. El
+   producto original lo usa para las acciones secundarias dentro de una tabla
+   (ver detalle, abrir hoja), y aparece 67 veces en su codigo. */
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-link:hover { text-decoration: underline; }
+
+/* ============================================================
+   COMPONENTES DE DISPOSICION
+   Cada uno con las medidas del producto original de FDP, y el
+   numero de veces que aparece en su codigo, que es lo que los
+   convierte en componentes y no en casos sueltos.
+   ============================================================ */
+
+/* Migas de pan sobre el titulo de una pantalla de detalle (x40) */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.breadcrumb a:hover { color: var(--color-primary); }
+
+/* Botones pegados, como los de una paginacion o un selector (x40) */
+.btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+/* Pie de un formulario largo: separado por una linea (x36) */
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Barra de acciones sobre una tabla, alineada a la derecha (x36) */
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+/* Fila con algo a cada lado: titulo a la izquierda, acciones a la derecha (x26) */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Campo que se muestra pero no se edita: calculado, o de solo lectura (x25).
+   Se distingue por el fondo, no quitando el borde, para que siga leyendose
+   como un campo y no como texto suelto. */
+.input-readonly,
+.input[readonly] {
+  background: var(--color-surface-hover);
+  cursor: default;
+}
+
+/* Rejilla de formulario a tres columnas, con tope de ancho para que las
+   etiquetas no queden a un palmo de su campo en pantallas anchas (x23) */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  max-width: 900px;
+}
+
+/* Un campo que ocupa la fila entera dentro de la rejilla */
+.form-grid .span-all { grid-column: 1 / -1; }
+
+@media (max-width: 768px) {
+  .form-grid { grid-template-columns: 1fr; }
+}
+
+/* ============================================================
+   El atributo hidden gana siempre
+   ============================================================
+   `hidden` oculta poniendo display:none desde la hoja del navegador,
+   y cualquier regla de autor con display la pisa. `.card` usa
+   display:flex, asi que un <form class="card" hidden> se veia igual:
+   es lo que hacia que el formulario de alta apareciera desplegado
+   encima de la tabla en todos los mantenedores. */
+[hidden] { display: none !important; }
+
+/* ============================================================
+   PANEL DE FILTROS Y PIE DE TABLA
+   Medidas del FilterBar.tsx y del Pagination.tsx originales.
+   ============================================================ */
+
+/* El panel: una caja sobre la tabla con los campos en linea y las
+   acciones al final. No es la .filter-bar suelta: lleva fondo, borde
+   y sus campos usan rotulo en mayusculas de 11px. */
+.filter-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filter-panel label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filter-panel .input,
+.filter-panel .select {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* Los campos del panel se reparten la fila. Con un ancho minimo fijo, seis
+   filtros ya no dejaban sitio a los botones y estos caian a una segunda linea,
+   mientras el original los mantiene al final de la misma fila. */
+.filter-panel .form-group {
+  flex: 1 1 0;
+  min-width: 110px;
+  margin-bottom: 0;
+}
+
+/* Las acciones del panel se van al final de la fila, sin encogerse */
+.filter-panel .filter-actions {
+  margin-left: auto;
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+/* Selector de cuantas filas por pagina, en el pie */
+.rows-per-page {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 12px;
+}
+
+.rows-per-page span {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.rows-per-page select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Cabecera de tabla ordenable: el indicador va detras del rotulo y se
+   apaga hasta que la columna es la activa */
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th.sortable .sort-mark {
+  margin-left: 4px;
+  opacity: 0.35;
+  font-size: 10px;
+}
+
+.data-table th.sortable.sorted .sort-mark {
+  opacity: 1;
+  color: var(--color-primary);
+}
+
+/* Columna de seleccion, al principio de la fila */
+.data-table .col-check {
+  width: 36px;
+  text-align: center;
+}
+
+/* Boton apagado: el Clear del panel de filtros cuando no hay nada que limpiar */
+.btn-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* --- Columnas agrupadas de la hoja de perdidas. En el producto original el
+       color dice de que habla la columna sin tener que leer el rotulo: lo
+       perdido en rojo, lo producido en verde, el potencial apagado. Los datos
+       van centrados; solo las columnas base se alinean a la izquierda. --- */
+.data-table th.grp-pot,
+.data-table td.grp-pot,
+.data-table th.grp-prd,
+.data-table td.grp-prd,
+.data-table th.grp-loss,
+.data-table td.grp-loss { text-align: center; }
+.data-table th.grp-prd  { color: var(--color-success); }
+.data-table th.grp-loss { color: var(--color-danger); }
+
+/* --- Settings de proveedores. Medidas del Settings.tsx original: la
+       pantalla acotada a 640, la tarjeta con cabecera separada por una linea,
+       icono de 20 en color primario, titulo de 15/600 y ayuda de 12. --- */
+.settings-narrow { max-width: 640px; }
+
+.provider-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-top: 24px;
+  padding: 0;
+  display: block;
+}
+
+.provider-head {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.provider-head svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.provider-help {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+.provider-body { padding: 24px; }
+
+.provider-status {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.provider-status strong { color: var(--color-text); }
+
+/* La fila del campo y sus botones. Envuelve a proposito: con el ancho
+   acotado a 640 y cuatro botones, sin esto se salen de la tarjeta. */
+.provider-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.provider-form .input { flex: 1; min-width: 220px; }
+
+/* El resultado de probar, con el fondo tenue del original */
+.provider-test {
+  margin-top: 10px;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+}
+
+/* ============================================================
+   ASISTENTE POR PASOS
+   Medidas del AgentBuilder original: cada paso es un boton con un
+   circulo de 22 numerado, el activo con fondo tenue del primario y
+   el ya hecho con el circulo verde y su marca de visto.
+   ============================================================ */
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.step.done { color: var(--color-text); }
+
+/* El circulo del numero */
+.step-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--color-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.step.active .step-mark {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.step.done .step-mark {
+  border-color: var(--color-success);
+  background: var(--color-success);
+  color: #ffffff;
+}
+
+/* El cuerpo del asistente: pasos a la izquierda, formulario a la derecha */
+.wizard {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .wizard { grid-template-columns: 1fr; }
+}
+
+/* --- Comparacion de dos ejecuciones, una a cada lado. En pantalla estrecha
+       se apilan: dos columnas de informe en 400px no se leen. --- */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .compare-grid { grid-template-columns: 1fr; }
+}
+
+.run-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.run-facts { padding: 16px; }
+
+.run-when {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.run-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.run-meta strong { color: var(--color-text); }
+
+/* --- Ficha de una fase de agente. Medidas del AgentRunOutput original:
+       cabecera de 10px 14px con el nombre en 13/600, los tokens en 11
+       apagados, y la marca de visto verde cuando la fase termino. La fase en
+       curso lleva borde primario y un fondo apenas teñido. --- */
+.phase-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.phase-card > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.phase-card > summary::-webkit-details-marker { display: none; }
+
+.phase-card .phase-name { flex: 1; }
+
+.phase-card .phase-tokens {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.phase-card .phase-done { color: var(--color-success); flex-shrink: 0; }
+
+.phase-card .phase-body {
+  padding: 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+
+/* La fase que se esta ejecutando */
+.phase-card.active {
+  border-color: var(--color-primary);
+}
+
+/* --- Severidad de una alerta. Son los colores del original. --- */
+.sev-critical { color: var(--color-danger); }
+.sev-high     { color: #f97316; }
+.sev-medium   { color: #f59e0b; }
+.sev-low      { color: #3b82f6; }
+.badge.sev-high     { background: rgba(249, 115, 22, 0.12); }
+.badge.sev-medium   { background: var(--color-warning-bg); }
+.badge.sev-low      { background: var(--color-info-bg); }
+
+/* El boton de borrar de una fila: rojo con borde, como el del producto
+   original. En gris plano no se distingue del de editar, y borrar no se
+   deshace. */
+.icon-btn.danger {
+  border: 1px solid var(--color-danger-border, var(--color-danger));
+  color: var(--color-danger);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Formulario de alta y edicion, como las pantallas propias del original:
+       dos columnas, etiqueta encima del campo, y el asterisco de obligatorio
+       en rojo junto al rotulo. --- */
+.form-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 32px;
+  align-items: start;
+  /* Las dos columnas no se estiran a todo el ancho: en una pantalla grande un
+     campo de texto de 700px es incomodo de leer, y el original las acota. */
+  max-width: 1000px;
+}
+
+.form-2col .full { grid-column: 1 / -1; }
+
+@media (max-width: 768px) {
+  .form-2col { grid-template-columns: 1fr; }
+}
+
+/* El asterisco del campo obligatorio */
+.required-mark {
+  color: var(--color-danger);
+  margin-left: 2px;
+}
+
+/* Leyenda del mapa: que color es cada metodo de produccion. El color de cada
+   punto viaja en la variable --dot, para no escribir un estilo en linea. */
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.legend-title {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dot);
+}
+
+/* La descripcion que va debajo del nombre en el listado de agentes */
+.cell-note {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  white-space: normal;
+  max-width: 460px;
+}
+
+/* La cabecera de la rejilla de carga: explicacion a la izquierda y «Add Row»
+   a la derecha, dentro de la propia tarjeta */
+.grid-intro {
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px 0;
+  gap: 16px;
+}
+
+.grid-intro p {
+  margin: 0;
+  font-size: 13px;
+}

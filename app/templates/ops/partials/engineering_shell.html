@@ -1,0 +1,16 @@
+<div id="engineering-shell">
+  <p class="text-sm mb-3 text-muted">Pre-spud engineering calculators. Inputs are saved per well; results are computed against the well's casing / hole / mud / directional program.</p>
+  <div class="flex items-center gap-2 mb-0">
+    <div class="tab-bar" style="border:1px solid var(--color-border); border-radius: var(--radius) var(--radius) 0 0; flex:1;">
+      {% for m in modules %}
+        <button type="button" class="tab-btn {{ 'active' if loop.first else '' }}" data-tab-btn
+                hx-get="/planning/events/{{ event_id }}/engineering/{{ m.key }}" hx-target="#eng-content" hx-swap="innerHTML" hx-indicator="#eng-tab-ind">{{ m.title }}</button>
+      {% endfor %}
+    </div>
+    <span id="eng-tab-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span></span>
+  </div>
+  <div id="eng-content" class="card p-4" style="border-radius: 0 0 var(--radius) var(--radius);"
+       hx-get="/planning/events/{{ event_id }}/engineering/{{ first_key }}" hx-trigger="load" hx-swap="innerHTML">
+    <p class="tree-loading">Loading…</p>
+  </div>
+</div>

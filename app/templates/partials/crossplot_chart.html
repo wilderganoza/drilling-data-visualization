@@ -1,0 +1,40 @@
+<div class="card p-4">
+  <div class="card-header">
+    <h3 class="card-title">Crossplot</h3>
+    <button type="button" id="crossplot-export-btn" class="btn btn-secondary btn-sm">Export CSV</button>
+  </div>
+  {% if payload %}
+  <p class="text-sm mb-2" style="color:var(--color-text-muted);">
+    Showing {{ payload.points|length }} of {{ payload.total_valid }} valid point{{ 's' if payload.total_valid != 1 }}{% if payload.total_valid > payload.points|length %} (decimated to the "Max Points" limit){% endif %}.
+  </p>
+  {% endif %}
+  <div id="crossplot-chart-container" class="chart-container"></div>
+</div>
+
+<script>
+(function () {
+  function boot() {
+    if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+
+    var points = {{ payload.points|tojson }};
+    var trendLine = {{ payload.trend_line|tojson }};
+
+    DrillingCharts.renderScatterChart('crossplot-chart-container', {
+      points: points,
+      trendLine: trendLine,
+      xScale: {{ x_scale|tojson }},
+      yScale: {{ y_scale|tojson }},
+      xLogTicks: {{ payload.x_log_ticks|tojson }},
+      yLogTicks: {{ payload.y_log_ticks|tojson }},
+      xLabel: {{ x_label|tojson }},
+      yLabel: {{ y_label|tojson }},
+      height: 500,
+    });
+
+    document.getElementById('crossplot-export-btn').onclick = function () {
+      DrillingCharts.downloadCSV(points, 'crossplot_data', ['x', 'y']);
+    };
+  }
+  boot();
+})();
+</script>

@@ -1,0 +1,115 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+<div class="space-y-6">
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Outlier removal (training only)</h3><span class="text-sm text-muted">Rows removed only from the training split.</span></div>
+    <form id="rop-out-form" hx-post="/analytics/rop-prediction/step/scaling" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+      {{ h.hidden_state(state, skip=['outlier_method','outlier_threshold','outlier_multiplier','outlier_contamination','outlier_n_estimators','outlier_eps','outlier_min_samples','outlier_n_neighbors','outlier_preview_done']) }}
+      {# Flipped to true by the Calculate button below and carried through every
+         later step, so revisiting this step auto-restores the preview the user
+         already computed — while a first visit stays idle. #}
+      <input type="hidden" name="outlier_preview_done" id="rop-out-done" value="{{ 'true' if state.outlier_preview_done else 'false' }}">
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="w-full">
+          <label class="form-label">Method</label>
+          {# Explicit label map — the old `|replace('_',' ')|title` produced
+             "Dbscan" / "Zscore" / "Iqr", wrong casing for well-known acronyms. #}
+          {% set method_options = [
+            ('isolation_forest', 'Isolation Forest', 'Tree-based anomaly score — good general-purpose default for multivariate outliers.'),
+            ('dbscan', 'DBSCAN', 'Density clustering — rows in no dense cluster are flagged. Sensitive to eps/min samples.'),
+            ('local_outlier_factor', 'Local Outlier Factor (LOF)', 'Flags rows whose local density is much lower than their neighbors\'.'),
+            ('zscore', 'Z-score', 'Flags rows with any variable beyond N standard deviations from its mean. Simple, per-variable.'),
+            ('iqr', 'IQR', 'Flags rows outside Q1−k·IQR … Q3+k·IQR on any variable. Robust to non-normal data.'),
+            ('leverage', 'Leverage (Hat-matrix)', 'Flags rows whose feature COMBINATION is extreme (H > 3(n+1)/m), independent of the target. No parameters.'),
+          ] %}
+          <select name="outlier_method" id="rop-outlier-method-select" class="form-select"
+                  hx-post="/analytics/rop-prediction/outliers/param-fields" hx-target="#rop-param-fields-wrapper" hx-swap="innerHTML" hx-trigger="change"
+                  hx-include="#rop-out-form">
+            <option value="none" {{ 'selected' if state.outlier_method == 'none' else '' }}>None</option>
+            {% for key, label, hint in method_options %}
+              <option value="{{ key }}" {{ 'selected' if key == state.outlier_method else '' }} title="{{ hint }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="rop-param-fields-wrapper" style="display: contents;">
+          {% set method = state.outlier_method %}
+          {% set outlier_params = {'threshold': state.outlier_threshold, 'multiplier': state.outlier_multiplier,
+                                   'contamination': state.outlier_contamination, 'n_estimators': state.outlier_n_estimators,
+                                   'eps': state.outlier_eps, 'min_samples': state.outlier_min_samples,
+                                   'n_neighbors': state.outlier_n_neighbors} %}
+          {% include "ops/partials/analytics/rop_pred_outlier_fields.html" with context %}
+        </div>
+      </div>
+
+      <p class="text-sm text-muted">The preview below is optional — these settings are applied automatically when the model trains, whether or not you preview them first.</p>
+      <div class="flex justify-between">
+        <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/split" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="#rop-out-form">&larr; Back</button>
+        <div class="flex items-center gap-2">
+          <div id="rop-out-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Computing…</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="ropAbort('rop-out-calc','rop-out-preview')">Cancel</button>
+          </div>
+          <button type="button" id="rop-out-calc" class="btn btn-secondary"
+                  onclick="document.getElementById('rop-out-done').value='true'"
+                  hx-post="/analytics/rop-prediction/preview/outliers" hx-target="#rop-out-preview" hx-swap="innerHTML" hx-include="#rop-out-form" hx-indicator="#rop-out-ind">Calculate preview</button>
+          <button type="submit" class="btn btn-primary">Next: Scaling &rarr;</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  {# First visit: completely idle until the user clicks "Calculate preview".
+     Revisit (breadcrumb/Back, or a loaded case) after they already calculated:
+     auto-restores that preview (outlier_preview_done flag). #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Pipeline metrics</h3>
+      <span class="text-sm text-muted">How many pooled rows the chosen method would flag. Computed over all pooled rows for preview; the actual run removes flagged rows from the <strong style="color:var(--color-text);">training split only</strong> — test/blind are never filtered.</span>
+    </div>
+    {% if state.outlier_preview_done %}
+    <div id="rop-out-preview"
+         hx-post="/analytics/rop-prediction/preview/outliers" hx-trigger="load" hx-swap="innerHTML"
+         hx-target="this" hx-include="#rop-out-form" hx-indicator="#rop-out-ind">
+      <p class="text-sm text-muted">Restoring your preview…</p>
+    </div>
+    {% else %}
+    <div id="rop-out-preview">
+      <p class="text-sm text-muted">Click "Calculate preview" to see how many rows would be flagged.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Component scatter (inliers vs. outliers)</h3>
+      <span class="text-sm text-muted">Diagnostic-only PCA projection, just to visualize the split — independent of whether PCA is used for training below.</span>
+    </div>
+    <div class="flex items-center gap-4" style="max-width: 420px;">
+      <div class="w-full">
+        <label class="form-label">X component</label>
+        <select id="outlier-scatter-x" class="form-select"><option value="0">PC1</option></select>
+      </div>
+      <div class="w-full">
+        <label class="form-label">Y component</label>
+        <select id="outlier-scatter-y" class="form-select"><option value="1">PC2</option></select>
+      </div>
+      <button type="button" id="rop-outscatter-btn" class="btn btn-secondary" style="white-space: nowrap; margin-top: 20px;"
+              hx-post="/analytics/rop-prediction/preview/outlier-scatter" hx-target="#outlier-outlier-scatter" hx-swap="innerHTML"
+              hx-include="#rop-out-form" hx-indicator="#rop-outscatter-ind"
+              hx-vals='js:{"outlier_scatter_x": document.getElementById("outlier-scatter-x").value, "outlier_scatter_y": document.getElementById("outlier-scatter-y").value}'>
+        Plot
+      </button>
+      <div id="rop-outscatter-ind" class="htmx-indicator inline-loader" style="margin-top:20px;"><span class="spinner-el"></span><span>Plotting…</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="ropAbort('rop-outscatter-btn')">Cancel</button>
+      </div>
+    </div>
+    {# NOT auto-loaded — the chart only renders on a manual Plot click. The X/Y
+       selectors get populated with real component names by "Calculate preview"
+       above instead (same pattern as the PCA step's own Component scatter) —
+       previewing and plotting are separate, deliberate actions. Idle copy
+       covers the revisit case too, where the auto-restored preview has already
+       repopulated the selectors. #}
+    <div id="outlier-outlier-scatter" class="mt-4">
+      <p class="text-sm text-muted">Pick components and click "Plot" (run "Calculate preview" first if the component list above is empty).</p>
+    </div>
+  </div>
+</div>

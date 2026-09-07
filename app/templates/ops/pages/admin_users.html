@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Users — Ops Admin{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Ops Administration", "Roles, catalogs and validation for the operations module") }}
+  <div class="card p-0">
+    {% include "ops/partials/admin_nav.html" %}
+    <div class="p-4">
+      <div class="flex items-center justify-between w-full gap-4 mb-4">
+        <p class="text-sm text-muted">Manage application user accounts — create users, activate/deactivate, grant admin and reset passwords.</p>
+        {% if current_user.is_admin %}
+          <button type="button" class="btn btn-primary btn-sm" onclick="var w=document.getElementById('create-user-form-wrapper'); w.style.display = w.style.display === 'none' ? 'block' : 'none';">+ Add User</button>
+        {% endif %}
+      </div>
+      <div id="users-section">
+        {% include "partials/users_section.html" %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

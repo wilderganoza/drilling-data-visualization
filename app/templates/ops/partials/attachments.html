@@ -1,0 +1,37 @@
+{% set base = "/ops/attachments/" ~ owner_type ~ "/" ~ owner_id %}
+<div id="attachments-content">
+  <div class="subsection-toolbar">
+    <p class="text-sm text-muted">Photos and documents for this {{ "report" if owner_type == "daily_report" else "NPT" }} (max 10 MB each).</p>
+  </div>
+
+  <form hx-post="{{ base }}" hx-target="#attachments-content" hx-swap="outerHTML" hx-encoding="multipart/form-data"
+        class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4" style="align-items:end;">
+    <div class="md:col-span-1"><label class="form-label">File</label><input type="file" name="file" class="form-input" required /></div>
+    <div class="md:col-span-1"><label class="form-label">Caption (optional)</label><input type="text" name="caption" class="form-input" /></div>
+    <div class="md:col-span-1"><button type="submit" class="btn btn-primary">Upload</button></div>
+  </form>
+
+  {% if items|length == 0 %}
+    <p class="text-sm text-muted">No attachments yet.</p>
+  {% else %}
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {% for a in items %}
+        <div class="card p-2" style="display:flex; flex-direction:column; gap:6px;">
+          <a href="/ops/attachments/{{ a.id }}/download" target="_blank" style="display:block;">
+            {% if (a.content_type or "").startswith("image/") %}
+              <img src="/ops/attachments/{{ a.id }}/download" alt="{{ a.filename }}" style="width:100%; height:120px; object-fit:cover; border-radius:var(--radius);" />
+            {% else %}
+              <div style="width:100%; height:120px; display:flex; align-items:center; justify-content:center; background:var(--color-bg); border-radius:var(--radius); font-size:34px;">📄</div>
+            {% endif %}
+          </a>
+          <div style="font-size:12px; color:var(--color-text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ a.filename }}">{{ a.filename }}</div>
+          {% if a.caption %}<div class="text-muted" style="font-size:11px">{{ a.caption }}</div>{% endif %}
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="text-muted" style="font-size:11px">{{ (a.size_bytes / 1024)|round(0)|int }} KB</span>
+            <button type="button" class="btn btn-danger btn-sm" hx-delete="/ops/attachments/{{ a.id }}" hx-target="#attachments-content" hx-swap="outerHTML" hx-confirm="Delete this attachment?">Delete</button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>

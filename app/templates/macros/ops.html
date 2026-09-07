@@ -1,0 +1,226 @@
+{% macro hierarchy_table(items, columns, detail_prefix, target, empty_message="Nothing here yet.", read_only=false) %}
+  {% if items|length == 0 %}
+    <p class="text-sm" style="color: var(--color-text-muted);">{{ empty_message }}</p>
+  {% else %}
+    <div class="overflow-x-auto mb-4">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b">
+            {% for key, label in columns %}<th class="text-left py-2 px-3 font-medium" style="color: var(--color-text-muted);">{{ label }}</th>{% endfor %}
+            {% if not read_only %}<th class="text-right py-2 px-3 font-medium" style="color: var(--color-text-muted);">Actions</th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              {% for key, label in columns %}
+                <td class="py-2 px-3" style="color: var(--color-text);">
+                  {% if loop.first %}<a href="{{ detail_prefix }}/{{ item.id }}" style="color: var(--color-primary);">{{ item[key] or "—" }}</a>
+                  {% else %}{{ item[key] or "—" }}{% endif %}
+                </td>
+              {% endfor %}
+              {% if not read_only %}
+                <td class="py-2 px-3 text-right">
+                  <button type="button" class="btn btn-danger btn-sm"
+                          hx-delete="{{ detail_prefix }}/{{ item.id }}"
+                          hx-target="{{ target }}" hx-swap="outerHTML"
+                          hx-confirm="Delete this and everything under it? This cannot be undone.">
+                    Delete
+                  </button>
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro new_button(modal_id, label="+ New") %}
+<button type="button" class="btn btn-primary btn-sm" data-open-modal="#{{ modal_id }}">{{ label }}</button>
+{% endmacro %}
+
+{% macro tree_nodes(items, link_prefix, label_key, children_url_prefix=none) %}
+  {% if items|length == 0 %}
+    <p class="tree-empty">Empty</p>
+  {% endif %}
+  {% for item in items %}
+    {% if children_url_prefix %}
+      <details class="tree-node" data-node-id="{{ item.id }}" hx-get="{{ children_url_prefix }}/{{ item.id }}/children" hx-trigger="toggle once" hx-target="find .tree-children" hx-swap="innerHTML">
+        <summary><a href="{{ link_prefix }}/{{ item.id }}">{{ item[label_key] or "—" }}</a></summary>
+        <div class="tree-children"><p class="tree-loading">Loading…</p></div>
+      </details>
+    {% else %}
+      <div class="tree-leaf" data-node-id="{{ item.id }}"><a href="{{ link_prefix }}/{{ item.id }}">{{ item[label_key] or "Event" }}</a></div>
+    {% endif %}
+  {% endfor %}
+{% endmacro %}
+
+{% macro time_summary_row_form(report, step_catalog, row=none) %}
+  {% set action = "/ops/reports/" ~ report.id ~ "/time-summary/rows" ~ ("/" ~ row.id if row else "") %}
+  <form hx-{{ "put" if row else "post" }}="{{ action }}" hx-target="#time-summary-tab-content" hx-swap="outerHTML" hx-indicator="#time-summary-ind" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div>
+      <label class="form-label">From (HH:MM)</label>
+      <input type="time" name="time_from" class="form-input" value="{{ row.time_from if row else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">To (HH:MM)</label>
+      <input type="time" name="time_to" class="form-input" value="{{ row.time_to if row else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Step</label>
+      <select name="step_no" class="form-select ts-step-select">
+        <option value="">—</option>
+        {% for profile in ["horizontal", "vertical"] %}
+          <optgroup label="{{ profile|capitalize }}">
+            {% for entry in step_catalog if entry.profile == profile %}
+              <option value="{{ entry.step_no }}" data-phase="{{ entry.phase }}" {{ "selected" if row and row.step_no == entry.step_no }}>{{ entry.step_no }} — {{ entry.operation }}</option>
+            {% endfor %}
+          </optgroup>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Phase (auto-filled from Step)</label>
+      <input type="text" name="phase" class="form-input" value="{{ row.phase if row else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Class</label>
+      <select name="op_class" class="form-select">
+        <option value="P" {{ "selected" if row and row.op_class == "P" }}>P — Planned Work</option>
+        <option value="NPT" {{ "selected" if row and row.op_class == "NPT" }}>NPT — Non-Productive Time</option>
+        <option value="SC" {{ "selected" if row and row.op_class == "SC" }}>SC — Unplanned Work</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Op. Code</label>
+      <input type="text" name="op_code" class="form-input" value="{{ row.op_code if row else '' }}" />
+    </div>
+    <div class="md:col-span-2">
+      <label class="form-label">Operation detail</label>
+      <textarea name="operation_detail" class="form-input" rows="3">{{ row.operation_detail if row else '' }}</textarea>
+    </div>
+    <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+      <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+      <button type="submit" class="btn btn-primary">{{ "Save Row" if row else "Add Row" }}</button>
+    </div>
+  </form>
+{% endmacro %}
+
+{% macro npt_form(report, npt=none) %}
+  {% set action = "/ops/reports/" ~ report.id ~ "/npt" ~ ("/" ~ npt.id if npt else "") %}
+  {% set readonly = npt and npt.is_closed %}
+  {# Closed records were fully editable in this same form despite the close
+     confirm promising "Closed records can't be reopened" — the server now
+     rejects the PUT too (npt.py:update_npt), but a disabled form is the
+     honest UI to go with that, instead of a Save button that 423s. #}
+  {% if readonly %}
+  <div class="card p-3 mb-3" style="border-color:var(--color-border);">
+    <p class="text-sm" style="color:var(--color-text-muted);">This NPT record is closed and read-only.</p>
+  </div>
+  {% endif %}
+  <form hx-{{ "put" if npt else "post" }}="{{ action }}" hx-target="#npt-tab-content" hx-swap="outerHTML" class="grid grid-cols-1 md:grid-cols-2 gap-3" {{ "inert" if readonly }}>
+    <div>
+      <label class="form-label">NPT Type</label>
+      <select name="npt_type" class="form-select">
+        <option value="">—</option>
+        <option value="Equipment Failure" {{ "selected" if npt and npt.npt_type == "Equipment Failure" }}>Equipment Failure</option>
+        <option value="Equipment Failure With NPT" {{ "selected" if npt and npt.npt_type == "Equipment Failure With NPT" }}>Equipment Failure With NPT</option>
+        <option value="NPT (No Failure)" {{ "selected" if npt and npt.npt_type == "NPT (No Failure)" }}>NPT (No Failure)</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Title</label>
+      <input type="text" name="title" class="form-input" value="{{ npt.title if npt else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Start</label>
+      <input type="datetime-local" name="start_time" class="form-input" value="{{ npt.start_time.strftime('%Y-%m-%dT%H:%M') if npt and npt.start_time else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">End</label>
+      <input type="datetime-local" name="end_time" class="form-input" value="{{ npt.end_time.strftime('%Y-%m-%dT%H:%M') if npt and npt.end_time else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Cause</label>
+      <input type="text" name="cause" class="form-input" value="{{ npt.cause if npt else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Failure MD (ft)</label>
+      <input type="number" step="0.01" name="failure_md" class="form-input" value="{{ npt.failure_md if npt and npt.failure_md is not none else '' }}" />
+    </div>
+    <div class="md:col-span-2">
+      <label class="form-label">Description</label>
+      <textarea name="description" class="form-input" rows="2">{{ npt.description if npt else '' }}</textarea>
+    </div>
+    <div>
+      <label class="form-label">Contractor</label>
+      <input type="text" name="contractor_name" class="form-input" value="{{ npt.contractor_name if npt else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Contractual link</label>
+      {# en-US options — records saved under the old Spanish option text
+         ("Orden Servicio", etc.) keep that value; this select just won't
+         highlight one of the new options for them (same as any other free
+         text value), it does not touch or lose their stored data. #}
+      <select name="contractual_link" class="form-select">
+        <option value="">—</option>
+        {% for opt in ["Service Order", "Contract", "AMS", "Purchase Order", "Price List"] %}
+          <option value="{{ opt }}" {{ "selected" if npt and npt.contractual_link == opt }}>{{ opt }}</option>
+        {% endfor %}
+        {% if npt and npt.contractual_link and npt.contractual_link not in ["Service Order", "Contract", "AMS", "Purchase Order", "Price List"] %}
+          <option value="{{ npt.contractual_link }}" selected>{{ npt.contractual_link }} (legacy)</option>
+        {% endif %}
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Contractual no.</label>
+      <input type="text" name="contractual_no" class="form-input" value="{{ npt.contractual_no if npt else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Type cost</label>
+      <input type="number" step="0.01" name="type_cost" class="form-input" value="{{ npt.type_cost if npt and npt.type_cost is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Equip cost</label>
+      <input type="number" step="0.01" name="equip_cost" class="form-input" value="{{ npt.equip_cost if npt and npt.equip_cost is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Other cost</label>
+      <input type="number" step="0.01" name="other_cost" class="form-input" value="{{ npt.other_cost if npt and npt.other_cost is not none else '' }}" />
+    </div>
+    {% if npt %}
+      <div>
+        <label class="form-label">Reviewer</label>
+        <input type="text" name="reviewer_name" class="form-input" value="{{ npt.reviewer_name or '' }}" />
+      </div>
+      <div class="md:col-span-2">
+        <label class="form-label">Preventive actions</label>
+        <textarea name="preventive_actions" class="form-input" rows="2">{{ npt.preventive_actions or '' }}</textarea>
+      </div>
+      <div class="md:col-span-2">
+        <label class="form-label">Lessons learned</label>
+        <textarea name="lessons_learned" class="form-input" rows="2">{{ npt.lessons_learned or '' }}</textarea>
+      </div>
+    {% endif %}
+    <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+      <button type="button" class="btn btn-ghost" data-close-modal>{{ "Close" if readonly else "Cancel" }}</button>
+      {% if not readonly %}<button type="submit" class="btn btn-primary">{{ "Save NPT" if npt else "Create NPT" }}</button>{% endif %}
+    </div>
+  </form>
+{% endmacro %}
+
+{% macro modal(modal_id, title, size="") %}
+<div id="{{ modal_id }}" class="modal-backdrop">
+  <div class="modal {{ size }}">
+    <div class="modal-header">
+      <h3>{{ title }}</h3>
+      <button type="button" class="icon-btn" data-close-modal aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      {{ caller() }}
+    </div>
+  </div>
+</div>
+{% endmacro %}

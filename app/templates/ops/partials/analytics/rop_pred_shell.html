@@ -1,0 +1,94 @@
+{# Wizard shell: the 9-step progress bar + the active step body. Returned whole on
+   every step transition so the stepper highlight stays in sync. #}
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+<div class="space-y-6">
+  {# Full-state snapshot as of this render, used ONLY by the breadcrumb buttons
+     below (hx-include) — a standalone form so jumping from any step's own
+     partial-state form still carries everything forward, not just whatever
+     that step's own inputs happen to expose. #}
+  <form id="rop-breadcrumb-form">{{ h.hidden_state(state) }}</form>
+
+  <div class="card p-3">
+    <div class="flex flex-wrap items-center" style="gap:6px 10px;">
+      {# Completed (before the active step) = green check; active = blue;
+         later steps = muted BUT still clickable — the breadcrumb used to be
+         one-way (jump back from Validation and steps 2-9 became unclickable
+         gray, forcing seven Next clicks to return even though every result
+         was still cached). Jumping forward just revisits: config steps render
+         their form, run steps redisplay their cached result or an honest
+         "not run yet" card — nothing re-runs. #}
+      {% set ns = namespace(reached=true) %}
+      {% for s in wizard_steps %}
+        {% set is_active = s.key == active_step %}
+        {% set completed = ns.reached and not is_active %}
+        {% if is_active %}{% set ns.reached = false %}{% endif %}
+        {% if is_active %}
+        <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:12px; font-weight:600; background:var(--color-primary); color:#fff;">{{ loop.index }}</span>
+        <span class="text-sm" style="color:var(--color-text); font-weight:600;">{{ s.title }}</span>
+        {% else %}
+        <button type="button" title="{{ 'Go back to' if completed else 'Jump to' }} {{ s.title }}"
+                hx-post="{{ step_routes[s.key] }}" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="#rop-breadcrumb-form"
+                style="display:inline-flex; align-items:center; gap:6px; background:none; border:none; padding:0; cursor:pointer;">
+          {% if completed %}
+          <span style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:12px; font-weight:700; background:#22c55e; color:#fff;">&#10003;</span>
+          <span class="text-sm" style="color:#22c55e; text-decoration:underline; text-decoration-style:dotted;">{{ s.title }}</span>
+          {% else %}
+          <span class="text-muted" style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; font-size:12px; font-weight:600; background:var(--color-bg-subtle); border:1px solid var(--color-border)">{{ loop.index }}</span>
+          <span class="text-sm text-muted" style="text-decoration:underline; text-decoration-style:dotted">{{ s.title }}</span>
+          {% endif %}
+        </button>
+        {% endif %}
+        {% if not loop.last %}<span class="text-sm text-muted" style="margin:0 2px">&rsaquo;</span>{% endif %}
+      {% endfor %}
+    </div>
+    {# Recognition over recall: the mid-wizard steps used to show nothing about
+       what was configured earlier — a compact always-visible summary of the
+       load-bearing choices. #}
+    {% if state.well_ids %}
+    <p class="text-sm mt-2 text-muted">
+      {{ state.well_ids|length }} well{{ 's' if state.well_ids|length != 1 }}
+      · {{ state.features|length }} feature{{ 's' if state.features|length != 1 }}
+      · test {{ state.test_pct or 20 }}%
+      {%- if state.blind_well_id %} · blind well held out{% endif %}
+      {%- if state.log_target %} · target: log(ROP){% endif %}
+      {%- if state.chosen_model %} · model: {{ model_labels.get(state.chosen_model, state.chosen_model) if model_labels is defined else state.chosen_model }}{% endif %}
+    </p>
+    {% endif %}
+  </div>
+
+  {% include "ops/partials/analytics/rop_pred_" ~ (body_partial or active_step) ~ ".html" %}
+</div>
+
+<script>
+  // Cancel button support for every in-wizard computation: aborts the in-flight
+  // htmx request issued by any of the given element ids (htmx:abort is a no-op
+  // on elements with no active request, so passing both the manual button and
+  // the auto-restore container is safe). The server may finish the work in the
+  // background, but the UI is released immediately.
+  function ropAbort() {
+    if (!window.htmx) return;
+    for (var i = 0; i < arguments.length; i++) {
+      var el = document.getElementById(arguments[i]);
+      if (el) htmx.trigger(el, 'htmx:abort');
+    }
+  }
+
+  // The whole wizard lives at one URL with its state in DOM form fields — F5,
+  // browser Back, or any nav link silently destroys potentially an hour of
+  // configuration and runs. Warn before unloading once real work exists
+  // (wells selected). Registered once; reads the CURRENT breadcrumb form on
+  // each unload attempt, so it stays accurate across step swaps.
+  if (!window.__ropUnloadGuard) {
+    window.__ropUnloadGuard = true;
+    window.addEventListener('beforeunload', function (e) {
+      // __ropSkipUnloadGuard: set by "Start over" AFTER its own confirm()
+      // dialog — otherwise one click produced two stacked confirmations.
+      if (window.__ropSkipUnloadGuard) return;
+      var f = document.getElementById('rop-breadcrumb-form');
+      if (f && f.querySelector('input[name="well_ids"]')) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  }
+</script>

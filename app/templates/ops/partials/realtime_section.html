@@ -1,0 +1,66 @@
+{#
+  Sección de conexión en tiempo real de un Event. Se autoactualiza cada 5s (hx-trigger="every 5s")
+  reemplazándose a sí misma, para que el estado de la conexión se vea sin que el usuario recargue nada.
+#}
+<div id="realtime-section" class="card p-4" hx-get="/ops/events/{{ event_id }}/realtime" hx-trigger="every 5s" hx-swap="outerHTML">
+  <div class="card-header">
+    <h3 class="card-title">📡 Real-time connection</h3>
+  </div>
+
+  {% if source %}
+    {# --- Hay un canal activo: mostramos su estado --- #}
+    <div class="flex items-center justify-between" style="flex-wrap: wrap; gap: 12px;">
+      <div>
+        <p class="text-sm" style="color: var(--color-text);">
+          <strong>{{ source.rig.name }}</strong>
+          {% if source.status == "connected" %}
+            <span class="badge badge-success">🟢 Connected</span>
+          {% elif source.status == "connecting" %}
+            <span class="badge badge-warning">🟡 Connecting…</span>
+          {% elif source.status == "error" %}
+            <span class="badge badge-danger">🔴 Error</span>
+          {% else %}
+            <span class="badge badge-muted">⚪ Disconnected</span>
+          {% endif %}
+        </p>
+        <p class="text-xs text-muted" style="margin-top: 4px;">
+          {% if source.last_data_at %}Last data received: {{ source.last_data_at|fmt_datetime }}{% else %}No data received yet.{% endif %}
+          &middot; {{ source.rows_ingested }} rows ingested this session
+        </p>
+        {% if source.last_error %}
+          <p class="text-xs text-danger" style="margin-top: 4px;">{{ source.last_error }}</p>
+        {% endif %}
+        {% if not manager_running and source.status != "error" %}
+          <p class="text-xs text-warning" style="margin-top: 4px;">⚠ No background task is running for this source — it may need the app to restart, or was left enabled without an active connection.</p>
+        {% endif %}
+      </div>
+      {% if can_edit %}
+        <form hx-post="/ops/events/{{ event_id }}/realtime/disable" hx-target="#realtime-section" hx-swap="outerHTML" hx-confirm="Deactivate the real-time channel from {{ source.rig.name }}?">
+          <button type="submit" class="btn btn-danger btn-sm">Deactivate</button>
+        </form>
+      {% endif %}
+    </div>
+  {% else %}
+    {# --- No hay canal activo: mostramos el selector para activar uno --- #}
+    {% if can_edit %}
+      {% if rigs|length == 0 %}
+        <p class="text-sm text-muted">No rigs registered yet. Add one in <a href="/master-data/rigs" style="color: var(--color-primary);">Master Data → Rigs</a> first.</p>
+      {% else %}
+        <form hx-post="/ops/events/{{ event_id }}/realtime/enable" hx-target="#realtime-section" hx-swap="outerHTML" class="flex items-end gap-3" style="flex-wrap: wrap;">
+          <div>
+            <label class="form-label">Which rig is drilling this well?</label>
+            <select name="rig_id" class="form-select" required>
+              <option value="">Select a rig…</option>
+              {% for r in rigs %}
+                <option value="{{ r.id }}" {{ "disabled" if r.id|string in busy_rig_ids }}>{{ r.name }}{{ " (busy on another event)" if r.id|string in busy_rig_ids }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Activate real-time channel</button>
+        </form>
+      {% endif %}
+    {% else %}
+      <p class="text-sm text-muted">No real-time channel active for this event.</p>
+    {% endif %}
+  {% endif %}
+</div>

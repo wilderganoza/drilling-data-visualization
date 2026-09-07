@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% import "macros/ops.html" as ops %}
+{% block title %}{{ wellbore.name }} — Planning{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/master-data/wellbores/{{ wellbore.id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ wellbore.name }} (Master Data)</a>
+  {{ ui.page_header(wellbore.name, well.legal_well_name + " — Events") }}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Events</h3>
+      {{ ops.new_button("event-new-modal", "+ New Event") }}
+    </div>
+    {% include "ops/partials/planning_event_section.html" %}
+  </div>
+</div>
+{% endblock %}

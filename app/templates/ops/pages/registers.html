@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}{{ event.event_code or "Event" }} — Operations Registers{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/ops/events/{{ event.id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ event.event_code or "Event" }}</a>
+  {{ ui.page_header("Operations Registers — " ~ (event.event_code or "Event"),
+      "HSE, BOP tests, certifications, lessons learned and materials — the running logs for the whole event.") }}
+
+  <div class="card p-0">
+    <div class="tab-bar">
+      {% for cfg in configs %}
+        <button type="button" class="tab-btn {{ 'active' if loop.first }}" data-tab-btn
+                hx-get="/ops/events/{{ event.id }}/registers/{{ cfg.key }}" hx-target="#reg-tab-content" hx-swap="innerHTML"
+                {{ 'hx-trigger=load,click' if loop.first else '' }}>{{ cfg.title }}</button>
+      {% endfor %}
+    </div>
+    <div id="reg-tab-content" class="p-4">
+      <p class="text-sm text-muted">Loading…</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

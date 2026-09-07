@@ -1,0 +1,88 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+{% if error %}
+  <form>
+    {{ h.hidden_state(state) }}
+    <div class="card p-4"><p style="color:var(--color-danger, #ef4444);">{{ error }}</p></div>
+    <div style="margin-top:12px;">
+      <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/models" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Back to models</button>
+    </div>
+  </form>
+{% else %}
+<form hx-post="/analytics/rop-prediction/step/hpo" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+  {{ h.hidden_state(state, skip=(['chosen_model'] if ranked is not none else [])) }}
+  {% if ranked is not none %}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Pre-selection</h3>
+      <span class="text-sm text-muted">
+        Train {{ ds_info.n_train|default(0) }} · Test {{ ds_info.n_test|default(0) }}{% if ds_info.n_blind %} · Blind {{ ds_info.n_blind }}{% endif %} rows ·
+        {{ ds_info.n_features|default(0) }} features{% if ds_info.n_removed %} · {{ ds_info.n_removed }} outliers removed{% endif %}
+      </span>
+    </div>
+    <p class="text-sm text-muted" style="margin-bottom:10px">
+      Ranked by R² on the <strong style="color:var(--color-text);">test</strong> set (highlighted column) — pick the model to tune (best is pre-selected).
+      Train metrics are shown alongside so you can spot overfitting (train ≫ test).
+    </p>
+    <div style="overflow-x:auto;">
+      <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border)">
+            <th style="padding:8px 10px; width:36px;" rowspan="2"></th>
+            <th style="padding:8px 10px;" rowspan="2">#</th>
+            <th style="padding:8px 10px;" rowspan="2">Model</th>
+            <th style="padding:6px 10px; text-align:center; border-bottom:1px solid var(--color-border);" colspan="4">Train</th>
+            <th style="padding:6px 10px; text-align:center; border-bottom:1px solid var(--color-border); border-left:1px solid var(--color-border); background:rgba(59,130,246,.08);" colspan="4">Test</th>
+          </tr>
+          <tr class="text-muted" style="text-align:right; border-bottom:1px solid var(--color-border)">
+            <th style="padding:6px 10px;">R²</th>
+            <th style="padding:6px 10px;">RMSE</th>
+            <th style="padding:6px 10px;">MAE</th>
+            <th style="padding:6px 10px;">MAPE</th>
+            <th style="padding:6px 10px; border-left:1px solid var(--color-border); background:rgba(59,130,246,.08);">R²</th>
+            <th style="padding:6px 10px; background:rgba(59,130,246,.08);">RMSE</th>
+            <th style="padding:6px 10px; background:rgba(59,130,246,.08);">MAE</th>
+            <th style="padding:6px 10px; background:rgba(59,130,246,.08);">MAPE</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in ranked %}
+          <tr style="border-bottom:1px solid var(--color-border); {{ 'background:var(--color-bg-subtle);' if loop.first and r.ok }}">
+            <td style="padding:8px 10px;">{% if r.ok %}<input type="radio" name="chosen_model" value="{{ r.key }}" {{ 'checked' if (state.chosen_model == r.key) or (not state.chosen_model and loop.first) }}>{% endif %}</td>
+            <td class="text-muted" style="padding:8px 10px">{{ loop.index }}</td>
+            <td style="padding:8px 10px; color:var(--color-text); font-weight:500;">{{ r.label }}{% if not r.ok %} <span class="text-sm" style="color:var(--color-danger,#ef4444); cursor:help; text-decoration:underline dotted;" title="{{ r.error or 'No error detail captured' }}">— failed</span>{% endif %}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.train.r2|fmt_number(4) if r.ok else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.train.rmse|fmt_number(2) if r.ok else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.train.mae|fmt_number(2) if r.ok else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ (r.train.mape|fmt_number(1) ~ '%') if (r.ok and r.train.mape is not none) else '—' }}</td>
+            <td style="padding:8px 10px; text-align:right; color:var(--color-text); font-weight:600; border-left:1px solid var(--color-border); background:rgba(59,130,246,.06);">{{ r.test.r2|fmt_number(4) if r.ok else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right; background:rgba(59,130,246,.06)">{{ r.test.rmse|fmt_number(2) if r.ok else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right; background:rgba(59,130,246,.06)">{{ r.test.mae|fmt_number(2) if r.ok else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right; background:rgba(59,130,246,.06)">{{ (r.test.mape|fmt_number(1) ~ '%') if (r.ok and r.test.mape is not none) else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% else %}
+  <div class="card p-4">
+    <p class="text-sm text-muted">
+      Pre-selection hasn't been run yet for the current configuration{{ ' (or the configuration changed since it last ran)' if state.preselect_job_id }} —
+      go back to Models and click "Run pre-selection", or click Re-run below.
+    </p>
+  </div>
+  {% endif %}
+  <div class="flex items-center justify-between gap-3">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/models" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Back</button>
+      <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/run/preselect" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&#8635; {{ 'Re-run' if ranked is not none else 'Run pre-selection' }}</button>
+    </div>
+    {% if ranked is not none %}
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading…</span></div>
+      <button type="submit" class="btn btn-primary">Next: Hyperparameters &rarr;</button>
+    </div>
+    {% endif %}
+  </div>
+</form>
+{% endif %}

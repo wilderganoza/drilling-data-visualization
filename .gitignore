@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+*.egg-info/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+desktop.ini
+Thumbs.db
+
+# Data
+data/
+database/
+*.db
+*.sqlite3
+*.sql
+
+# Las migraciones si se versionan: son el esquema de la app, no un volcado de datos
+!supabase/migrations/*.sql
+
+# Logs
+*.log
+
+# Temp
+.vite/
+model_store/

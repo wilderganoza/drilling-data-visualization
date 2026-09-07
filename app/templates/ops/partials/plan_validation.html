@@ -1,0 +1,48 @@
+<div id="plan-validation" class="space-y-4">
+  <style>
+    #plan-validation thead th { padding: 10px 12px; }
+    #plan-validation tbody td { padding: 10px 12px; vertical-align: middle; }
+  </style>
+  <div class="subsection-toolbar" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <p class="text-sm text-muted">Cross-checks the whole program for coherence — casing fits the hole, seats in a drilled section, mud inside the pore/fracture window, cement covers the annulus. Re-run after editing any program grid.</p>
+    <button type="button" class="btn btn-secondary btn-sm"
+            hx-get="/planning/events/{{ event.id }}/validation" hx-target="#plan-validation" hx-swap="outerHTML">↻ Re-run checks</button>
+  </div>
+
+  <div class="flex items-center gap-3" style="flex-wrap:wrap;">
+    {% if v.ok %}
+      <span class="badge badge-success" style="font-size:0.95rem;">✓ Program consistent</span>
+    {% else %}
+      <span class="badge badge-danger" style="font-size:0.95rem;">✕ {{ v.fails }} issue{{ "s" if v.fails != 1 }}</span>
+    {% endif %}
+    <span class="text-sm text-muted">{{ v.passes }} passed · {{ v.fails }} failed · {{ v.warns }} note{{ "s" if v.warns != 1 }}</span>
+  </div>
+
+  <div class="card p-0" style="overflow:hidden;">
+    <table class="w-full text-sm" style="border-collapse:collapse;">
+      <thead>
+        <tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border)">
+          <th class="p-2" style="width:1%;"></th><th class="p-2" style="width:12%;">Area</th>
+          <th class="p-2">Check</th><th class="p-2">Requirement</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in v.checks %}
+          {% set bg = "rgba(239,68,68,0.10)" if c.severity == "fail" else ("rgba(234,179,8,0.10)" if c.severity == "warn" else "transparent") %}
+          <tr style="border-bottom:1px solid var(--color-border); background:{{ bg }};">
+            <td class="p-2" style="text-align:center;">
+              {% if c.severity == "fail" %}<span class="text-danger">✕</span>
+              {% elif c.severity == "warn" %}<span style="color:#ca8a04;">!</span>
+              {% else %}<span style="color:var(--color-success);">✓</span>{% endif %}
+            </td>
+            <td class="p-2 text-muted">{{ c.area }}</td>
+            <td class="p-2" style="color:var(--color-text);">{{ c.message }}</td>
+            <td class="p-2 text-muted">{{ c.detail }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="4" class="p-3 text-sm text-muted">No program rows to validate yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

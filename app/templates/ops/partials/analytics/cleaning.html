@@ -1,0 +1,7 @@
+{% import "macros/ui.html" as ui %}
+{# Data Cleaning = the sklearn outlier-detection wizard, relocated into Analytics.
+   Steps POST to /outliers/* and swap #wizard-content / #outlier-step-pills. #}
+<div id="outlier-step-pills">{{ ui.step_pills(steps, step_titles, current_step) }}</div>
+<div id="wizard-content">
+  {% include "partials/outlier_step_well.html" %}
+</div>

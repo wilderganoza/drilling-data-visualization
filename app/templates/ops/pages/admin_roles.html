@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}User Roles — Ops Admin{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Ops Administration", "Roles, catalogs and validation for the operations module") }}
+  <div class="card p-0">
+    {% include "ops/partials/admin_nav.html" %}
+    <div class="p-4">
+      <p class="text-sm mb-4 text-muted">
+        Assign each user an operations role. A <strong>Global Admin</strong> always has full access regardless of the role set here.
+        Only <em>Office Engineer</em> and <em>Admin</em> can edit capture data; others are read-only.
+      </p>
+      {% include "ops/partials/admin_roles_table.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

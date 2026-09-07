@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}{{ event.event_code or "Event" }} — Plan vs Actual{% endblock %}
+{# `invert`: some deltas are "bad when positive" (days behind plan, cost over
+   budget) while depth deltas are "good when positive" (ahead of plan) — a
+   single fixed v>=0=green mapping colored being over-budget or behind
+   schedule GREEN, the opposite of the dashboard's own convention for the
+   same numbers. Pass invert=True for days/cost; leave default for depth. #}
+{% macro signed(v, unit="", invert=false) %}{% if v is not none %}{% set good = (v <= 0) if invert else (v >= 0) %}<span style="color: {{ 'var(--color-success)' if good else 'var(--color-danger)' }};">{{ "%+.0f"|format(v) }}{{ (" " ~ unit) if unit }}</span>{% else %}—{% endif %}{% endmacro %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/ops/events/{{ event.id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ event.event_code or "Event" }}</a>
+  {{ ui.page_header("Plan vs Actual — " ~ (event.event_code or "Event"), "Variance of the operation against the plan: depth progress, AFE cost and casing seats.") }}
+
+  {# --- KPI cards --- #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="card p-4"><p class="text-xs text-muted">Depth progress</p>
+      <p style="font-size:22px;font-weight:600;">{{ kpis.pct_complete if kpis.pct_complete is not none else "—" }}%</p>
+      <p class="text-xs text-muted">{{ kpis.current_md if kpis.current_md is not none else "—" }} / {{ kpis.planned_final_md if kpis.planned_final_md is not none else "—" }} {{ depth_unit }}</p></div>
+    <div class="card p-4"><p class="text-xs text-muted">Days vs plan</p>
+      <p style="font-size:22px;font-weight:600;">{{ signed(kpis.days_delta, "d", invert=true) }}</p>
+      <p class="text-xs text-muted">{{ kpis.days_elapsed }} of {{ kpis.planned_days|round(0)|int if kpis.planned_days is not none else "—" }} planned</p></div>
+    <div class="card p-4"><p class="text-xs text-muted">Cost vs AFE</p>
+      <p style="font-size:22px;font-weight:600;color:{{ 'var(--color-danger)' if v.cost.pct and v.cost.pct > 100 else 'var(--color-text)' }};">{{ v.cost.pct if v.cost.pct is not none else "—" }}%</p>
+      <p class="text-xs text-muted">{{ v.cost.actual|money }} / {{ v.cost.budget|money }}</p></div>
+    <div class="card p-4"><p class="text-xs text-muted">NPT</p>
+      <p style="font-size:22px;font-weight:600;">{{ kpis.npt_pct }}%</p>
+      <p class="text-xs text-muted">{{ kpis.npt_hours }} h · {{ kpis.npt_events }} events</p></div>
+  </div>
+
+  {# --- Cost variance --- #}
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">AFE Cost Variance</h3></div>
+    <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div><dt class="text-muted">Actual to date</dt><dd>{{ v.cost.actual|money }}</dd></div>
+      <div><dt class="text-muted">AFE budget</dt><dd>{{ v.cost.budget|money }}</dd></div>
+      <div><dt class="text-muted">Variance</dt><dd>{{ signed(v.cost.variance, invert=true) }}</dd></div>
+      <div><dt class="text-muted">% of AFE</dt><dd>{{ v.cost.pct if v.cost.pct is not none else "—" }}%</dd></div>
+    </dl>
+  </div>
+
+  {# --- Casing plan vs actual --- #}
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Casing Seats — Planned vs Actual</h3></div>
+    <table class="w-full text-sm" style="border-collapse:collapse;">
+      <thead><tr class="text-muted" style="text-align:left;border-bottom:1px solid var(--color-border)">
+        <th class="p-2">String</th><th class="p-2">OD (in)</th><th class="p-2">Planned shoe ({{ depth_unit }})</th>
+        <th class="p-2">Actual shoe ({{ depth_unit }})</th><th class="p-2">Δ ({{ depth_unit }})</th><th class="p-2">Status</th></tr></thead>
+      <tbody>
+        {% for c in v.casing %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="p-2" style="font-weight:500;">{{ c.string }}</td><td class="p-2">{{ c.od_in }}</td>
+            <td class="p-2">{{ c.planned_shoe if c.planned_shoe is not none else "—" }}</td>
+            <td class="p-2">{{ c.actual_shoe if c.actual_shoe is not none else "—" }}</td>
+            <td class="p-2">{{ signed(c.delta) }}</td>
+            <td class="p-2">{% if c.status == "run" %}<span class="badge badge-success">Run</span>{% else %}<span class="badge badge-muted">Pending</span>{% endif %}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="p-3 text-muted">No casing program to compare.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <p class="text-xs mt-2 text-muted">Actual shoe from the daily <strong>Casing Running</strong> subsection.</p>
+  </div>
+
+  {# --- Day-by-day depth progress --- #}
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Depth Progress by Day</h3></div>
+    <table class="w-full text-sm" style="border-collapse:collapse;">
+      <thead><tr class="text-muted" style="text-align:left;border-bottom:1px solid var(--color-border)">
+        <th class="p-2">Day</th><th class="p-2">Date</th><th class="p-2">Actual MD ({{ depth_unit }})</th>
+        <th class="p-2">Planned MD ({{ depth_unit }})</th><th class="p-2">Δ ({{ depth_unit }})</th><th class="p-2"></th></tr></thead>
+      <tbody>
+        {% for d in v.day_rows %}
+          {% set bg = "transparent" if d.delta is none else ("rgba(16,185,129,0.08)" if d.delta >= 0 else "rgba(239,68,68,0.08)") %}
+          <tr style="border-bottom:1px solid var(--color-border);background:{{ bg }};">
+            <td class="p-2">{{ d.day }}</td><td class="p-2">{{ d.date or "—" }}</td>
+            <td class="p-2">{{ d.actual_md if d.actual_md is not none else "—" }}</td>
+            <td class="p-2">{{ d.planned_md if d.planned_md is not none else "—" }}</td>
+            <td class="p-2">{{ signed(d.delta) }}</td>
+            <td class="p-2 text-xs text-muted">{{ "ahead" if d.status == "ahead" else ("behind" if d.status == "behind" else "") }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" class="p-3 text-muted">No daily reports yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="flex gap-3">
+    <a href="/ops/events/{{ event.id }}/dashboard" class="btn btn-secondary btn-sm">📊 Charts on the Dashboard</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+<div class="card p-4">
+  {% if not experiments %}
+    <div class="py-12 text-center"><p class="text-muted">No saved models yet. Train one in ROP Prediction and click “Save model” on the Validation step.</p></div>
+  {% else %}
+  <div style="overflow-x:auto;">
+    <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+      <thead>
+        <tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border)">
+          <th style="padding:8px 10px;">#</th>
+          <th style="padding:8px 10px;">Name</th>
+          <th style="padding:8px 10px;">Model</th>
+          <th style="padding:8px 10px; text-align:right;">Test R²</th>
+          <th style="padding:8px 10px; text-align:right;">Blind R²</th>
+          <th style="padding:8px 10px;">Created</th>
+          <th style="padding:8px 10px; text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in experiments %}
+        <tr style="border-bottom:1px solid var(--color-border);">
+          <td class="text-muted" style="padding:8px 10px">{{ e.id }}</td>
+          <td style="padding:8px 10px; color:var(--color-text); font-weight:500;">{{ e.name }}{% if e.description %}<br><span class="text-sm text-muted">{{ e.description }}</span>{% endif %}</td>
+          <td class="text-muted" style="padding:8px 10px">{{ model_labels.get(e.model_key, e.model_key) if model_labels is defined else e.model_key }}</td>
+          <td style="padding:8px 10px; text-align:right; color:var(--color-text);">{{ e.metrics.test.r2|fmt_number(4) if e.metrics and e.metrics.test else '—' }}</td>
+          <td style="padding:8px 10px; text-align:right; color:#22c55e;">{{ e.metrics.blind.r2|fmt_number(4) if e.metrics and e.metrics.blind else '—' }}</td>
+          <td class="text-muted" style="padding:8px 10px">{{ e.created_at.strftime('%Y-%m-%d %H:%M') if e.created_at else '—' }}</td>
+          <td style="padding:8px 10px; text-align:right; white-space:nowrap;">
+            <a href="/analytics/rop-prediction/experiments/{{ e.id }}/load" class="btn btn-primary btn-sm" title="Reopen this experiment's config in the wizard, editable, with its saved results">Load into wizard</a>
+            <a href="/analytics/rop-prediction/experiments/{{ e.id }}/predict" class="btn btn-secondary btn-sm">Score well</a>
+            <a href="/analytics/rop-prediction/experiments/{{ e.id }}/logview" class="btn btn-secondary btn-sm" title="Real vs predicted ROP over depth, for a well from train/test/blind">Actual vs Predicted</a>
+            <a href="/analytics/rop-prediction/experiments/{{ e.id }}/whatif" class="btn btn-secondary btn-sm">What-if</a>
+            <button type="button" class="btn btn-danger btn-sm"
+                    hx-post="/analytics/rop-prediction/experiments/{{ e.id }}/delete"
+                    hx-target="#rop-exp-list" hx-swap="innerHTML"
+                    hx-confirm="Delete this saved model (#{{ e.id }})? Its artifact is removed too.">Delete</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>

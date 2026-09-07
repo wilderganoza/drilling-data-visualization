@@ -1,0 +1,59 @@
+{% import "macros/ops.html" as ops %}
+<div id="daily-report-list-section">
+  {% if reports|length == 0 %}
+    <p class="text-sm text-muted">No daily reports yet.</p>
+  {% else %}
+    <div class="overflow-x-auto mb-4">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b">
+            <th class="text-left py-2 px-3 font-medium text-muted">Date</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Report No.</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Description</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">MD</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">General</th>
+            <th class="text-left py-2 px-3 font-medium text-muted">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for report in reports %}
+            {% set st = report.workflow_status or "Draft" %}
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              <td class="py-2 px-3"><a href="/ops/reports/{{ report.id }}" style="color: var(--color-primary);">{{ report.report_date }}</a></td>
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ report.report_no or "—" }}</td>
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ report.description or "—" }}</td>
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ report.md if report.md is not none else "—" }}</td>
+              <td class="py-2 px-3">
+                {% if report.general_complete %}<span class="badge badge-success">Complete</span>{% else %}<span class="badge badge-warning">Incomplete</span>{% endif %}
+              </td>
+              <td class="py-2 px-3">
+                <span class="badge {{ 'badge-success' if st == 'Approved' else ('badge-warning' if st == 'Submitted' else 'badge-muted') }}">{{ st }}</span>
+                {% if report.is_locked %}<span class="text-xs text-muted" title="Locked">🔒</span>{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+  {% call ops.modal("report-new-modal", "New Daily Report") %}
+    <form hx-post="/ops/events/{{ event.id }}/reports" hx-target="#daily-report-list-section" hx-swap="outerHTML" class="space-y-3">
+      <div>
+        <label class="form-label">Report date</label>
+        <input type="date" name="report_date" class="form-input" required />
+      </div>
+      <div>
+        <label class="form-label">Report No.</label>
+        <input type="number" name="report_no" class="form-input" />
+      </div>
+      <div>
+        <label class="form-label">Description</label>
+        <input type="text" name="description" class="form-input" placeholder="e.g. 12 1/4&quot; Section" />
+      </div>
+      <div class="flex justify-end gap-2 mt-2">
+        <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Report</button>
+      </div>
+    </form>
+  {% endcall %}
+</div>

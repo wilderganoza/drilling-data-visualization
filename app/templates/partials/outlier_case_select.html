@@ -1,0 +1,10 @@
+{% if datasets|length == 0 %}
+  <p class="text-sm text-muted">No saved cases for this well yet.</p>
+{% else %}
+  <label class="form-label">Existing case</label>
+  <select name="case_dataset_id" class="form-select">
+    {% for d in datasets %}
+      <option value="{{ d.id }}">{{ d.name }} ({{ d.status }}, {{ d.record_count if d.record_count is not none else '?' }} rows)</option>
+    {% endfor %}
+  </select>
+{% endif %}

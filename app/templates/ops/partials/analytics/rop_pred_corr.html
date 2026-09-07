@@ -1,0 +1,65 @@
+{% if error %}
+  <p class="text-sm" style="color: var(--color-danger, #ef4444);">{{ error }}</p>
+{% else %}
+<div class="space-y-4">
+  {# Indicators first #}
+  <div>
+    {% for row in rows %}
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+      <span class="text-sm" style="width:230px; color:var(--color-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ row.label }}</span>
+      <div style="flex:1; display:flex; align-items:center;">
+        <div style="width:50%; display:flex; justify-content:flex-end;">
+          {% if row.r is not none and row.r < 0 %}<div style="height:14px; width:{{ (row.r|abs * 100)|round(1) }}%; background:#ef4444; border-radius:3px 0 0 3px;"></div>{% endif %}
+        </div>
+        <div style="width:1px; height:18px; background:var(--color-border);"></div>
+        <div style="width:50%;">
+          {% if row.r is not none and row.r >= 0 %}<div style="height:14px; width:{{ (row.r * 100)|round(1) }}%; background:#22c55e; border-radius:0 3px 3px 0;"></div>{% endif %}
+        </div>
+      </div>
+      <span class="text-sm" style="width:72px; text-align:right; font-weight:600; color:{{ '#22c55e' if row.r is not none and row.r >= 0 else '#ef4444' }};">
+        {{ row.r|fmt_number(3) if row.r is not none else '—' }}
+      </span>
+      <span class="text-sm text-muted" style="width:80px; text-align:right">n={{ '{:,}'.format(row.n) }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  {# Chart below #}
+  <div style="border-top:1px solid var(--color-border); padding-top:12px;">
+    <div class="flex items-center gap-4" style="max-width:480px; margin-bottom:8px;">
+      <div class="w-full">
+        <label class="form-label">Variable</label>
+        <select id="rop-corr-var" class="form-select">
+          {% for f in features %}<option value="{{ f }}" {{ 'selected' if f == scatter_var }}>{{ feature_labels.get(f, f) }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="button" class="btn btn-secondary" style="white-space:nowrap; margin-top:20px;"
+              hx-post="/analytics/rop-prediction/feature/correlation" hx-target="#rop-corr-panel" hx-swap="innerHTML"
+              hx-include="#rop-main-form" hx-indicator="#rop-corr-plot-ind"
+              hx-vals='js:{"corr_variable": document.getElementById("rop-corr-var").value, "corr_well_id": document.getElementById("rop-corr-well").value}'>
+        Plot
+      </button>
+      <div id="rop-corr-plot-ind" class="htmx-indicator inline-loader" style="margin-top:20px;"><span class="spinner-el"></span><span>Plotting…</span></div>
+    </div>
+    <div id="rop-corr-scatter" class="chart-container"></div>
+  </div>
+</div>
+<script>
+(function () {
+  function boot() {
+    if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+    var pts = {{ points|tojson }};
+    if (!pts.length) return;
+    DrillingCharts.renderScatterChart('rop-corr-scatter', {
+      points: pts,
+      xScale: 'linear',
+      yScale: 'linear',
+      xLabel: {{ scatter_label|tojson }},
+      yLabel: {{ target_label|tojson }},
+      height: 420,
+    });
+  }
+  boot();
+})();
+</script>
+{% endif %}

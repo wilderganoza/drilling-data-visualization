@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% import "macros/ops.html" as ops %}
+{% block title %}Master Data — Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {{ ui.page_header("Master Data", "Company → Project → Site → Well → Wellbore → Event") }}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Companies</h3>
+      <div class="flex items-center gap-2">
+        <a href="/master-data/rigs" class="btn btn-secondary btn-sm">📡 Rigs</a>
+        {% if can_edit %}{{ ops.new_button("company-new-modal", "+ New Company") }}{% endif %}
+      </div>
+    </div>
+    {% include "ops/partials/company_section.html" %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,75 @@
+<div id="eng-module" class="space-y-4">
+  {% if applied_flash %}
+    <div class="card p-2" style="border-left:4px solid var(--color-success);"><span class="badge badge-success">Applied</span> <span class="text-sm" style="color:var(--color-text);">{{ applied_flash }}</span></div>
+  {% endif %}
+
+  {# Scenario bar — base vs alternative design cases + export. #}
+  <div class="card p-3 eng-scenario-bar" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div class="flex items-center gap-2" style="flex-wrap:wrap;">
+      <span class="text-sm text-muted">Scenario</span>
+      <select class="form-select" style="width:auto;"
+              hx-get="/planning/events/{{ event_id }}/engineering/{{ key }}" hx-target="#eng-module" hx-swap="outerHTML" hx-indicator="#eng-scenario-ind"
+              name="scenario">
+        {% for s in scenarios %}<option value="{{ s }}" {{ "selected" if s == scenario }}>{{ s }}</option>{% endfor %}
+      </select>
+      <form hx-post="/planning/events/{{ event_id }}/engineering/{{ key }}/scenario" hx-target="#eng-module" hx-swap="outerHTML" hx-indicator="#eng-scenario-ind"
+            class="flex items-center gap-2">
+        <input type="hidden" name="_scenario" value="{{ scenario }}" />
+        <input type="text" name="_new_scenario" class="form-input" style="width:150px;" placeholder="New scenario…" />
+        <button type="submit" class="btn btn-secondary btn-sm">＋ Save as</button>
+      </form>
+      {% if scenario != "Base" %}
+        <form hx-post="/planning/events/{{ event_id }}/engineering/{{ key }}/scenario" hx-target="#eng-module" hx-swap="outerHTML" hx-indicator="#eng-scenario-ind"
+              hx-confirm="Delete scenario '{{ scenario }}'?">
+          <input type="hidden" name="_scenario" value="{{ scenario }}" />
+          <input type="hidden" name="_action" value="delete" />
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      {% endif %}
+      <span id="eng-scenario-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span></span>
+    </div>
+    <a class="btn btn-secondary btn-sm" href="/planning/events/{{ event_id }}/engineering/{{ key }}/export.csv?scenario={{ scenario|urlencode }}">⇩ Export CSV</a>
+  </div>
+
+  {% if targets %}
+    <div class="card p-3" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <span class="text-sm text-muted">This design <strong>generates</strong> {{ targets|length }} program grid(s). Applying overwrites the target grid with the computed result.</span>
+      <div class="flex items-center gap-2" style="flex-wrap:wrap;">
+        {% for t in targets %}
+          <button type="button" class="btn btn-danger btn-sm" id="eng-apply-{{ t.key }}" hx-post="/planning/events/{{ event_id }}/engineering/{{ key }}/apply?target={{ t.key }}&scenario={{ scenario|urlencode }}" hx-target="#eng-module" hx-swap="outerHTML" hx-confirm="Overwrite the {{ t.title }} grid with this generated design?" hx-indicator="#eng-apply-ind-{{ t.key }}">⤵ Apply to {{ t.title }}</button>
+          <span id="eng-apply-ind-{{ t.key }}" class="htmx-indicator inline-loader"><span class="spinner-el"></span></span>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {# Inputs — full-width section, fields laid out in compact responsive columns. #}
+  <div class="card p-4" style="padding-bottom:14px;">
+    <h3 class="card-title mb-3">{{ title }} — inputs <span class="text-sm text-muted" style="font-weight:normal">({{ scenario }})</span></h3>
+    <form hx-post="/planning/events/{{ event_id }}/engineering/{{ key }}" hx-target="#eng-module" hx-swap="outerHTML" hx-indicator="#eng-recalc-ind"
+          class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <input type="hidden" name="_scenario" value="{{ scenario }}" />
+      {% for f in fields %}
+        <div>
+          <label class="form-label">{{ f.label }}{% if f.unit %} <span class="text-muted">({{ f.unit }})</span>{% endif %}</label>
+          {% if f.kind == "select" %}
+            <select name="{{ f.name }}" class="form-select">
+              {% for o in f.options %}<option value="{{ o }}" {{ "selected" if f.value|string == o|string }}>{{ o }}</option>{% endfor %}
+            </select>
+          {% else %}
+            <input type="{{ 'number' if f.kind == 'number' else 'text' }}" {{ 'step=any' if f.kind == 'number' else '' }} name="{{ f.name }}" class="form-input" value="{{ f.value }}" />
+          {% endif %}
+        </div>
+      {% endfor %}
+      <div class="col-span-full mt-2 flex items-center gap-2">
+        <button type="submit" class="btn btn-primary">Recalculate</button>
+        <span id="eng-recalc-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span></span>
+      </div>
+    </form>
+  </div>
+
+  {# Results — full-width section below the inputs. #}
+  <div class="card p-4">
+    {% include result_partial %}
+  </div>
+</div>

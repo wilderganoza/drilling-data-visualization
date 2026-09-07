@@ -1,0 +1,32 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+<form hx-post="/analytics/rop-prediction/step/outliers" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+  {{ h.hidden_state(state, skip=['test_pct','blind_well_id']) }}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Train / Test split</h3>
+      <span class="text-sm text-muted">With 4+ wells the test set is split <strong style="color:var(--color-text);">by whole wells</strong> (test wells disjoint from training wells) — adjacent rows of one well are near-duplicates, so a row-level split would inflate the test score. With fewer wells it falls back to a random row split.</span>
+    </div>
+
+    <div style="max-width:50%;">
+      <label class="form-label">Test set size: <span id="rop-test-val">{{ state.test_pct or 20 }}</span>% (train <span id="rop-train-val">{{ 100 - (state.test_pct or 20) }}</span>%)</label>
+      <input type="range" name="test_pct" min="10" max="40" step="5" value="{{ state.test_pct or 20 }}"
+             style="width:100%;" oninput="document.getElementById('rop-test-val').textContent=this.value; var t=document.getElementById('rop-train-val'); if(t) t.textContent=(100-this.value);">
+    </div>
+    <div style="margin-top:14px; max-width:50%;">
+      <label class="form-label">Blind well (optional)</label>
+      <select name="blind_well_id" class="form-select">
+        <option value="">— none —</option>
+        {% for w in wells %}<option value="{{ w.id }}" {{ 'selected' if state.blind_well_id == w.id }}>{{ w.name }}</option>{% endfor %}
+      </select>
+      <p class="text-sm mt-1 text-muted">Excluded from training AND testing entirely; scored only at the final Validation step — the honest "how would this do on a well it has never seen" check. {{ wells|length }} well{{ 's' if wells|length != 1 }} selected; the blind well is removed from that pool.</p>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-between gap-3">
+    <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/wells" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="closest form">&larr; Back</button>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading…</span></div>
+      <button type="submit" class="btn btn-primary">Next: Outliers &rarr;</button>
+    </div>
+  </div>
+</form>

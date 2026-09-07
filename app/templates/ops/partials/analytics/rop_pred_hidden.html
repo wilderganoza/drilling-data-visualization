@@ -1,0 +1,21 @@
+{# Re-emits the accumulated wizard state as hidden inputs so each step carries the
+   whole config forward. `skip` lists the field names the current step edits with
+   its own visible inputs (so they aren't duplicated). #}
+{% macro hidden_state(state, skip=[]) %}
+  {% if 'well_ids' not in skip %}{% for v in state.get('well_ids') or [] %}<input type="hidden" name="well_ids" value="{{ v }}">{% endfor %}{% endif %}
+  {% if 'features' not in skip %}{% for v in state.get('features') or [] %}<input type="hidden" name="features" value="{{ v }}">{% endfor %}{% endif %}
+  {% if 'models' not in skip %}{% for v in state.get('models') or [] %}<input type="hidden" name="models" value="{{ v }}">{% endfor %}{% endif %}
+  {% if 'bit_sizes' not in skip %}{% for v in state.get('bit_sizes') or [] %}<input type="hidden" name="bit_sizes" value="{{ v }}">{% endfor %}{% endif %}
+  {% for k in ['depth_from','depth_to','date_from','date_to','var_completeness_min','target_completeness_min','field',
+               'test_pct','blind_well_id','scaling','pca_components','pca_svd_solver','outlier_method',
+               'outlier_threshold','outlier_multiplier','outlier_contamination','outlier_n_estimators',
+               'outlier_eps','outlier_min_samples','outlier_n_neighbors',
+               'chosen_model','hpo_trials','best_params',
+               'preselect_job_id','hpo_job_id','validation_job_id'] %}
+    {% if k not in skip and state.get(k) is not none and state.get(k) != '' %}<input type="hidden" name="{{ k }}" value="{{ state.get(k) }}">{% endif %}
+  {% endfor %}
+  {% for k in ['pca_enabled','pca_whiten','log_target',
+               'outlier_preview_done','scaling_preview_done','pca_preview_done','dist_done','corr_done'] %}
+    {% if k not in skip %}<input type="hidden" name="{{ k }}" value="{{ 'true' if state.get(k) else 'false' }}">{% endif %}
+  {% endfor %}
+{% endmacro %}

@@ -1,0 +1,98 @@
+{% if not has_data %}
+  <div class="card p-4">
+    <div class="py-12 text-center">
+      <p class="text-muted">No data available for the selected wells</p>
+    </div>
+  </div>
+{% else %}
+<div class="space-y-6">
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">{{ comparison_label }} vs Depth</h3>
+      <button type="button" id="comparison-line-export-btn" class="btn btn-secondary btn-sm">Export CSV</button>
+    </div>
+    <div id="comparison-line-container" class="chart-container"></div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">{{ comparison_label }} Distribution by Well</h3>
+      <button type="button" id="comparison-histogram-export-btn" class="btn btn-secondary btn-sm">Export CSV</button>
+    </div>
+    <div id="comparison-histogram-container" class="chart-container"></div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Comparison Statistics</h3></div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b">
+            <th class="text-left py-2 px-3 text-muted">Well</th>
+            <th class="text-right py-2 px-3 text-muted">Data Points</th>
+            <th class="text-right py-2 px-3 text-muted">Min</th>
+            <th class="text-right py-2 px-3 text-muted">P25</th>
+            <th class="text-right py-2 px-3 text-muted">P50</th>
+            <th class="text-right py-2 px-3 text-muted">P75</th>
+            <th class="text-right py-2 px-3 text-muted">Max</th>
+            <th class="text-right py-2 px-3 text-muted">Mean</th>
+            <th class="text-right py-2 px-3 text-muted">Std Dev</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in stats %}
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              <td class="py-2 px-3" style="color: {{ s.color }};">{{ s.well_name }}</td>
+              {% if s.empty %}
+                <td class="text-right py-2 px-3 text-sm text-muted">0</td>
+                {% for _ in range(7) %}<td class="text-right py-2 px-3 text-sm text-muted">&mdash;</td>{% endfor %}
+              {% else %}
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.count|fmt_number(0) }}</td>
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.min|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.p25|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.p50|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.p75|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.max|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.mean|fmt_number(2) }}</td>
+                <td class="text-right py-2 px-3 text-sm text-muted">{{ s.std|fmt_number(2) }}</td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function boot() {
+    if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+
+    var wells = {{ wells|tojson }};
+    var bins = {{ histogram_bins|tojson }};
+    var ticks = {{ histogram_ticks|tojson }};
+
+    DrillingCharts.renderMultiWellChart('comparison-line-container', {
+      wells: wells.map(function (w) { return { key: w.key, label: w.well_name, color: w.color, points: w.points }; }),
+      xLabel: 'Depth (ft)',
+      height: 500,
+      exportButtonId: 'comparison-line-export-btn',
+      csvFilename: 'multi_well_comparison',
+    });
+
+    DrillingCharts.renderMultiHistogram('comparison-histogram-container', {
+      bins: bins,
+      ticks: ticks,
+      wells: wells.map(function (w) { return { key: w.key, label: w.well_name, color: w.color }; }),
+      xLabel: {{ comparison_label|tojson }},
+      yLabel: 'Frequency',
+      height: 500,
+      exportButtonId: 'comparison-histogram-export-btn',
+      csvFilename: 'multi_histogram_distribution',
+    });
+  }
+  boot();
+})();
+</script>
+{% endif %}

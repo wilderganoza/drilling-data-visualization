@@ -1,0 +1,8 @@
+{% if options %}
+<div class="w-full">
+  <label class="form-label">Data source</label>
+  <select id="{{ select_id }}" name="{{ select_name }}" class="form-select">
+    {% for opt in options %}<option value="{{ opt.value }}">{{ opt.label }}</option>{% endfor %}
+  </select>
+</div>
+{% endif %}

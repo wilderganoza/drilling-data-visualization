@@ -1,0 +1,30 @@
+<div class="space-y-4">
+  <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div class="card p-4"><div class="text-sm text-muted">R²</div><div style="font-size:24px; font-weight:700; color:var(--color-primary);">{{ metrics.r2|fmt_number(4) }}</div></div>
+    <div class="card p-4"><div class="text-sm text-muted">RMSE</div><div style="font-size:24px; font-weight:700; color:var(--color-text);">{{ metrics.rmse|fmt_number(2) }}</div><div class="text-sm text-muted">ft/hr</div></div>
+    <div class="card p-4"><div class="text-sm text-muted">MAE</div><div style="font-size:24px; font-weight:700; color:var(--color-text);">{{ metrics.mae|fmt_number(2) }}</div><div class="text-sm text-muted">ft/hr</div></div>
+    <div class="card p-4"><div class="text-sm text-muted">{{ (pi_level*100)|round|int }}% PI coverage</div><div style="font-size:24px; font-weight:700; color:#22c55e;">{{ coverage|fmt_number(1) }}%</div><div class="text-sm text-muted">±{{ half|fmt_number(1) }} ft/hr</div></div>
+  </div>
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Predicted vs actual — {{ n_rows }} rows</h3></div>
+    <div id="rop-score-scatter" class="chart-container"></div>
+  </div>
+</div>
+<script>
+  (function () {
+    function boot() {
+      if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+      var pts = {{ scatter|tojson }};
+      if (!pts.length) return;
+      var vals = pts.map(function (p) { return p.x; }).concat(pts.map(function (p) { return p.y; }));
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+      DrillingCharts.renderScatterChart('rop-score-scatter', {
+        points: pts, xScale: 'linear', yScale: 'linear',
+        xLabel: 'Actual ROP (ft/hr)', yLabel: 'Predicted ROP (ft/hr)',
+        height: 380,
+        refLine: [{ x: lo, y: lo }, { x: hi, y: hi }], refLineLabel: 'perfect model (45°)',
+      });
+    }
+    boot();
+  })();
+</script>

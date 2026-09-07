@@ -1,0 +1,23 @@
+{% set st = report.workflow_status or "Draft" %}
+<div id="report-status" class="card p-3" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+  <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+    <span class="badge {{ 'badge-success' if st == 'Approved' else ('badge-warning' if st == 'Submitted' else 'badge-muted') }}">{{ st }}</span>
+    {% if report.is_locked %}<span class="text-sm text-muted">🔒 Locked</span>{% endif %}
+    <span class="text-xs text-muted">
+      {% if creator %}Created by {{ creator.full_name or creator.username }}{% if report.created_at %} · {{ report.created_at.strftime("%Y-%m-%d %H:%M") }}{% endif %}{% endif %}
+      {% if submitter %} · Submitted by {{ submitter.full_name or submitter.username }}{% if report.submitted_at %} ({{ report.submitted_at.strftime("%Y-%m-%d %H:%M") }}){% endif %}{% endif %}
+      {% if approver %} · Approved by {{ approver.full_name or approver.username }}{% if report.approved_at %} ({{ report.approved_at.strftime("%Y-%m-%d %H:%M") }}){% endif %}{% endif %}
+    </span>
+  </div>
+  <div class="flex items-center gap-2">
+    {% if st == "Draft" %}
+      <button type="button" class="btn btn-primary btn-sm" hx-post="/ops/reports/{{ report.id }}/submit" hx-target="#report-status" hx-swap="outerHTML" hx-indicator="#report-status-ind">Submit for approval</button>
+    {% elif st == "Submitted" %}
+      <button type="button" class="btn btn-primary btn-sm" hx-post="/ops/reports/{{ report.id }}/approve" hx-target="#report-status" hx-swap="outerHTML" hx-confirm="Approve and lock this report?" hx-indicator="#report-status-ind">Approve &amp; lock</button>
+      <button type="button" class="btn btn-ghost btn-sm" hx-post="/ops/reports/{{ report.id }}/reopen" hx-target="#report-status" hx-swap="outerHTML" hx-indicator="#report-status-ind">Back to Draft</button>
+    {% elif st == "Approved" %}
+      <button type="button" class="btn btn-secondary btn-sm" hx-post="/ops/reports/{{ report.id }}/reopen" hx-target="#report-status" hx-swap="outerHTML" hx-confirm="Reopen this approved report for editing?" hx-indicator="#report-status-ind">Reopen</button>
+    {% endif %}
+    <span id="report-status-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span></span>
+  </div>
+</div>

@@ -1,0 +1,109 @@
+{% set mandatory_fields = violations|selectattr("level", "equalto", "mandatory")|map(attribute="field")|list %}
+{% set notify = violations|selectattr("level", "equalto", "notify")|list %}
+<div id="general-tab-content">
+  {% if saved %}
+    <div class="card p-3 mb-3" style="border-color: var(--color-success);">
+      <p class="text-sm" style="color: var(--color-success);">Saved.</p>
+    </div>
+  {% elif mandatory_fields %}
+    <div class="card p-3 mb-3" style="border-color: var(--color-danger);">
+      <p class="text-sm font-medium mb-1 text-danger">Fix the required fields below before saving:</p>
+      {% for v in violations if v.level == "mandatory" %}
+        <p class="text-sm text-danger">&bull; {{ v.message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if notify %}
+    <div class="card p-3 mb-3" style="border-color: var(--color-warning);">
+      {% for v in notify %}
+        <p class="text-sm" style="color: var(--color-warning);">&bull; {{ v.message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if report.is_locked %}
+    <div class="card p-3 mb-3" style="border-color: var(--color-warning);">
+      <p class="text-sm text-warning">🔒 This report is locked (approved) — fields below are read-only. Reopen it from the status bar above to edit.</p>
+    </div>
+  {% endif %}
+
+  <form hx-put="/ops/reports/{{ report.id }}/general" hx-target="#general-tab-content" hx-swap="outerHTML" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+    {# A <fieldset disabled> disables every control it contains in one shot —
+       far less error-prone than adding `disabled` to each of the 15 fields
+       individually. display:contents keeps it out of the grid's box model so
+       the 3-column layout above is unaffected; disabling is a form-semantics
+       attribute, not something display:contents interferes with. #}
+    <fieldset {{ 'disabled' if report.is_locked else '' }} style="display:contents; border:none; margin:0; padding:0;">
+    <div>
+      <label class="form-label">Supervisor (Co. Man)</label>
+      <input type="text" name="supervisor" class="form-input" value="{{ report.supervisor or '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Engineer</label>
+      <input type="text" name="engineer" class="form-input" value="{{ report.engineer or '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Geologist</label>
+      <input type="text" name="geologist" class="form-input" value="{{ report.geologist or '' }}" />
+    </div>
+    <div>
+      <label class="form-label">DOL (days) *</label>
+      <input type="number" step="0.01" name="dol" class="form-input {{ 'form-input-error' if 'dol' in mandatory_fields }}" value="{{ report.dol if report.dol is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">DFS (days) *</label>
+      <input type="number" step="0.01" name="dfs" class="form-input {{ 'form-input-error' if 'dfs' in mandatory_fields }}" value="{{ report.dfs if report.dfs is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Previous MD (ft)</label>
+      <input type="number" step="0.01" name="previous_md" class="form-input" value="{{ report.previous_md if report.previous_md is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">MD (ft) *</label>
+      <input type="number" step="0.01" name="md" class="form-input {{ 'form-input-error' if 'md' in mandatory_fields }}" value="{{ report.md if report.md is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">TVD (ft)</label>
+      <input type="number" step="0.01" name="tvd" class="form-input" value="{{ report.tvd if report.tvd is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Progress (ft)</label>
+      <input type="text" class="form-input" value="{{ report.progress if report.progress is not none else 'calculated on save' }}" disabled />
+    </div>
+    <div>
+      <label class="form-label">Rotating hrs</label>
+      <input type="number" step="0.01" name="rotating_hrs" class="form-input" value="{{ report.rotating_hrs if report.rotating_hrs is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Sliding hrs</label>
+      <input type="number" step="0.01" name="sliding_hrs" class="form-input" value="{{ report.sliding_hrs if report.sliding_hrs is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Hole size (in)</label>
+      <input type="number" step="0.001" name="hole_size" class="form-input" value="{{ report.hole_size if report.hole_size is not none else '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Formation</label>
+      <input type="text" name="formation" class="form-input" value="{{ report.formation or '' }}" />
+    </div>
+    <div>
+      <label class="form-label">Lithology</label>
+      <input type="text" name="lithology" class="form-input" value="{{ report.lithology or '' }}" />
+    </div>
+    <div class="md:col-span-3">
+      <label class="form-label">Current status (06:00)</label>
+      <textarea name="current_status" class="form-input" rows="2">{{ report.current_status or '' }}</textarea>
+    </div>
+    <div class="md:col-span-3">
+      <label class="form-label">24 hr summary</label>
+      <textarea name="summary_24hr" class="form-input" rows="2">{{ report.summary_24hr or '' }}</textarea>
+    </div>
+    <div class="md:col-span-3">
+      <label class="form-label">24 hr forecast</label>
+      <textarea name="forecast_24hr" class="form-input" rows="2">{{ report.forecast_24hr or '' }}</textarea>
+    </div>
+    <div class="md:col-span-3 flex justify-end mt-2">
+      <button type="submit" class="btn btn-primary">Save General</button>
+    </div>
+    </fieldset>
+  </form>
+</div>

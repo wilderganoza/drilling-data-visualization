@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% set current = (submodules | selectattr("key", "equalto", active) | first) %}
+{% block title %}{{ current.title if current else "Analytics" }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/analytics" class="text-sm" style="color: var(--color-primary);">&larr; Analytics</a>
+  {{ ui.page_header(current.title, current.desc) }}
+
+  {% if current and current.get('hidden') %}
+  {# Hidden submodules stay routable (old bookmarks) but must say so instead of
+     posing as an active, orphaned page with no nav item highlighted. #}
+  <div class="card p-4">
+    <p class="text-sm" style="color:#eab308;">This module is not active yet — it is being rebuilt on top of the ML pipeline and doesn't appear in the navigation. The data shown below may be incomplete.</p>
+  </div>
+  {% endif %}
+
+  {% if active in ("forecast", "rop", "dysfunction") %}
+    <div class="card p-3 subsection-toolbar flex items-center gap-3 flex-wrap">
+      <label class="form-label" for="an-event-select" style="margin:0;">Well / Event</label>
+      <select id="an-event-select" class="form-select" style="width:auto;"
+              onchange="this.disabled = true; var i = document.getElementById('an-event-ind'); if (i) i.style.display = 'flex'; location.href = '/analytics/{{ active }}?event_id=' + this.value;">
+        {% for e in events %}<option value="{{ e.id }}" {{ 'selected' if e.id == event_id }}>{{ e.label }}</option>{% endfor %}
+      </select>
+      {# Full-page navigation, so a plain hidden-until-used loader (not an
+         htmx indicator) — without it the select looked dead while a heavy
+         analysis (up to ~4k sensor points) recomputed. #}
+      <div id="an-event-ind" class="inline-loader" style="display:none;"><span class="spinner-el"></span><span>Loading analysis…</span></div>
+    </div>
+  {% endif %}
+
+  <div id="analytics-content">
+    {% include "ops/partials/analytics/" ~ active ~ ".html" %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ asset('js/eng_charts.js') }}" defer></script>
+{% endblock %}

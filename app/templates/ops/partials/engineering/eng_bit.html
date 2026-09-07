@@ -1,0 +1,38 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Bit Selection &amp; Optimization</h3>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">Cost per foot (candidate)</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">${{ r.cpf }}</p><p class="text-xs text-muted">alt ${{ r.cpf_alt }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Cheaper option</p><p style="font-size:20px;font-weight:600;color:var(--color-success);">{{ r.cheaper|capitalize }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Break-even ROP</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ r.breakeven_rop if r.breakeven_rop else "—" }} <span class="text-xs">ft/hr</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">MSE / efficiency</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(r.mse) }} <span class="text-xs">psi</span></p><p class="text-xs text-muted">~{{ r.mse_efficiency }}% efficient</p></div>
+</div>
+
+<div class="card p-4">
+  <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Recommended bit by formation</h4>
+  <div class="overflow-x-auto">
+    <table class="w-full text-xs">
+      <thead><tr class="border-b">
+        <th class="text-left py-1 px-2 text-muted">Formation @ MD</th>
+        <th class="text-left py-1 px-2 text-muted">Lithology</th>
+        <th class="text-left py-1 px-2 text-muted">Hole</th>
+        <th class="text-left py-1 px-2 text-muted">Recommended bit</th>
+        <th class="text-left py-1 px-2 text-muted">IADC</th>
+        <th class="text-left py-1 px-2 text-muted">Features</th>
+      </tr></thead>
+      <tbody>
+        {% for rec in r.recs %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ rec.formation }} <span class="text-muted">{{ "{:,}".format(rec.md) if rec.md else "" }}</span></td>
+            <td class="py-1 px-2 text-muted">{{ rec.lith }}</td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ rec.hole }}"</td>
+            <td class="py-1 px-2" style="color:var(--color-text);">{{ rec.type }}</td>
+            <td class="py-1 px-2"><span class="badge badge-muted">{{ rec.iadc }}</span></td>
+            <td class="py-1 px-2 text-muted">{{ rec.features }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="text-xs mt-3 text-muted">Cost/ft = (bit cost + rig rate·(footage/ROP + trip)) / footage. MSE (Teale) measures drilling efficiency — a rising MSE at constant input signals bit wear or dysfunction (founder point).</p>

@@ -1,0 +1,118 @@
+{% if not res or not res.ok %}
+  <div class="card p-4">
+    <p class="text-sm text-muted">
+      {{ res.error if res and res.error else "No drilling parameters captured for this well. Capture drilling-parameter readings (WOB, RPM, flow, torque, SPP, ROP) on the daily reports to enable dysfunction screening." }}
+    </p>
+  </div>
+{% else %}
+{% set hs = res.health_score %}
+{% set hs_color = 'var(--color-success)' if hs >= 80 else ('var(--color-warning)' if hs >= 60 else 'var(--color-danger)') %}
+{% set dominant = (res.summary.by_type | dictsort(by='value') | last)[0] if res.summary.by_type else '—' %}
+<div class="space-y-4">
+
+  <div class="card p-3" style="border-left:4px solid {{ 'var(--color-primary)' if res.source and res.source.startswith('sensor') else 'var(--color-border)' }};">
+    <span class="badge {{ 'badge-success' if res.source and res.source.startswith('sensor') else 'badge-muted' }}">
+      {{ 'Real sensor data' if res.source and res.source.startswith('sensor') else 'Manual drill-params grid' }}
+    </span>
+    {% if res.sensor_note %}<span class="text-xs text-muted" style="margin-left:8px">{{ res.sensor_note }}</span>{% endif %}
+  </div>
+
+  <!-- Honest caveat -->
+  <div class="card p-4" style="border-left:4px solid var(--color-danger);">
+    <p class="text-sm" style="font-weight:600;">Screening only — read before interpreting</p>
+    <p class="text-xs text-muted" style="margin-top:4px;line-height:1.5">
+      True stick-slip and bit-balling detection needs high-frequency (seconds) surface &amp; downhole data.
+      This module screens the <strong>daily</strong> drilling record with physics-based heuristics
+      (MSE, ROP, SPP and torque trends versus the previous point / running references).
+      Flags are <strong>indicative, not definitive</strong> — use them to prompt a closer look at the raw data, not as confirmed events.
+      {% if res.coarse %}<br><span style="color:var(--color-warning);">WOB / torque are mostly missing for this well — heuristics are running on limited inputs.</span>{% endif %}
+    </p>
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="card p-3">
+      <p class="text-xs text-muted" title="100 minus 12 points per High, 7 per Medium and 3 per Low flag. Green ≥ 80, yellow ≥ 60, red below.">Drilling health score</p>
+      <p style="font-size:20px;font-weight:600;color:{{ hs_color }};">{{ hs }}<span class="text-xs text-muted" style="font-weight:400"> / 100</span></p>
+      <p class="text-xs text-muted">100 − 12/7/3 pts per High/Med/Low flag</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted"># flags</p>
+      <p style="font-size:20px;font-weight:600;">{{ res.summary.n_flags }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Dominant dysfunction</p>
+      <p style="font-size:20px;font-weight:600;">{{ dominant }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted"># points analyzed</p>
+      <p style="font-size:20px;font-weight:600;">{{ res.summary.n_points }}</p>
+    </div>
+  </div>
+
+  <!-- Flags table -->
+  <div class="card p-4">
+    <h4 style="font-weight:600;margin-bottom:8px;">Flagged intervals</h4>
+    {% if res.flags %}
+    <div style="overflow-x:auto;">
+      <table class="text-sm" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr class="text-muted" style="text-align:left;border-bottom:1px solid var(--color-border)">
+            <th style="padding:6px 8px;">Depth (ft)</th>
+            <th style="padding:6px 8px;">Formation</th>
+            <th style="padding:6px 8px;">Type</th>
+            <th style="padding:6px 8px;">Severity</th>
+            <th style="padding:6px 8px;">Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in res.flags %}
+          {% set sev_badge = 'badge-danger' if f.severity == 'High' else ('badge-warning' if f.severity == 'Medium' else 'badge-muted') %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:6px 8px;">{{ f.depth_md if f.depth_md is not none else '—' }}</td>
+            <td style="padding:6px 8px;">{{ f.formation or '—' }}</td>
+            <td style="padding:6px 8px;"><span class="badge badge-warning">{{ f.type }}</span></td>
+            <td style="padding:6px 8px;"><span class="badge {{ sev_badge }}">{{ f.severity }}</span></td>
+            <td style="padding:6px 8px" class="text-xs text-muted">{{ f.evidence }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-sm text-muted">No dysfunction indicators flagged across {{ res.summary.n_points }} analyzed points.</p>
+    {% endif %}
+  </div>
+
+  <!-- Charts -->
+  {% set is_sensor = res.source and res.source.startswith('sensor') %}
+  <div class="card p-3">
+    <h4 style="font-weight:600;margin-bottom:8px;">{{ 'ROP vs depth' if is_sensor else 'MSE &amp; ROP vs depth' }}</h4>
+    <div id="dys-mse" class="chart-container"></div>
+  </div>
+
+  {# Sensor channels carry no torque — an empty-axes chart read as broken. #}
+  {% if not is_sensor %}
+  <div class="card p-3">
+    <h4 style="font-weight:600;margin-bottom:8px;">Torque vs depth</h4>
+    <div id="dys-torque" class="chart-container"></div>
+  </div>
+  {% endif %}
+
+  <script id="dys-data" type="application/json">{{ res.series|tojson }}</script>
+  <script>(function boot(){ if(!window.EngCharts||!window.d3){setTimeout(boot,40);return;}
+    var d=JSON.parse(document.getElementById('dys-data').textContent);
+    var mseSeries = [];
+    var msePts = d.filter(function(p){return p.mse_ksi!=null;}).map(function(p){return {x:p.mse_ksi,y:p.depth_md};});
+    if (msePts.length) mseSeries.push({name:'MSE (ksi)', color:'#EF4444', points:msePts});
+    mseSeries.push({name:'ROP (ft/hr)', color:'#3B82F6', points:d.filter(function(p){return p.rop!=null;}).map(function(p){return {x:p.rop,y:p.depth_md};})});
+    window.EngCharts.depthPlot('dys-mse',{ xLabel: msePts.length ? 'MSE (ksi) / ROP (ft/hr)' : 'ROP (ft/hr)', yLabel:'Depth (ft)', height:380, series: mseSeries });
+    var tq = document.getElementById('dys-torque');
+    if (tq) {
+      window.EngCharts.depthPlot('dys-torque',{ xLabel:'Torque (ft-lbf)', yLabel:'Depth (ft)', height:380, series:[
+        {name:'Torque', color:'#8B5CF6', points:d.filter(function(p){return p.torque_ftlb!=null;}).map(function(p){return {x:p.torque_ftlb,y:p.depth_md};})}
+      ]});
+    } })();</script>
+
+</div>
+{% endif %}

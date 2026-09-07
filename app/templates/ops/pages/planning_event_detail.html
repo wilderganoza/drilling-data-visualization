@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}{{ event.event_code or "Event" }} — Planning{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/planning/wellbores/{{ event.wellbore_id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ wellbore.name }}</a>
+  {{ ui.page_header("Well Plan — " ~ (event.event_code or "Event"), event.objective or "Full drilling program & AFE") }}
+  {% include "ops/partials/event_facts.html" %}
+
+  {# Plan approval workflow status + actions (loaded on render). #}
+  <div hx-get="/planning/events/{{ event.id }}/plan/status" hx-trigger="load" hx-swap="outerHTML"></div>
+
+  {# The engineer's workflow, left → right: capture the basis, design it, get the generated program. #}
+  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div class="seg-control" role="tablist">
+      <button type="button" id="seg-initial" class="seg-btn active" onclick="planSeg('initial')">📋 Initial Data</button>
+      <button type="button" id="seg-eng" class="seg-btn" onclick="planSeg('eng')">🔧 Engineering</button>
+      <button type="button" id="seg-plan" class="seg-btn" onclick="planSeg('plan')">📐 Plan</button>
+    </div>
+    <a class="btn btn-secondary btn-sm" href="/planning/events/{{ event.id }}/design-report" target="_blank">📄 Well Design Report</a>
+  </div>
+
+  {# One card, one tab bar — the three tab sets share it (only one visible at a time). #}
+  <div class="card p-0">
+    <div class="tab-bar">
+      {# --- Initial Data: the design basis captured before engineering --- #}
+      <button type="button" class="tab-btn initial-tab active" data-tab-btn
+              hx-get="/planning/events/{{ event.id }}/summary" hx-target="#plan-tab-content" hx-swap="innerHTML">AFE / Summary</button>
+      {% for cfg in initial_configs %}
+        <button type="button" class="tab-btn initial-tab" data-tab-btn
+                hx-get="/planning/events/{{ event.id }}/plan/{{ cfg.key }}" hx-target="#plan-tab-content" hx-swap="innerHTML">{{ cfg.title }}</button>
+      {% endfor %}
+
+      {# --- Engineering: the design workspace (hidden until selected) --- #}
+      {% for m in eng_modules %}
+        <button type="button" class="tab-btn eng-tab" data-tab-btn style="display:none;"
+                hx-get="/planning/events/{{ event.id }}/engineering/{{ m.key }}" hx-target="#plan-tab-content" hx-swap="innerHTML">{{ m.title }}</button>
+      {% endfor %}
+
+      {# --- Plan: the program the design generates + review (hidden until selected) --- #}
+      {% for g in plan_groups %}
+        <span class="tab-group-label plan-group" style="display:none;">{{ g.label }}</span>
+        {% for cfg in g.configs %}
+          <button type="button" class="tab-btn plan-tab" data-tab-btn style="display:none;"
+                  hx-get="/planning/events/{{ event.id }}/plan/{{ cfg.key }}" hx-target="#plan-tab-content" hx-swap="innerHTML">{{ cfg.title }}</button>
+        {% endfor %}
+      {% endfor %}
+      <span class="tab-group-label plan-group" style="display:none;">Review</span>
+      <button type="button" class="tab-btn plan-tab" data-tab-btn style="display:none;"
+              hx-get="/planning/events/{{ event.id }}/validation" hx-target="#plan-tab-content" hx-swap="innerHTML">Validation</button>
+    </div>
+    <div id="plan-tab-content" class="p-4">
+      {% include "ops/partials/well_plan_section.html" %}
+    </div>
+  </div>
+</div>
+
+<script>
+  // Switch the shared tab bar between the Initial Data / Engineering / Plan sets.
+  function planSeg(which) {
+    var sets = { initial: ".initial-tab", eng: ".eng-tab", plan: ".plan-tab" };
+    ["initial", "eng", "plan"].forEach(function (s) {
+      document.getElementById("seg-" + s).classList.toggle("active", s === which);
+    });
+    // group labels belong to the Plan set only
+    document.querySelectorAll(".plan-group").forEach(function (el) { el.style.display = (which === "plan") ? "" : "none"; });
+    ["initial", "eng", "plan"].forEach(function (s) {
+      document.querySelectorAll(sets[s]).forEach(function (b) {
+        b.style.display = (s === which) ? "" : "none"; b.classList.remove("active");
+      });
+    });
+    var first = document.querySelector(sets[which]);
+    if (first) { first.classList.add("active"); first.click(); }  // load its content
+  }
+</script>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ asset('js/eng_charts.js') }}" defer></script>
+{% endblock %}

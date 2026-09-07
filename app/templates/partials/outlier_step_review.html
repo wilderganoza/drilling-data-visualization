@@ -1,0 +1,47 @@
+{% import "macros/ui.html" as ui %}
+{% if request.headers.get('HX-Request') %}<div id="outlier-step-pills" hx-swap-oob="true">{{ ui.step_pills(steps, step_titles, current_step) }}</div>{% endif %}
+<div class="space-y-6">
+  {% if errors %}
+    <div class="card p-4" style="border-color: var(--color-danger);">
+      {% for e in errors %}<p class="text-sm text-danger">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Review</h3>
+      <span class="text-sm text-muted">The full configuration from every step above — check it before running.</span>
+    </div>
+    <form id="outlier-review-form" hx-post="/outliers/run" hx-target="#wizard-content" hx-swap="innerHTML" class="space-y-4">
+      {{ ui.wizard_hidden(ctx) }}
+
+      {# Explicit labels — same map used on the Scaling/Outlier steps, so
+         Review shows "MinMax (0–1)" / "DBSCAN" instead of raw config keys. #}
+      {% set scaling_labels = {'none': 'None', 'standard': 'Standard (z-score)', 'minmax': 'MinMax (0–1)', 'robust': 'Robust (median/IQR)', 'maxabs': 'MaxAbs (−1–1)'} %}
+      {% set method_labels = {'isolation_forest': 'Isolation Forest', 'dbscan': 'DBSCAN', 'local_outlier_factor': 'Local Outlier Factor (LOF)', 'zscore': 'Z-score', 'iqr': 'IQR'} %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div><span class="text-muted">Well:</span> <span style="color: var(--color-text);">{{ well_name }}</span></div>
+        <div><span class="text-muted">Case name:</span> <span style="color: var(--color-text);">{{ dataset_name }}</span></div>
+        <div class="md:col-span-2"><span class="text-muted">Variables:</span> <span style="color: var(--color-text);">{{ variable_labels|join(', ') }}</span></div>
+        <div><span class="text-muted">Scaling:</span> <span style="color: var(--color-text);">{{ scaling_labels.get(scaling_method, scaling_method) }}</span></div>
+        <div><span class="text-muted">PCA:</span> <span style="color: var(--color-text);">{{ 'Enabled' if pca_enabled else 'Disabled' }}{% if pca_enabled and pca_n_components %} ({{ pca_n_components }} components){% endif %}</span></div>
+        <div><span class="text-muted">Outlier method:</span> <span style="color: var(--color-text);">{{ method_labels.get(outlier_method, outlier_method) }}</span></div>
+        <div><span class="text-muted">Store outlier rows:</span> <span style="color: var(--color-text);">{{ 'Yes' if outlier_mark_outliers else 'No, drop them' }}</span></div>
+        {% if selected_dataset_id %}
+          <div class="md:col-span-2"><p class="text-sm text-warning">This will overwrite the existing case "{{ dataset_name }}" — its previous results are replaced, not kept alongside.</p></div>
+        {% endif %}
+      </div>
+
+      <div class="flex justify-between">
+        <button type="button" class="btn btn-secondary" hx-post="/outliers/steps/pca" hx-target="#wizard-content" hx-swap="innerHTML" hx-include="#outlier-review-form">&larr; Back</button>
+        <div class="flex items-center gap-2">
+          <div id="outlier-run-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Running pipeline…</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="if(window.htmx){htmx.trigger(document.getElementById('outlier-review-form'),'htmx:abort');}">Cancel</button>
+          </div>
+          <button type="submit" class="btn btn-primary" hx-indicator="#outlier-run-ind"
+                  {% if selected_dataset_id %}hx-confirm='Overwrite the existing case "{{ dataset_name }}"?'{% endif %}>Run pipeline</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

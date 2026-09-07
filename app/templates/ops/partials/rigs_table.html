@@ -1,0 +1,69 @@
+{% import "macros/ops.html" as ops %}
+{% macro rig_form(rig=none, wits_modes=["client", "server"]) %}
+  {% set action = "/master-data/rigs/table" ~ ("/" ~ rig.id if rig else "") %}
+  <form hx-{{ "put" if rig else "post" }}="{{ action }}" hx-target="#rigs-table" hx-swap="outerHTML" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div class="md:col-span-2"><label class="form-label">Rig name</label><input type="text" name="name" class="form-input" value="{{ rig.name if rig else '' }}" placeholder="e.g. Rig 1" required /></div>
+    <div>
+      <label class="form-label">Connection mode</label>
+      <select name="wits_mode" class="form-select">
+        {% for m in wits_modes %}<option value="{{ m }}" {{ "selected" if rig and rig.wits_mode == m else ("selected" if not rig and m == "client" else "") }}>{{ m }}</option>{% endfor %}
+      </select>
+      <span class="text-xs text-muted">client = nos conectamos hacia el equipo del taladro. server = esperamos a que el equipo se conecte a nosotros.</span>
+    </div>
+    <div><label class="form-label">Host / IP</label><input type="text" name="wits_host" class="form-input" value="{{ rig.wits_host if rig else '' }}" placeholder="192.168.1.20" /></div>
+    <div><label class="form-label">Port</label><input type="number" name="wits_port" class="form-input" value="{{ rig.wits_port if rig and rig.wits_port is not none else '' }}" placeholder="e.g. 5000" /></div>
+    {% if rig %}<div><label class="form-label">Status</label><select name="is_active" class="form-select"><option value="1" {{ "selected" if rig.is_active }}>Active</option><option value="" {{ "selected" if not rig.is_active }}>Retired</option></select></div>{% endif %}
+    <div class="md:col-span-2"><label class="form-label">Notes</label><input type="text" name="notes" class="form-input" value="{{ rig.notes if rig else '' }}" placeholder="JPIM contact, rig-side network notes, etc." /></div>
+    <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+      <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+      <button type="submit" class="btn btn-primary">{{ "Save" if rig else "Add Rig" }}</button>
+    </div>
+  </form>
+{% endmacro %}
+
+<div id="rigs-table">
+  <div class="subsection-toolbar">
+    <p class="text-sm text-muted">Cada taladro es un equipo de instrumentación físico (SZJ-II u otro compatible con WITS0). Se crea una sola vez; para conectar un pozo en vivo, se elige el taladro desde la página del Event.</p>
+    {% if can_edit %}{{ ops.new_button("rig-new-modal", "+ Add Rig") }}{% endif %}
+  </div>
+
+  {% if rigs|length == 0 %}
+    <p class="text-sm text-muted">No hay taladros registrados todavía.</p>
+  {% else %}
+    <div class="overflow-x-auto mb-4">
+      <table class="w-full text-sm">
+        <thead><tr class="border-b">
+          <th class="text-left py-2 px-3 font-medium text-muted">Rig</th>
+          <th class="text-left py-2 px-3 font-medium text-muted">Mode</th>
+          <th class="text-left py-2 px-3 font-medium text-muted">Host</th>
+          <th class="text-left py-2 px-3 font-medium text-muted">Port</th>
+          <th class="text-left py-2 px-3 font-medium text-muted">Status</th>
+          {% if can_edit %}<th class="text-right py-2 px-3 font-medium text-muted">Actions</th>{% endif %}
+        </tr></thead>
+        <tbody>
+          {% for r in rigs %}
+            <tr style="border-bottom: 1px solid var(--color-border);">
+              <td class="py-2 px-3" style="color: var(--color-text);">{{ r.name }}</td>
+              <td class="py-2 px-3 text-muted">{{ r.wits_mode }}</td>
+              <td class="py-2 px-3 text-muted">{{ r.wits_host or "—" }}</td>
+              <td class="py-2 px-3 text-muted">{{ r.wits_port or "—" }}</td>
+              <td class="py-2 px-3">{% if r.is_active %}<span class="badge badge-success">active</span>{% else %}<span class="badge badge-muted">retired</span>{% endif %}</td>
+              {% if can_edit %}
+                <td class="py-2 px-3 text-right whitespace-nowrap">
+                  <button type="button" class="btn btn-secondary btn-sm" data-open-modal="#rig-edit-modal-{{ r.id }}">Edit</button>
+                </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  {% if can_edit %}
+    {% call ops.modal("rig-new-modal", "Add Rig") %}{{ rig_form(wits_modes=wits_modes) }}{% endcall %}
+    {% for r in rigs %}
+      {% call ops.modal("rig-edit-modal-" ~ r.id, "Edit " ~ r.name) %}{{ rig_form(r, wits_modes) }}{% endcall %}
+    {% endfor %}
+  {% endif %}
+</div>

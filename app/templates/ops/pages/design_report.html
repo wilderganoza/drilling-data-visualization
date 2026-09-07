@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Well Design Report — {{ event.event_code or "Event" }}{% endblock %}
+{% macro f(label, value, unit="", money=false) %}
+  <div><dt>{{ label }}</dt><dd>{{ (value|money) if money else (value if value is not none and value != "" else "—") }}{{ (" " ~ unit) if value is not none and value != "" and unit and not money else "" }}</dd></div>
+{% endmacro %}
+{% block content %}
+{# eng_charts.js loaded synchronously so the inline chart scripts inside each
+   module partial find EngCharts already defined when they run. #}
+<script src="{{ asset('js/eng_charts.js') }}"></script>
+<div class="doc-toolbar">
+  <a href="/planning/events/{{ event.id }}" class="btn btn-secondary btn-sm">&larr; Plan</a>
+  <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">🖨️ Print / Save PDF</button>
+</div>
+<div class="doc">
+  <h1>Well Design Report</h1>
+  <p class="text-muted" style="font-size: 13px">
+    {{ event.event_code or "Event" }} · scenario <strong>{{ scenario }}</strong> · depths in {{ depth_unit }}
+    {% if plan and plan.status %} · plan status: {{ plan.status }}{% endif %}
+  </p>
+
+  {# ---- 1. Plan header ---- #}
+  <h2>1. Plan Header &amp; AFE</h2>
+  <dl class="facts">
+    {{ f("AFE No.", plan.afe_number if plan else none) }}
+    {{ f("Engineer", plan.engineer if plan else none) }}
+    {{ f("Target formation", plan.target_formation if plan else none) }}
+    {{ f("Authorized MD", plan.authorized_md if plan else none, depth_unit) }}
+    {{ f("Authorized TVD", plan.authorized_tvd if plan else none, depth_unit) }}
+    {{ f("KOP", plan.kop_md if plan else none, depth_unit) }}
+    {{ f("Max inclination", plan.max_inclination if plan else none, "°") }}
+    {{ f("Rig", plan.rig_name if plan else none) }}
+    {{ f("Est. days", plan.est_days if plan else none) }}
+    {{ f("Budget total", plan.budget_total if plan else none, money=true) }}
+  </dl>
+
+  {# ---- 2. Geopressure basis ---- #}
+  <h2>2. Pore / Fracture Basis</h2>
+  {% if ctx.geopressure %}
+    <table>
+      <thead><tr><th>MD ({{ depth_unit }})</th><th>TVD ({{ depth_unit }})</th><th>Pore (ppg)</th><th>Frac (ppg)</th><th>Temp (°F)</th></tr></thead>
+      <tbody>{% for g in ctx.geopressure %}<tr><td>{{ g.md }}</td><td>{{ g.tvd }}</td><td>{{ g.pore_ppg }}</td><td>{{ g.frac_ppg }}</td><td>{{ g.temp_f if g.temp_f is not none else "—" }}</td></tr>{% endfor %}</tbody>
+    </table>
+  {% else %}<p class="text-muted">No geopressure profile entered.</p>{% endif %}
+
+  {# ---- 3. Program grids ---- #}
+  <h2>3. Casing Program</h2>
+  {% if ctx.casing %}
+    <table><thead><tr><th>String</th><th>OD (in)</th><th>Weight (ppf)</th><th>Grade</th><th>Conn.</th><th>Setting MD ({{ depth_unit }})</th><th>TVD ({{ depth_unit }})</th></tr></thead>
+      <tbody>{% for c in ctx.casing %}<tr><td>{{ c.string }}</td><td>{{ c.od_in }}</td><td>{{ c.weight_ppf }}</td><td>{{ c.grade }}</td><td>{{ c.connection }}</td><td>{{ c.setting_md }}</td><td>{{ c.setting_tvd }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<p class="text-muted">—</p>{% endif %}
+
+  <h2>4. Hole &amp; Bit Program</h2>
+  {% if ctx.hole %}
+    <table><thead><tr><th>Section</th><th>Hole (in)</th><th>Bit</th><th>Top MD ({{ depth_unit }})</th><th>Bottom MD ({{ depth_unit }})</th></tr></thead>
+      <tbody>{% for h in ctx.hole %}<tr><td>{{ h.section }}</td><td>{{ h.hole_size_in }}</td><td>{{ h.bit_type }}</td><td>{{ h.top_md }}</td><td>{{ h.bottom_md }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<p class="text-muted">—</p>{% endif %}
+
+  <h2>5. Mud Program</h2>
+  {% if ctx.mud %}
+    <table><thead><tr><th>Section</th><th>Type</th><th>From MD ({{ depth_unit }})</th><th>To MD ({{ depth_unit }})</th><th>Min (ppg)</th><th>Max (ppg)</th></tr></thead>
+      <tbody>{% for m in ctx.mud %}<tr><td>{{ m.section }}</td><td>{{ m.mud_type }}</td><td>{{ m.top_md }}</td><td>{{ m.bottom_md }}</td><td>{{ m.weight_min }}</td><td>{{ m.weight_max }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<p class="text-muted">—</p>{% endif %}
+
+  <h2>6. Cement Program</h2>
+  {% if ctx.cement %}
+    <table><thead><tr><th>String</th><th>Slurry</th><th>Density (ppg)</th><th>Volume (bbl)</th><th>Top MD ({{ depth_unit }})</th><th>Bottom MD ({{ depth_unit }})</th></tr></thead>
+      <tbody>{% for c in ctx.cement %}<tr><td>{{ c.string }}</td><td>{{ c.slurry_type }}</td><td>{{ c.density_ppg }}</td><td>{{ c.volume_bbl }}</td><td>{{ c.top_md }}</td><td>{{ c.bottom_md }}</td></tr>{% endfor %}</tbody></table>
+  {% else %}<p class="text-muted">—</p>{% endif %}
+
+  {# ---- 7. Validation ---- #}
+  <h2>7. Program Validation</h2>
+  <p style="font-size:13px;">
+    {% if validation.ok %}<strong style="color:var(--color-success);">✓ Program consistent</strong>{% else %}<strong class="text-danger">✕ {{ validation.fails }} issue(s)</strong>{% endif %}
+    — {{ validation.passes }} passed · {{ validation.fails }} failed · {{ validation.warns }} note(s)
+  </p>
+  <table>
+    <thead><tr><th></th><th>Area</th><th>Check</th><th>Requirement</th></tr></thead>
+    <tbody>{% for c in validation.checks %}
+      <tr><td>{{ "✕" if c.severity == "fail" else ("!" if c.severity == "warn" else "✓") }}</td><td>{{ c.area }}</td><td>{{ c.message }}</td><td>{{ c.detail }}</td></tr>
+    {% endfor %}</tbody>
+  </table>
+
+  {# ---- 8. Engineering modules ---- #}
+  <h2>8. Engineering Design Modules</h2>
+  {% for m in modules %}
+    <h3 style="margin-top:18px;">8.{{ loop.index }} {{ m.title }}</h3>
+    {% set res = m.res %}
+    {% set key = m.key %}
+    {% include m.partial %}
+  {% endfor %}
+
+  <p class="text-muted" style="margin-top:24px; font-size:11px">Generated from the shared design basis · scenario {{ scenario }}.</p>
+</div>
+{% endblock %}

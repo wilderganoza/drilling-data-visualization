@@ -1,0 +1,238 @@
+{# Features SECTION — rendered inside #rop-feat-section, which lives INSIDE
+   #rop-main-form (the combined Wells & Features step). No <form> tag here: the
+   checkboxes and the Next button belong to that outer form. #}
+{% import "ops/partials/analytics/rop_pred_macros.html" as m %}
+
+<div class="space-y-4">
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Features</h3>
+      <span class="text-sm text-muted">The input variables the model predicts ROP from — raw sensor channels plus engineered variants (lags, moving averages/std, computed indicators). "Recommended" pre-checks the field team's default set; roles are informational (Controllable = driller set-points, Response = drilling consequences, Context = where/what is drilled).</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-2 mt-3 mb-2">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('all')">Select all</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('none')">Clear</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('rec')">Recommended</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('ctrl')">Controllable only</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('addlags')" title="Adds every lag variable to whatever is already checked">Add lags</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('addma')" title="Adds every moving-average variable to whatever is already checked">Add moving avg</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('addsd')" title="Adds every moving-std-dev variable to whatever is already checked">Add moving std</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="ropFeat('addcomputed')" title="Adds every computed variable to whatever is already checked">Add computed</button>
+    </div>
+    <div style="overflow-x:auto; max-height:520px; overflow-y:auto;">
+      <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border); position:sticky; top:0; background:var(--color-bg); z-index:1">
+            <th style="padding:8px 10px; width:36px;"></th>
+            <th style="padding:8px 10px;">Variable</th>
+            <th style="padding:8px 10px;">Role</th>
+            <th style="padding:8px 10px; min-width:150px;">Completeness</th>
+            <th style="padding:8px 10px; min-width:150px;" title="Share of readings inside the physically plausible range — flags stuck sensors, unit mismatches, garbage values.">Coherence</th>
+            <th style="padding:8px 10px; text-align:right;">r vs ROP</th>
+            <th style="padding:8px 10px; text-align:right;">Mean</th>
+            <th style="padding:8px 10px; text-align:right;">Std</th>
+            <th style="padding:8px 10px; text-align:right;">Min</th>
+            <th style="padding:8px 10px; text-align:right;">Max</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in feature_table.rows %}
+          {% set checked = (r.column in selected_features) if selected_features else r.recommended %}
+          {% set rc = {'controllable':'#22c55e','computed':'#8b5cf6','response':'#eab308','context':'var(--color-text-muted)'}[r.role] %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td style="padding:8px 10px;"><input type="checkbox" class="rop-feat-cb" data-rec="{{ '1' if r.recommended else '0' }}" data-role="{{ r.role }}" name="features" value="{{ r.column }}" {{ 'checked' if checked }}></td>
+            <td style="padding:8px 10px; color:var(--color-text);">{{ r.label }}</td>
+            <td style="padding:8px 10px;"><span class="text-sm" style="color:{{ rc }}; font-weight:600;">{{ r.role_label }}</span></td>
+            <td style="padding:8px 10px;">{{ m.bar(r.completeness, min_width=50, label_width=38) }}</td>
+            <td style="padding:8px 10px;">{% if r.plausible is not none %}{{ m.bar(r.plausible, min_width=50, label_width=38) }}{% else %}<span class="text-sm text-muted">—</span>{% endif %}</td>
+            <td style="padding:8px 10px; text-align:right; font-weight:600; color:{{ ('#22c55e' if r.r >= 0 else '#ef4444') if r.r is not none else 'var(--color-text-muted)' }};">{{ r.r|fmt_number(3) if r.r is not none else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.mean|fmt_number(2) if r.mean is not none else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.std|fmt_number(2) if r.std is not none else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.min|fmt_number(2) if r.min is not none else '—' }}</td>
+            <td class="text-muted" style="padding:8px 10px; text-align:right">{{ r.max|fmt_number(2) if r.max is not none else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="flex items-center justify-end gap-3" style="margin-top:12px;">
+      <span id="rop-feat-count" class="text-sm text-muted"></span>
+      <div id="rop-featapply-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Updating…</span></div>
+      <button type="button" class="btn btn-primary" title="Refresh the sections below with the checked features"
+              hx-post="/analytics/rop-prediction/step/features" hx-target="#rop-feat-section" hx-swap="innerHTML"
+              hx-include="#rop-main-form" hx-indicator="#rop-featapply-ind">Apply features</button>
+    </div>
+  </div>
+
+  {# ------- Smart feature filtering (recommended FIRST: a poorly-populated
+     feature would otherwise unfairly shrink every well's valid-row count and
+     drop good wells in the well filter below) ------- #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Smart feature filtering</h3>
+      <span class="text-sm text-muted">Scores each checked feature and recommends dropping the weak ones: low completeness (&lt;40%), near-constant signal, or redundancy (|r| &ge; 0.92 with a stronger feature). Clicking "Apply — keep N" <strong style="color:var(--color-text);">unchecks the dropped features in the table above</strong>. Run this before Smart well filtering.</span>
+    </div>
+    <div class="flex items-center gap-3 mb-1">
+      <button type="button" class="btn btn-secondary"
+              hx-post="/analytics/rop-prediction/feature/featurefilter" hx-target="#rop-ff-panel" hx-swap="innerHTML"
+              hx-include="#rop-main-form" hx-indicator="#rop-ff-ind">Analyze features</button>
+      <div id="rop-ff-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Scoring features…</span></div>
+    </div>
+    <div id="rop-ff-panel" class="mt-2"></div>
+  </div>
+
+  {# ------- Smart well filtering ------- #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Smart well filtering</h3>
+      <span class="text-sm text-muted">Scores each selected well's data suitability for the checked features — valid rows, completeness, signal variation, and deviation vs. the cohort — and recommends which to keep (always at least 4, the grouped-split minimum). Clicking "Apply — keep N" <strong style="color:var(--color-text);">unchecks the dropped wells in the table above</strong>.</span>
+    </div>
+    <div class="flex items-center gap-3 mb-1">
+      <button type="button" class="btn btn-secondary"
+              hx-post="/analytics/rop-prediction/feature/wellfilter" hx-target="#rop-wf-panel" hx-swap="innerHTML"
+              hx-include="#rop-main-form" hx-indicator="#rop-wf-ind">Analyze wells</button>
+      <div id="rop-wf-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Scoring wells…</span></div>
+    </div>
+    <div id="rop-wf-panel" class="mt-2"></div>
+  </div>
+
+  {# Preview-was-calculated flags for the two exploratory panels below — live
+     inside #rop-main-form so they travel with every step transition. First
+     visit: panels stay idle. Revisit / loaded case after the user calculated:
+     they auto-restore. #}
+  <input type="hidden" name="dist_done" id="rop-dist-done" value="{{ 'true' if state.dist_done else 'false' }}">
+  <input type="hidden" name="corr_done" id="rop-corr-done" value="{{ 'true' if state.corr_done else 'false' }}">
+
+  {# ------- Variable distribution (per well) — same view as Data Cleaning ------- #}
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Variable distribution</h3></div>
+    <div class="flex items-center gap-4" style="max-width:640px; flex-wrap:wrap;">
+      <div class="w-full" style="max-width:240px;">
+        <label class="form-label">Well</label>
+        <select id="rop-dist-well" class="form-select">
+          {% for w in sel_wells %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="w-full" style="max-width:260px;">
+        <label class="form-label">Variable</label>
+        <select id="rop-dist-var" class="form-select">
+          {# Only the checked features (the working set); all candidates if none checked. #}
+          {% for r in feature_table.rows|sort(attribute='label', case_sensitive=false) if (not selected_features) or (r.column in selected_features) %}<option value="{{ r.column }}">{{ r.label }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="button" id="rop-dist-apply" class="btn btn-secondary" style="white-space:nowrap; margin-top:20px;"
+              onclick="document.getElementById('rop-dist-done').value='true'"
+              hx-post="/analytics/rop-prediction/feature/distribution" hx-target="#rop-var-dist" hx-swap="innerHTML"
+              hx-indicator="#rop-dist-ind"
+              hx-vals='js:{"dist_well_id": document.getElementById("rop-dist-well").value, "visualize_variable": document.getElementById("rop-dist-var").value}'>
+        Show chart
+      </button>
+      <div id="rop-dist-ind" class="htmx-indicator inline-loader" style="margin-top:20px;"><span class="spinner-el"></span><span>Loading…</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="ropAbort('rop-dist-apply','rop-var-dist')">Cancel</button>
+      </div>
+    </div>
+    {% if state.dist_done %}
+    <div id="rop-var-dist" class="mt-4"
+         hx-post="/analytics/rop-prediction/feature/distribution" hx-trigger="load" hx-swap="innerHTML"
+         hx-target="this" hx-indicator="#rop-dist-ind"
+         hx-vals='js:{"dist_well_id": document.getElementById("rop-dist-well").value, "visualize_variable": document.getElementById("rop-dist-var").value}'>
+      <p class="text-sm text-muted">Restoring…</p>
+    </div>
+    {% else %}
+    <div id="rop-var-dist" class="mt-4">
+      <p class="text-sm text-muted">Pick a well and a variable, then click Apply to see its histogram and box plot.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ------- Correlation with the target ------- #}
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Correlation with ROP (target)</h3></div>
+    <div class="flex items-center gap-4" style="max-width:480px;">
+      <div class="w-full" style="max-width:260px;">
+        <label class="form-label">Well</label>
+        <select id="rop-corr-well" class="form-select">
+          <option value="all">All selected wells</option>
+          {% for w in sel_wells %}<option value="{{ w.id }}">{{ w.name }}</option>{% endfor %}
+        </select>
+      </div>
+      <button type="button" id="rop-corr-apply" class="btn btn-secondary" style="white-space:nowrap; margin-top:20px;"
+              onclick="document.getElementById('rop-corr-done').value='true'"
+              hx-post="/analytics/rop-prediction/feature/correlation" hx-target="#rop-corr-panel" hx-swap="innerHTML"
+              hx-include="#rop-main-form" hx-indicator="#rop-corr-ind"
+              hx-vals='js:{"corr_well_id": document.getElementById("rop-corr-well").value}'>
+        Compute
+      </button>
+      <div id="rop-corr-ind" class="htmx-indicator inline-loader" style="margin-top:20px;"><span class="spinner-el"></span><span>Computing…</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="ropAbort('rop-corr-apply','rop-corr-panel')">Cancel</button>
+      </div>
+    </div>
+    {% if state.corr_done %}
+    <div id="rop-corr-panel" class="mt-4"
+         hx-post="/analytics/rop-prediction/feature/correlation" hx-trigger="load" hx-swap="innerHTML"
+         hx-target="this" hx-include="#rop-main-form" hx-indicator="#rop-corr-ind"
+         hx-vals='js:{"corr_well_id": document.getElementById("rop-corr-well").value}'>
+      <p class="text-sm text-muted">Restoring…</p>
+    </div>
+    {% else %}
+    <div id="rop-corr-panel" class="mt-4">
+      <p class="text-sm text-muted">Click Apply to compute each selected feature's Pearson correlation with ROP.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Advance to the next step — placed after all the wells/features analysis. #}
+  <div class="flex items-center justify-end gap-3">
+    <div class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading…</span></div>
+    <button type="submit" class="btn btn-primary">Next: Train / Test &rarr;</button>
+  </div>
+</div>
+
+<script>
+  function ropFeatCount() {
+    var n = document.querySelectorAll('.rop-feat-cb:checked').length;
+    var el = document.getElementById('rop-feat-count'); if (el) el.textContent = n + ' features';
+  }
+  function ropFeat(mode) {
+    document.querySelectorAll('.rop-feat-cb').forEach(function (cb) {
+      if (mode === 'all') cb.checked = true;
+      else if (mode === 'none') cb.checked = false;
+      else if (mode === 'rec') cb.checked = cb.getAttribute('data-rec') === '1';
+      else if (mode === 'ctrl') cb.checked = cb.getAttribute('data-role') === 'controllable';
+      // Additive: only checks lag variables on top of the current selection,
+      // never unchecks anything (matches the "{col}_lag{5,20,50}" naming from
+      // rop_features.py's generated lag block).
+      else if (mode === 'addlags') { if (/_lag(5|20|50)$/.test(cb.value)) cb.checked = true; }
+      // Additive: only checks moving-average / moving-std variables (matches
+      // the "{col}_ma{5,20,50}" / "{col}_sd{5,20,50}" naming from rop_features.py).
+      else if (mode === 'addma') { if (/_ma(5|20|50)$/.test(cb.value)) cb.checked = true; }
+      else if (mode === 'addsd') { if (/_sd(5|20|50)$/.test(cb.value)) cb.checked = true; }
+      // Additive: every engineered "computed" variable (cum_work, sliding_frac,
+      // slopes, moving avg/std, AND lags — lags are role="computed" too).
+      else if (mode === 'addcomputed') { if (cb.getAttribute('data-role') === 'computed') cb.checked = true; }
+    });
+    ropFeatCount();
+  }
+  if (!window.__ropFeatChangeBound) {  // scripts re-run on every htmx swap — bind once
+    window.__ropFeatChangeBound = true;
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains('rop-feat-cb')) ropFeatCount();
+    });
+  }
+  ropFeatCount();
+
+  // Re-run the Variable-distribution chart for the current well/variable selection.
+  // Called by the smart filters after they prune the selectors, so distribution and
+  // correlation both reflect the filtered set.
+  window.ropRefreshDist = function () {
+    var w = document.getElementById('rop-dist-well'), v = document.getElementById('rop-dist-var'), t = document.getElementById('rop-var-dist');
+    if (w && v && t && window.htmx) {
+      // source: the main form — without it this refresh ignored the
+      // depth/date/bit-size filters that the manual Apply (inside the form)
+      // respects, silently charting a different data window.
+      htmx.ajax('POST', '/analytics/rop-prediction/feature/distribution',
+        { source: '#rop-main-form', target: '#rop-var-dist', swap: 'innerHTML',
+          values: { dist_well_id: w.value, visualize_variable: v.value } });
+    }
+  };
+</script>

@@ -1,0 +1,27 @@
+{#
+  Root of the sidebar tree, pre-expanded server-side down to the active entity.
+  `nodes` is a nested structure built in tree.py: nodes on the active chain are
+  rendered open with their children inline (one request), off-path nodes stay
+  collapsed and lazy-load on toggle via hx-get — so navigating into a deep page
+  no longer costs one round-trip per level.
+#}
+{% macro node(n) %}
+  {% if n.is_leaf %}
+    <div class="tree-leaf" data-node-id="{{ n.id }}"><a href="{{ n.href }}"{% if n.active %} class="tree-active"{% endif %}>{{ n.label }}</a></div>
+  {% elif n.open %}
+    <details class="tree-node" data-node-id="{{ n.id }}" open>
+      <summary><a href="{{ n.href }}"{% if n.active %} class="tree-active"{% endif %}>{{ n.label }}</a></summary>
+      <div class="tree-children">
+        {% if n.children|length == 0 %}<p class="tree-empty">Empty</p>{% endif %}
+        {% for c in n.children %}{{ node(c) }}{% endfor %}
+      </div>
+    </details>
+  {% else %}
+    <details class="tree-node" data-node-id="{{ n.id }}" hx-get="{{ n.children_url }}" hx-trigger="toggle once" hx-target="find .tree-children" hx-swap="innerHTML">
+      <summary><a href="{{ n.href }}"{% if n.active %} class="tree-active"{% endif %}>{{ n.label }}</a></summary>
+      <div class="tree-children"><p class="tree-loading">Loading…</p></div>
+    </details>
+  {% endif %}
+{% endmacro %}
+{% if nodes|length == 0 %}<p class="tree-empty">Empty</p>{% endif %}
+{% for n in nodes %}{{ node(n) }}{% endfor %}

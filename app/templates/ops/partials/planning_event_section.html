@@ -1,0 +1,36 @@
+{% import "macros/ops.html" as ops %}
+<div id="planning-event-section">
+  {{ ops.hierarchy_table(events, [("event_code", "Code"), ("event_type", "Type"), ("objective", "Objective"), ("start_date", "Start date")], "/planning/events", "#planning-event-section", "No events planned yet for this wellbore.") }}
+  {% call ops.modal("event-new-modal", "New Event", size="modal-lg") %}
+    <form hx-post="/planning/wellbores/{{ wellbore.id }}/events" hx-target="#planning-event-section" hx-swap="outerHTML" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div>
+        <label class="form-label">Event code</label>
+        <input type="text" name="event_code" class="form-input" placeholder="e.g. ODR" />
+      </div>
+      <div>
+        <label class="form-label">Event type</label>
+        <input type="text" name="event_type" class="form-input" placeholder="e.g. drilling" />
+      </div>
+      <div>
+        <label class="form-label">Objective</label>
+        <input type="text" name="objective" class="form-input" placeholder="e.g. Development" />
+      </div>
+      <div>
+        <label class="form-label">Contractor</label>
+        <input type="text" name="contractor" class="form-input" />
+      </div>
+      <div>
+        <label class="form-label">Rig name</label>
+        <input type="text" name="rig_name" class="form-input" />
+      </div>
+      <div>
+        <label class="form-label">Start date</label>
+        <input type="date" name="start_date" class="form-input" />
+      </div>
+      <div class="md:col-span-2 flex justify-end gap-2 mt-2">
+        <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Event</button>
+      </div>
+    </form>
+  {% endcall %}
+</div>

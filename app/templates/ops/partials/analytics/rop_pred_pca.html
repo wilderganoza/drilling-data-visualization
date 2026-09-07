@@ -1,0 +1,122 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+<div class="space-y-6">
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">PCA configuration</h3>
+      <span class="text-sm text-muted">Optional dimensionality reduction: compresses the (scaled) features into fewer uncorrelated components before training — useful with many collinear features (lags/moving averages of the same sensor), at the cost of feature-level explainability (SHAP/importances then describe components, not sensors). Fit on the training split only. Off by default.</span>
+    </div>
+    <form id="rop-pca-form" hx-post="/analytics/rop-prediction/step/models" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+      {{ h.hidden_state(state, skip=['pca_enabled','pca_components','pca_svd_solver','pca_whiten','pca_preview_done']) }}
+      <input type="hidden" name="pca_preview_done" id="rop-pca-done" value="{{ 'true' if state.pca_preview_done else 'false' }}">
+
+      <label class="check-label">
+        <input type="checkbox" id="rop-pca-enabled" name="pca_enabled" value="true" {{ 'checked' if state.pca_enabled else '' }}
+               onchange="ropPcaFields()" />
+        Enable PCA before training
+      </label>
+
+      {# Dependent fields disable while PCA is off — enabled-looking inputs
+         that silently do nothing implied the opposite. #}
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="w-full">
+          <label class="form-label">Number of components</label>
+          <input type="number" id="rop-pca-ncomp" name="pca_components" class="form-input" min="1" step="1" value="{{ state.pca_components or '' }}" placeholder="Auto" />
+          <p class="text-sm mt-1 text-muted">Empty = Auto (keeps all components; use the Explained variance preview below to pick a cutoff).</p>
+        </div>
+        <div class="w-full">
+          <label class="form-label">SVD solver</label>
+          <select id="rop-pca-solver" name="pca_svd_solver" class="form-select" title="Numerical algorithm only — 'auto' picks for you; results are equivalent.">
+            {% for s in ['auto', 'full', 'arpack', 'randomized'] %}
+              <option value="{{ s }}" {{ 'selected' if s == state.pca_svd_solver else '' }}>{{ s }}</option>
+            {% endfor %}
+          </select>
+          <p class="text-sm mt-1 text-muted">Leave on "auto" unless you have a reason not to.</p>
+        </div>
+        <div class="w-full" style="display: flex; align-items: center;">
+          <label class="check-label" title="Rescales each component to unit variance — occasionally helps distance-based models.">
+            <input type="checkbox" id="rop-pca-whiten" name="pca_whiten" value="true" {{ 'checked' if state.pca_whiten else '' }} />
+            Whiten
+          </label>
+        </div>
+      </div>
+
+      <p class="text-sm text-muted">The preview below is optional — this configuration is applied automatically when the model trains.</p>
+      <div class="flex justify-between">
+        <button type="button" class="btn btn-secondary" hx-post="/analytics/rop-prediction/step/scaling" hx-target="#rop-pred-content" hx-swap="innerHTML" hx-include="#rop-pca-form">&larr; Back</button>
+        <div class="flex items-center gap-2">
+          <div id="rop-pca-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Computing…</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="ropAbort('rop-pca-calc','outlier-pca-preview')">Cancel</button>
+          </div>
+          <button type="button" id="rop-pca-calc" class="btn btn-secondary"
+                  onclick="document.getElementById('rop-pca-done').value='true'"
+                  hx-post="/analytics/rop-prediction/preview/pca" hx-target="#outlier-pca-preview" hx-swap="innerHTML" hx-include="#rop-pca-form" hx-indicator="#rop-pca-ind">Calculate preview</button>
+          <button type="submit" class="btn btn-primary">Next: Models &rarr;</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    function ropPcaFields() {
+      var on = document.getElementById('rop-pca-enabled').checked;
+      ['rop-pca-ncomp', 'rop-pca-solver', 'rop-pca-whiten'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.disabled = !on;
+      });
+    }
+    ropPcaFields();
+  </script>
+
+  {# First visit: idle until "Calculate preview" is clicked. Revisit after the
+     user already calculated: auto-restores it (pca_preview_done flag). #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Explained variance</h3>
+      <span class="text-sm text-muted">How much of the data’s total variance each component captures — pick a component count where the cumulative curve flattens.</span>
+    </div>
+    {% if state.pca_preview_done %}
+    <div id="outlier-pca-preview"
+         hx-post="/analytics/rop-prediction/preview/pca" hx-trigger="load" hx-swap="innerHTML"
+         hx-target="this" hx-include="#rop-pca-form" hx-indicator="#rop-pca-ind">
+      <p class="text-sm text-muted">Restoring your preview…</p>
+    </div>
+    {% else %}
+    <div id="outlier-pca-preview">
+      <p class="text-sm text-muted">Click "Calculate preview" to run PCA.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Component scatter</h3>
+      <span class="text-sm text-muted">2D projection of the pooled rows onto two chosen components — a quick look at the structure PCA finds.</span>
+    </div>
+    <div class="flex items-center gap-4" style="max-width: 420px;">
+      <div class="w-full">
+        <label class="form-label">X component</label>
+        <select id="outlier-pca-scatter-x" class="form-select"><option value="0">PC1</option></select>
+      </div>
+      <div class="w-full">
+        <label class="form-label">Y component</label>
+        <select id="outlier-pca-scatter-y" class="form-select"><option value="1">PC2</option></select>
+      </div>
+      <button type="button" id="rop-pcascatter-btn" class="btn btn-secondary" style="white-space: nowrap; margin-top: 20px;"
+              hx-post="/analytics/rop-prediction/preview/pca-scatter" hx-target="#outlier-pca-scatter" hx-swap="innerHTML"
+              hx-include="#rop-pca-form" hx-indicator="#rop-pcascatter-ind"
+              hx-vals='js:{"pca_scatter_x": document.getElementById("outlier-pca-scatter-x").value, "pca_scatter_y": document.getElementById("outlier-pca-scatter-y").value}'>
+        Plot
+      </button>
+      <div id="rop-pcascatter-ind" class="htmx-indicator inline-loader" style="margin-top:20px;"><span class="spinner-el"></span><span>Plotting…</span>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="ropAbort('rop-pcascatter-btn')">Cancel</button>
+      </div>
+    </div>
+    {# NOT auto-loaded — the chart only renders on a manual Plot click. The X/Y
+       selectors DO already get populated with real component names, but via
+       "Calculate preview" above (outlier_preview_pca.html OOB-swaps them) —
+       computing/plotting is a separate, deliberate action from previewing. #}
+    <div id="outlier-pca-scatter" class="mt-4">
+      <p class="text-sm text-muted">Pick components and click "Plot" (run "Calculate preview" first if the component list above is empty).</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Exports — Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {{ ui.page_header("Exports", "Download drilling data in XLSX format") }}
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Select source</h3></div>
+    <form
+      hx-post="/exports/columns"
+      hx-target="#export-columns-section"
+      hx-swap="innerHTML"
+      class="space-y-4"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
+          <label class="form-label">Well</label>
+          <select
+            name="well_id"
+            class="form-select"
+            hx-get="/exports/datasets"
+            hx-target="#export-dataset-select-wrapper"
+            hx-swap="innerHTML"
+            hx-trigger="change"
+            hx-indicator="#export-dataset-ind"
+            onchange="var c = document.getElementById('export-columns-card'); if (c) c.classList.add('hidden');"
+          >
+            <option value="">Select a well</option>
+            {% for w in wells %}<option value="{{ w.id }}">{{ w.well_name }}</option>{% endfor %}
+          </select>
+          <div id="export-dataset-ind" class="htmx-indicator inline-loader" style="margin-top:6px;"><span class="spinner-el"></span><span>Loading datasets…</span></div>
+        </div>
+        <div id="export-dataset-select-wrapper"></div>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <div id="exports-loading" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading columns…</span></div>
+        <button type="submit" id="exports-continue-btn" class="btn btn-primary">Continue</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="export-columns-section-wrapper">
+    <div class="card p-4 hidden" id="export-columns-card">
+      <div class="card-header"><h3 class="card-title">Select columns</h3></div>
+      <div id="export-columns-section"></div>
+    </div>
+  </div>
+</div>
+<script>
+  document.body.addEventListener('htmx:afterSwap', function (evt) {
+    if (evt.detail.target && evt.detail.target.id === 'export-columns-section') {
+      document.getElementById('export-columns-card').classList.remove('hidden');
+    }
+  });
+</script>
+{% endblock %}

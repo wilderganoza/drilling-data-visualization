@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<div class="space-y-6" style="max-width: 760px;">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Search", "Find companies, projects, sites, wells, wellbores, events and reports") }}
+  <div class="card p-4">
+    <input type="search" name="q" value="{{ q }}" class="form-input" placeholder="Search… (e.g. PAKA, Bloque 60, ODR-01)"
+           autofocus
+           hx-get="/ops/search" hx-trigger="keyup changed delay:300ms, search" hx-target="#search-results" hx-swap="innerHTML" />
+    <div id="search-results" class="mt-4">
+      {% include "ops/partials/search_results.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

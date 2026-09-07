@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}{{ event.event_code or "Event" }} — Daily Operations{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/ops/wellbores/{{ event.wellbore_id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ wellbore.name }}</a>
+  {{ ui.page_header(event.event_code or "Event", event.objective or "") }}
+  {% include "ops/partials/event_facts.html" %}
+  <div id="realtime-section" class="card p-4" hx-get="/ops/events/{{ event.id }}/realtime" hx-trigger="load" hx-swap="outerHTML">
+    <p class="text-muted">Loading real-time connection status…</p>
+  </div>
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Daily Operations Reports</h3></div>
+    <p class="text-sm text-muted" style="margin-bottom: 24px">One report per calendar day (06:00–06:00), captured across all subsections. The Dashboard rolls these up into plan-vs-actual charts and KPIs.</p>
+    <div class="flex gap-3" style="flex-wrap:wrap;">
+      <a href="/ops/events/{{ event.id }}/reports" class="btn btn-primary">Open Daily Reports &rarr;</a>
+      <a href="/ops/events/{{ event.id }}/dashboard" class="btn btn-secondary">📊 Dashboard</a>
+      <a href="/ops/events/{{ event.id }}/variance" class="btn btn-secondary">📉 Plan vs Actual</a>
+      <a href="/ops/events/{{ event.id }}/registers" class="btn btn-secondary">📋 Operations Registers</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

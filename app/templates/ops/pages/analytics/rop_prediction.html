@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}ROP Prediction — Analytics{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="flex justify-between items-center flex-wrap gap-2">
+    {# → the analytics hub, not /analytics/cleaning — the label said
+       "Analytics" but landed users on the Data Cleaning module. #}
+    <a href="/analytics" class="text-sm" style="color: var(--color-primary);">&larr; Analytics</a>
+    <a href="/analytics/rop-prediction/experiments" class="btn btn-secondary">Saved models</a>
+  </div>
+  {{ ui.page_header("ROP Prediction", "Train a machine-learning model that predicts drilling rate (ROP, ft/hr) from offset-well sensor data — a 9-step wizard: pick wells and variables, configure the data pipeline, compare models, tune the best one, and validate it on unseen data.") }}
+
+  <div id="rop-pred-content">
+    {% include "ops/partials/analytics/rop_pred_shell.html" %}
+  </div>
+</div>
+{% endblock %}
+{% block extra_scripts %}
+<script src="{{ asset('js/eng_charts.js') }}" defer></script>
+{% endblock %}

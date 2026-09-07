@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}{{ report.report_date }} — Daily Operations{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <a href="/ops/events/{{ event.id }}/reports" class="text-sm" style="color: var(--color-primary);">&larr; Reports</a>
+    <a href="/ops/reports/{{ report.id }}/print" class="btn btn-secondary btn-sm" target="_blank">🖨️ Print / PDF</a>
+  </div>
+  {{ ui.page_header("Daily Report — " ~ report.report_date, wellbore.name + " — " + (event.event_code or "Event")) }}
+  <div hx-get="/ops/reports/{{ report.id }}/status" hx-trigger="load" hx-swap="innerHTML"></div>
+  <div class="card p-0">
+    <div class="tab-bar">
+      <button type="button" class="tab-btn active" data-tab-btn
+              hx-get="/ops/reports/{{ report.id }}/general" hx-target="#report-tab-content" hx-swap="innerHTML">
+        General
+      </button>
+      <button type="button" class="tab-btn" data-tab-btn
+              hx-get="/ops/reports/{{ report.id }}/time-summary" hx-target="#report-tab-content" hx-swap="innerHTML">
+        Time Summary
+      </button>
+      <button type="button" class="tab-btn" data-tab-btn
+              hx-get="/ops/reports/{{ report.id }}/npt" hx-target="#report-tab-content" hx-swap="innerHTML">
+        NPT
+      </button>
+      {% for cfg in capture_configs %}
+        <button type="button" class="tab-btn" data-tab-btn
+                hx-get="/ops/reports/{{ report.id }}/capture/{{ cfg.key }}" hx-target="#report-tab-content" hx-swap="innerHTML">
+          {{ cfg.title }}
+        </button>
+      {% endfor %}
+      <button type="button" class="tab-btn" data-tab-btn
+              hx-get="/ops/attachments/daily_report/{{ report.id }}" hx-target="#report-tab-content" hx-swap="innerHTML">
+        📎 Attachments
+      </button>
+    </div>
+    <div id="report-tab-content" class="p-4">
+      {% include "ops/partials/daily_report_general.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

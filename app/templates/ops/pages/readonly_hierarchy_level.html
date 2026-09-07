@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% import "macros/ops.html" as ops %}
+{% block title %}{{ item_name }} — {{ workspace_label }}{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {% if back_href %}<a href="{{ back_href }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ back_label }}</a>{% endif %}
+  {{ ui.page_header(item_name, item_type) }}
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">{{ children_label }}</h3></div>
+    {{ ops.hierarchy_table(children, columns, child_link_prefix, none, empty_message, read_only=true) }}
+  </div>
+  {% if edit_href %}
+    <p class="text-sm text-muted">
+      To create, rename, or delete {{ item_type|lower }}s, use <a href="{{ edit_href }}" style="color: var(--color-primary);">Master Data</a>.
+    </p>
+  {% endif %}
+</div>
+{% endblock %}

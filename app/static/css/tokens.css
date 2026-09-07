@@ -1,0 +1,180 @@
+/* ============================================================
+   OIG — Tokens de diseño canónicos
+   Fuente única. No editar copias por proyecto: editar aquí.
+   Versión: 1.0.0
+   ============================================================ */
+
+:root {
+  /* --- Radios --- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+
+  /* --- Sombras --- */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.12);
+  --shadow-md: 0 12px 30px rgba(15, 23, 42, 0.16);
+
+  /* --- Transiciones ---
+     Solo duración + easing, sin la propiedad. Usar como
+     `transition: all var(--transition-base)`. */
+  --transition-fast: 0.12s ease;
+  --transition-base: 0.18s ease;
+  --transition-slow: 0.3s ease;
+
+  /* --- Paleta base ---
+     Tomada de Field Data Platform, que es la referencia visual del sistema.
+     Los mismos tonos valen para tema claro y oscuro: no se redefinen por tema.
+     Ver la nota de contraste en la sección 20.2 de la guía. */
+  --color-primary: #4a7cff;
+  --color-primary-hover: #3a6aee;
+  --color-secondary: #22d3ee;
+  --color-accent: #10b981;
+
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+
+  /* Componentes RGB de la paleta, para componer rgba() con opacidad variable.
+     Se usan como rgba(var(--color-primary-rgb), 0.12) cuando el fondo semántico
+     predefinido no sirve porque hace falta otra opacidad. */
+  --color-primary-rgb: 74, 124, 255;
+  --color-secondary-rgb: 34, 211, 238;
+  --color-accent-rgb: 16, 185, 129;
+  --color-success-rgb: 52, 211, 153;
+  --color-warning-rgb: 251, 191, 36;
+  --color-danger-rgb: 248, 113, 113;
+
+  /* --- Escala neutra --- */
+  --color-neutral-50: #f5f7fa;
+  --color-neutral-100: #e8ebf3;
+  --color-neutral-200: #d9dce6;
+  --color-neutral-300: #bcc2d4;
+  --color-neutral-600: #6b7280;
+  --color-neutral-700: #4b5563;
+  --color-neutral-900: #1a1d27;
+
+  /* --- Paleta de gráficos (8 series) ---
+     Orden canónico. DDV usaba otro orden; se alinea a este. */
+  --color-chart-1: #4a7cff; /* azul   */
+  --color-chart-2: #34d399; /* verde  */
+  --color-chart-3: #fbbf24; /* ámbar  */
+  --color-chart-4: #f87171; /* rojo   */
+  --color-chart-5: #a78bfa; /* morado */
+  --color-chart-6: #f472b6; /* rosa   */
+  --color-chart-7: #38bdf8; /* cian   */
+  --color-chart-8: #fb923c; /* naranja*/
+
+  /* --- Tipografía --- */
+  --font-sans: 'Inter', 'Work Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* --- Dimensiones de layout --- */
+  --header-height: 56px;
+  --sidebar-width: 200px;
+}
+
+/* ============================================================
+   TEMA CLARO
+   ============================================================ */
+[data-theme='light'] {
+  --color-bg: var(--color-neutral-50);
+  --color-bg-tertiary: #eef2f6;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f2f5;
+  --color-surface-hover: #f0f2f5;
+  --color-border: #e1e4e8;
+  --color-border-strong: #ccd1dc;
+  --color-border-focus: var(--color-primary);
+  --color-text: var(--color-neutral-900);
+  --color-text-muted: var(--color-neutral-600);
+  --shadow: var(--shadow-sm);
+
+  --color-chart-axis: #6b7280;
+  --color-chart-line: #1a1d27;
+  --color-tooltip-bg: #ffffff;
+  --color-tooltip-border: #e1e4e8;
+
+  --color-info: #2563eb;
+}
+
+/* ============================================================
+   TEMA OSCURO
+   ============================================================ */
+[data-theme='dark'] {
+  --color-bg: #0f1117;
+  --color-bg-tertiary: #161b26;
+  --color-surface: #1a1d27;
+  --color-surface-2: #151924;
+  --color-surface-hover: #232733;
+  --color-border: #2a2e3a;
+  --color-border-strong: #3a3f4d;
+  --color-border-focus: var(--color-primary);
+  --color-text: #e4e6ed;
+  --color-text-muted: #8b8fa3;
+  --shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+
+  --color-chart-axis: #8b8fa3;
+  --color-chart-line: #ffffff;
+  --color-tooltip-bg: #1a1d27;
+  --color-tooltip-border: #2a2e3a;
+
+  --color-info: #38bdf8;
+}
+
+/* ============================================================
+   FONDOS SEMÁNTICOS
+   Comunes a ambos temas.
+   ============================================================ */
+:root,
+[data-theme='light'],
+[data-theme='dark'] {
+  --color-success-bg: rgba(52, 211, 153, 0.12);
+  --color-warning-bg: rgba(251, 191, 36, 0.12);
+  --color-danger-bg: rgba(248, 113, 113, 0.12);
+  --color-info-bg: rgba(34, 211, 238, 0.12);
+  --color-primary-bg: rgba(74, 124, 255, 0.12);
+
+  --color-success-border: rgba(52, 211, 153, 0.3);
+  --color-warning-border: rgba(251, 191, 36, 0.3);
+  --color-danger-border: rgba(248, 113, 113, 0.3);
+  --color-info-border: rgba(34, 211, 238, 0.3);
+
+  /* Alias heredados. Mantener hasta migrar los consumidores. */
+  --color-error: var(--color-danger);
+  --color-error-bg: var(--color-danger-bg);
+  --color-text-secondary: var(--color-text-muted);
+}
+
+/* ============================================================
+   PALETAS CONTEXTUALES POR DOMINIO
+   Cada app define su bloque; el resto hereda el neutro.
+   ============================================================ */
+:root {
+  --color-context-primary: var(--color-primary);
+  --color-context-emphasis: var(--color-success);
+  --color-context-negative: var(--color-danger);
+  --color-context-pending: var(--color-warning);
+}
+
+[data-context='analytics'] {
+  /* DDV — perforación */
+  --color-context-primary: #2563eb;
+  --color-context-emphasis: #22d3ee;
+  --color-context-negative: #f97316;
+}
+
+[data-context='compliance'] {
+  /* FDA — verificación documental */
+  --color-context-primary: #2563eb;
+  --color-context-emphasis: #34d399;
+  --color-context-negative: #f87171;
+  --color-context-pending: #fbbf24;
+}
+
+[data-context='petroleum'] {
+  /* SPA — asignación de producción */
+  --color-context-primary: #4a7cff;
+  --color-context-emphasis: #34d399;
+}

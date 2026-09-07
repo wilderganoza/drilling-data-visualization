@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Crossplots — Drilling Data Visualization{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  {{ ui.page_header("Crossplots", "Scatter plot analysis for parameter correlation") }}
+
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Select Well and Parameters</h3></div>
+    <form hx-post="/crossplots/plot" hx-target="#crossplot-section" hx-swap="innerHTML" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
+          <label class="form-label">Well</label>
+          <select
+            id="crossplots-well-select"
+            name="well_id"
+            class="form-select"
+            hx-get="/crossplots/datasets"
+            hx-target="#crossplots-dataset-select-wrapper"
+            hx-swap="innerHTML"
+            hx-trigger="change"
+            hx-indicator="#crossplots-dataset-ind"
+          >
+            <option value="">Select a well</option>
+            {% for w in wells %}<option value="{{ w.id }}">{{ w.well_name }}</option>{% endfor %}
+          </select>
+          <div id="crossplots-dataset-ind" class="htmx-indicator inline-loader" style="margin-top:6px;"><span class="spinner-el"></span><span>Loading datasets…</span></div>
+        </div>
+        <div id="crossplots-dataset-select-wrapper"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="w-full">
+          <label class="form-label">X-Axis Parameter</label>
+          <select name="x_param" class="form-select">
+            {% for p in parameters %}<option value="{{ p.value }}" {{ 'selected' if p.value == default_x else '' }}>{{ p.label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="w-full">
+          <label class="form-label">Y-Axis Parameter</label>
+          <select name="y_param" class="form-select">
+            {% for p in parameters %}<option value="{{ p.value }}" {{ 'selected' if p.value == default_y else '' }}>{{ p.label }}</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="w-full">
+          <label class="form-label">X-Axis Scale</label>
+          <select name="x_scale" id="crossplot-x-scale" class="form-select" onchange="window.__crossplotScaleChanged()">
+            <option value="linear">Linear</option>
+            <option value="log">Logarithmic</option>
+          </select>
+        </div>
+        <div class="w-full">
+          <label class="form-label">Y-Axis Scale</label>
+          <select name="y_scale" id="crossplot-y-scale" class="form-select" onchange="window.__crossplotScaleChanged()">
+            <option value="linear">Linear</option>
+            <option value="log">Logarithmic</option>
+          </select>
+        </div>
+        <div class="w-full">
+          <label class="form-label">Max Points to Plot</label>
+          <select name="max_points" class="form-select">
+            <option value="1000">1,000</option>
+            <option value="2000">2,000</option>
+            <option value="5000">5,000</option>
+            <option value="10000">10,000</option>
+            <option value="20000">20,000</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-6">
+        <label class="flex items-center gap-2 text-sm" style="cursor: pointer; color: var(--color-text);">
+          <input type="checkbox" name="show_trend_line" value="true" style="accent-color: var(--color-primary);" />
+          Show trend line
+        </label>
+        <label id="crossplot-zeros-label" class="flex items-center gap-2 text-sm" style="cursor: pointer; color: var(--color-text);">
+          <input type="checkbox" name="include_zeros" value="true" checked id="crossplot-include-zeros" style="accent-color: var(--color-primary);" />
+          Include zeros
+        </label>
+        <span id="crossplot-log-zeros-note" class="text-sm text-warning hidden">Values &le; 0 are always excluded on a logarithmic axis.</span>
+      </div>
+
+      <div class="flex items-center justify-end gap-3">
+        <div id="crossplots-loading" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Loading data…</span></div>
+        <button type="submit" id="crossplots-apply-btn" class="btn btn-primary">Apply Selection</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="crossplot-section">
+    <div class="card p-4">
+      <div class="py-12 text-center">
+        <p class="text-muted">Select a well and parameters, then click Apply to generate the crossplot</p>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  window.__crossplotScaleChanged = function () {
+    var xLog = document.getElementById('crossplot-x-scale').value === 'log';
+    var yLog = document.getElementById('crossplot-y-scale').value === 'log';
+    var isLog = xLog || yLog;
+    var checkbox = document.getElementById('crossplot-include-zeros');
+    var label = document.getElementById('crossplot-zeros-label');
+    var note = document.getElementById('crossplot-log-zeros-note');
+    // Log axes always drop values <= 0 server-side (a log scale can't plot
+    // zero/negative), regardless of this checkbox — it used to be FORCED
+    // checked+disabled in that state, asserting the opposite of what the
+    // chart actually shows. Force it OFF+disabled instead, and say why.
+    checkbox.disabled = isLog;
+    if (isLog) checkbox.checked = false;
+    label.style.opacity = isLog ? '0.5' : '1';
+    label.style.cursor = isLog ? 'not-allowed' : 'pointer';
+    if (note) note.style.display = isLog ? 'inline' : 'none';
+  };
+</script>
+{% endblock %}

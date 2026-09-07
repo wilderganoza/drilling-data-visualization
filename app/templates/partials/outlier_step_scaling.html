@@ -1,0 +1,58 @@
+{% import "macros/ui.html" as ui %}
+{% if request.headers.get('HX-Request') %}<div id="outlier-step-pills" hx-swap-oob="true">{{ ui.step_pills(steps, step_titles, current_step) }}</div>{% endif %}
+<div class="space-y-6">
+  {% if errors %}
+    <div class="card p-4" style="border-color: var(--color-danger);">
+      {% for e in errors %}<p class="text-sm text-danger">{{ e }}</p>{% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Scaling method</h3>
+      <span class="text-sm text-muted">Puts all selected variables on a comparable numeric range before outlier detection / PCA — distance-based methods (LOF, DBSCAN, PCA) are otherwise dominated by whichever variable has the biggest raw numbers.</span>
+    </div>
+    <form id="outlier-scaling-form" hx-post="/outliers/steps/pca" hx-target="#wizard-content" hx-swap="innerHTML" class="space-y-4">
+      {{ ui.wizard_hidden(ctx, skip_scaling=True) }}
+      {# Explicit labels + hints — `|capitalize` produced the misspellings
+         "Minmax"/"Maxabs" (same fix already applied in ROP Prediction). #}
+      {% set scaling_options = [
+        ('none', 'None', 'No scaling — fine when the chosen outlier method is scale-invariant (e.g. IQR/Z-score per variable).'),
+        ('standard', 'Standard (z-score)', 'Mean 0, std 1 per variable — the usual default.'),
+        ('minmax', 'MinMax (0–1)', 'Rescales each variable to [0, 1]. Sensitive to extreme values.'),
+        ('robust', 'Robust (median/IQR)', 'Uses median and IQR — the choice when outliers remain in the data.'),
+        ('maxabs', 'MaxAbs (−1–1)', 'Divides by each variable\'s max |value|; preserves zeros/sparsity.'),
+      ] %}
+      <div class="w-full" style="max-width: 380px;">
+        <label class="form-label">Method</label>
+        <select name="scaling_method" class="form-select">
+          {% for key, label, hint in scaling_options %}
+            <option value="{{ key }}" {{ 'selected' if key == scaling_method else '' }} title="{{ hint }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <p class="text-sm text-muted">The preview below is optional — the chosen method is applied automatically when the pipeline runs.</p>
+      <div class="flex justify-between">
+        <button type="button" class="btn btn-secondary" hx-post="/outliers/steps/outlier" hx-target="#wizard-content" hx-swap="innerHTML" hx-include="#outlier-scaling-form">&larr; Back</button>
+        <div class="flex items-center gap-2">
+          <div id="outlier-scaling-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Computing…</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="if(window.htmx){htmx.trigger(document.getElementById('outlier-scaling-calc'),'htmx:abort');}">Cancel</button>
+          </div>
+          <button type="button" id="outlier-scaling-calc" class="btn btn-secondary" hx-post="/outliers/preview/scaling" hx-target="#outlier-scaling-preview" hx-swap="innerHTML" hx-include="#outlier-scaling-form" hx-indicator="#outlier-scaling-ind">Calculate preview</button>
+          <button type="submit" class="btn btn-primary">Next: PCA &rarr;</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Preview</h3>
+      <span class="text-sm text-muted">Raw vs. scaled min/mean/max per selected variable, so you can sanity-check the transform before running the pipeline.</span>
+    </div>
+    <div id="outlier-scaling-preview">
+      <p class="text-sm text-muted">Click "Calculate preview" to see raw vs. scaled values.</p>
+    </div>
+  </div>
+</div>

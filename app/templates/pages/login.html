@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — Drilling Data Visualization</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Work+Sans:wght@500&display=swap" rel="stylesheet" />
+
+  {# Esta pantalla no extiende base.html, así que carga los tokens por su cuenta #}
+  <link rel="stylesheet" href="{{ asset('css/tokens.css') }}" />
+  <link rel="stylesheet" href="{{ asset('css/app.css') }}" />
+  <script>
+    (function () {
+      var theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
+</head>
+<body>
+  <div class="flex items-center justify-center px-4" style="min-height: 100vh; background-color: var(--color-bg);">
+    <div class="w-full" style="max-width: 400px;">
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-14 h-14 mb-4" style="background-color: var(--color-primary); border-radius: var(--radius-lg);">
+          <svg width="28" height="28" fill="none" stroke="#ffffff" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h2v8H3zm6-4h2v12H9zm6-6h2v18h-2zm6 10h2v8h-2z" />
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold" style="color: var(--color-text);">Drilling Data Visualization</h1>
+        <p class="mt-1 text-sm text-muted">Sign in to your account</p>
+      </div>
+
+      <form method="post" action="/login" class="p-8 space-y-4" style="background-color: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); box-shadow: 0 4px 24px rgba(0,0,0,0.3);">
+        <input type="hidden" name="next" value="{{ next }}" />
+        {% if error %}
+          <div class="px-4 py-3 text-sm" style="background-color: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: var(--radius); color: var(--color-danger);">
+            {{ error }}
+          </div>
+        {% endif %}
+
+        <div class="w-full">
+          <label for="email" class="form-label">Email</label>
+          <input id="email" name="email" type="email" class="form-input" required autofocus autocomplete="email" placeholder="Enter your email" />
+        </div>
+
+        <div class="w-full">
+          <label for="password" class="form-label">Password</label>
+          <input id="password" name="password" type="password" class="form-input" required autocomplete="current-password" placeholder="Enter your password" />
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-full">Sign In</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

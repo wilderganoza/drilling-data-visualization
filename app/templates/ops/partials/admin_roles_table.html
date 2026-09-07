@@ -1,0 +1,36 @@
+<div id="admin-roles-table" class="overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b">
+        <th class="text-left py-2 px-3 font-medium text-muted">User</th>
+        <th class="text-left py-2 px-3 font-medium text-muted">Name</th>
+        <th class="text-left py-2 px-3 font-medium text-muted">Current role</th>
+        <th class="text-left py-2 px-3 font-medium text-muted">Assign</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+        <tr style="border-bottom: 1px solid var(--color-border);">
+          <td class="py-2 px-3" style="color: var(--color-text);">{{ u.username }}{% if u.is_admin %} <span class="badge badge-muted">Global Admin</span>{% endif %}</td>
+          <td class="py-2 px-3 text-muted">{{ u.full_name or "—" }}</td>
+          <td class="py-2 px-3">
+            {% set r = roles.get(u.id) %}
+            {% if r %}<span class="badge badge-primary">{{ r.replace("_", " ")|title }}</span>{% else %}<span class="text-muted">—</span>{% endif %}
+          </td>
+          <td class="py-2 px-3">
+            <form hx-post="/admin/ops/roles" hx-target="#admin-roles-table" hx-swap="outerHTML" class="flex items-center gap-2">
+              <input type="hidden" name="user_id" value="{{ u.id }}" />
+              <select name="role" class="form-select" style="max-width: 220px;">
+                <option value="">— none —</option>
+                {% for role in all_roles %}
+                  <option value="{{ role.value }}" {{ "selected" if roles.get(u.id) == role.value }}>{{ role.value.replace("_", " ")|title }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}Well Benchmarking{% endblock %}
+{% macro bar(value, maxv, color, suffix="") %}
+  {% set pct = ((value / maxv * 100) if maxv and value is not none else 0) %}
+  <div style="display:flex; align-items:center; gap:8px;">
+    <div style="flex:1; height:8px; background:var(--color-bg); border-radius:4px; overflow:hidden;">
+      <div style="height:100%; width:{{ pct }}%; background:{{ color }}; border-radius:4px;"></div>
+    </div>
+    <span style="min-width:64px; text-align:right; color:var(--color-text); font-variant-numeric:tabular-nums;">{{ ("%.1f"|format(value)) ~ suffix if value is not none else "—" }}</span>
+  </div>
+{% endmacro %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/" class="text-sm" style="color: var(--color-primary);">&larr; Home</a>
+  {{ ui.page_header("Well Benchmarking", "Cross-well performance across the field — normalized for depth") }}
+
+  {% if rows|length == 0 %}
+    <div class="card p-4"><p class="text-sm text-muted">No wells with captured daily operations yet.</p></div>
+  {% else %}
+    <div class="card p-0">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b">
+              <th class="text-left py-2 px-3 font-medium text-muted">Well</th>
+              <th class="text-left py-2 px-3 font-medium text-muted">Final MD</th>
+              <th class="text-left py-2 px-3 font-medium text-muted">Days</th>
+              <th class="text-left py-2 px-3 font-medium text-muted" style="min-width:180px">Days / 1000 ft ⬇ best</th>
+              <th class="text-left py-2 px-3 font-medium text-muted" style="min-width:180px">Cost / ft</th>
+              <th class="text-left py-2 px-3 font-medium text-muted" style="min-width:150px">NPT %</th>
+              <th class="text-left py-2 px-3 font-medium text-muted">Cost</th>
+              <th class="text-right py-2 px-3 font-medium text-muted"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+              <tr style="border-bottom: 1px solid var(--color-border);">
+                <td class="py-2 px-3" style="color: var(--color-text); font-weight:500;">{{ r.well }}{% if r.event_code and r.event_code != r.well %} <span class="text-xs text-muted">{{ r.event_code }}</span>{% endif %}</td>
+                <td class="py-2 px-3" style="color: var(--color-text);">{{ "{:,.0f}".format(r.final_md) if r.final_md is not none else "—" }} ft</td>
+                <td class="py-2 px-3" style="color: var(--color-text);">{{ r.days }}</td>
+                <td class="py-2 px-3">{{ bar(r.days_per_1000ft, maxes.days_per_1000ft, "#3B82F6") }}</td>
+                <td class="py-2 px-3">{{ bar(r.cost_per_ft, maxes.cost_per_ft, "#8B5CF6", "") }}</td>
+                <td class="py-2 px-3">{{ bar(r.npt_pct, maxes.npt_pct, "#EF4444", "%") }}</td>
+                <td class="py-2 px-3" style="color: var(--color-text);">{{ "${:,.0f}".format(r.cost) if r.cost is not none else "—" }}</td>
+                <td class="py-2 px-3 text-right"><a href="/ops/events/{{ r.event_id }}/dashboard" class="btn btn-ghost btn-sm">Dashboard →</a></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <p class="text-xs text-muted">Bars are relative to the field maximum. Lower <strong>Days/1000 ft</strong>, <strong>Cost/ft</strong> and <strong>NPT %</strong> are better. Wells sorted best-first by Days/1000 ft.</p>
+  {% endif %}
+</div>
+{% endblock %}

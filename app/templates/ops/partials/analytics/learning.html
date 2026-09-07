@@ -1,0 +1,194 @@
+<div class="space-y-4">
+
+  {# ---- KPI cards ---- #}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="card p-3">
+      <p class="text-xs text-muted">Wells in curve</p>
+      <p style="font-size:20px;font-weight:600;">{{ res.n_wells }}</p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Cost/ft learning rate</p>
+      <p class="text-danger" style="font-size:20px;font-weight:600;{% if res.fit_cost and res.fit_cost.rate > 0 %}color:var(--color-success);{% elif res.fit_cost and res.fit_cost.rate < 0 %}{% endif %}">
+        {{ (res.fit_cost.rate * 100)|round(1) ~ '%' if res.fit_cost else '—' }}
+      </p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Days/1000ft learning rate</p>
+      <p class="text-danger" style="font-size:20px;font-weight:600;{% if res.fit_days and res.fit_days.rate > 0 %}color:var(--color-success);{% elif res.fit_days and res.fit_days.rate < 0 %}{% endif %}">
+        {{ (res.fit_days.rate * 100)|round(1) ~ '%' if res.fit_days else '—' }}
+      </p>
+    </div>
+    <div class="card p-3">
+      <p class="text-xs text-muted">Lessons captured</p>
+      <p style="font-size:20px;font-weight:600;">{{ res.n_lessons }}</p>
+    </div>
+  </div>
+
+  {% if res.n_wells < 2 %}
+    <div class="card p-3">
+      <p class="text-sm text-muted">
+        Learning trends need at least two wells with captured operations — the tables below reflect the data available so far.
+        A power-law fit is shown once three or more wells are on record.
+      </p>
+    </div>
+  {% endif %}
+
+  {# ---- Learning-curve charts ---- #}
+  {% if res.wells %}
+  <div class="card p-4 space-y-4">
+    <div>
+      <p class="text-sm" style="font-weight:600;">Cost/ft learning curve</p>
+      <p class="text-xs text-muted">
+        {% if res.fit_cost %}
+          Fit: cost/ft ≈ {{ res.fit_cost.a }}·n<sup>{{ res.fit_cost.b }}</sup>
+          &middot; R² = {{ res.fit_cost.r2 }}
+          &middot; {{ (res.fit_cost.rate * 100)|round(1) }}% improvement per doubling
+        {% else %}
+          Actual cost per foot by chronological well index (fit needs ≥ 3 wells).
+        {% endif %}
+      </p>
+    </div>
+    <div id="lc-cost" class="chart-container"></div>
+
+    <div>
+      <p class="text-sm" style="font-weight:600;">Days/1000ft learning curve</p>
+      <p class="text-xs text-muted">
+        {% if res.fit_days %}
+          Fit: days/1000ft ≈ {{ res.fit_days.a }}·n<sup>{{ res.fit_days.b }}</sup>
+          &middot; R² = {{ res.fit_days.r2 }}
+          &middot; {{ (res.fit_days.rate * 100)|round(1) }}% improvement per doubling
+        {% else %}
+          Actual days per 1000 ft by chronological well index (fit needs ≥ 3 wells).
+        {% endif %}
+      </p>
+    </div>
+    <div id="lc-days" class="chart-container"></div>
+  </div>
+
+  <script id="lc-data" type="application/json">{{ res.wells|tojson }}</script>
+  <script id="lc-fit-cost" type="application/json">{{ (res.fit_cost or {})|tojson }}</script>
+  <script id="lc-fit-days" type="application/json">{{ (res.fit_days or {})|tojson }}</script>
+  <script>(function boot(){
+    if(!window.EngCharts||!window.d3){setTimeout(boot,40);return;}
+    var d=JSON.parse(document.getElementById('lc-data').textContent);
+    var fc=JSON.parse(document.getElementById('lc-fit-cost').textContent);
+    var fd=JSON.parse(document.getElementById('lc-fit-days').textContent);
+    function actual(key){return d.filter(function(p){return p[key]!=null;}).map(function(p){return {x:p.n,y:p[key]};});}
+    function fitPts(fit){
+      if(!fit||fit.a==null||fit.b==null)return null;
+      var pts=[],nmax=d.length||1;
+      for(var i=1;i<=nmax;i++){pts.push({x:i,y:fit.a*Math.pow(i,fit.b)});}
+      return pts;
+    }
+    var costSeries=[{name:'Actual',color:'#3B82F6',points:actual('cost_per_ft')}];
+    var cfit=fitPts(fc); if(cfit)costSeries.push({name:'Power-law fit',color:'#F59E0B',dashed:true,points:cfit});
+    window.EngCharts.xyPlot('lc-cost',{xLabel:'Well (chronological)',yLabel:'Cost / ft ($)',height:320,series:costSeries});
+
+    var daySeries=[{name:'Actual',color:'#3B82F6',points:actual('days_per_1000ft')}];
+    var dfit=fitPts(fd); if(dfit)daySeries.push({name:'Power-law fit',color:'#F59E0B',dashed:true,points:dfit});
+    window.EngCharts.xyPlot('lc-days',{xLabel:'Well (chronological)',yLabel:'Days / 1000 ft',height:320,series:daySeries});
+  })();</script>
+  {% endif %}
+
+  {# ---- Wells table ---- #}
+  <div class="card p-4">
+    <p class="text-sm" style="font-weight:600;margin-bottom:8px;">Learning sequence</p>
+    <div style="overflow-x:auto;">
+      <table class="w-full text-sm" style="border-collapse:collapse;">
+        <thead><tr class="text-muted" style="text-align:left;border-bottom:1px solid var(--color-border)">
+          <th class="p-2">#</th><th class="p-2">Well / Event</th><th class="p-2">Spud</th>
+          <th class="p-2">Final MD ({{ depth_unit }})</th><th class="p-2">Days</th>
+          <th class="p-2">Cost/ft ($)</th><th class="p-2">Days/1000ft</th><th class="p-2">NPT %</th>
+        </tr></thead>
+        <tbody>
+          {% for w in res.wells %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="p-2">{{ w.n }}</td>
+            <td class="p-2" style="font-weight:500;">{{ w.well }}</td>
+            <td class="p-2">{{ w.spud or "—" }}</td>
+            <td class="p-2">{{ "{:,.0f}".format(w.final_md) if w.final_md is not none else "—" }}</td>
+            <td class="p-2">{{ w.days if w.days is not none else "—" }}</td>
+            <td class="p-2">{{ "{:,.1f}".format(w.cost_per_ft) if w.cost_per_ft is not none else "—" }}</td>
+            <td class="p-2">{{ w.days_per_1000ft if w.days_per_1000ft is not none else "—" }}</td>
+            <td class="p-2">{{ "{:.1f}".format(w.npt_pct) if w.npt_pct is not none else "—" }}</td>
+          </tr>
+          {% else %}
+          <tr><td class="p-2 text-muted" colspan="8">No wells with captured operations yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ---- By-section table ---- #}
+  <div class="card p-4">
+    <p class="text-sm" style="font-weight:600;margin-bottom:8px;">By hole section (field-wide)</p>
+    <div style="overflow-x:auto;">
+      <table class="w-full text-sm" style="border-collapse:collapse;">
+        <thead><tr class="text-muted" style="text-align:left;border-bottom:1px solid var(--color-border)">
+          <th class="p-2">Section</th><th class="p-2">Wells</th><th class="p-2">Avg days</th>
+          <th class="p-2">Avg ft/day</th><th class="p-2">Avg cost</th>
+        </tr></thead>
+        <tbody>
+          {% for s in res.sections %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="p-2" style="font-weight:500;">{{ s.section }}</td>
+            <td class="p-2">{{ s.wells_count }}</td>
+            <td class="p-2">{{ s.avg_days }}</td>
+            <td class="p-2">{{ "{:,.0f}".format(s.avg_ft_per_day) if s.avg_ft_per_day is not none else "—" }}</td>
+            <td class="p-2">{{ "${:,.0f}".format(s.avg_cost) if s.avg_cost is not none else "—" }}</td>
+          </tr>
+          {% else %}
+          <tr><td class="p-2 text-muted" colspan="5">No daily reports with a hole size recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ---- Lessons by category ---- #}
+  <div class="card p-4">
+    <p class="text-sm" style="font-weight:600;margin-bottom:8px;">Lessons by category</p>
+    <div style="overflow-x:auto;">
+      <table class="w-full text-sm" style="border-collapse:collapse;">
+        <thead><tr class="text-muted" style="text-align:left;border-bottom:1px solid var(--color-border)">
+          <th class="p-2">Category</th><th class="p-2">Count</th><th class="p-2">NPT (hr)</th>
+        </tr></thead>
+        <tbody>
+          {% for c in res.lessons_by_category %}
+          <tr style="border-bottom:1px solid var(--color-border);">
+            <td class="p-2" style="font-weight:500;">{{ c.category }}</td>
+            <td class="p-2">{{ c.count }}</td>
+            <td class="p-2">{{ c.npt_hours }}</td>
+          </tr>
+          {% else %}
+          <tr><td class="p-2 text-muted" colspan="3">No lessons captured yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# ---- Top lessons ---- #}
+  <div class="card p-4">
+    <p class="text-sm" style="font-weight:600;margin-bottom:8px;">Top lessons by NPT impact</p>
+    <div class="space-y-3">
+      {% for l in res.top_lessons %}
+      <div style="border-bottom:1px solid var(--color-border);padding-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="badge {{ 'badge-danger' if l.impact == 'High' else ('badge-warning' if l.impact == 'Medium' else 'badge-muted') }}">{{ l.impact or "—" }}</span>
+          <span class="text-xs text-muted">{{ l.category }}{% if l.phase %} &middot; {{ l.phase }}{% endif %} &middot; {{ l.well }}</span>
+          <span class="text-xs text-danger" style="margin-left:auto">{{ l.npt_hours }} hr NPT</span>
+        </div>
+        <p class="text-sm" style="margin-top:4px;">{{ l.lesson or "—" }}</p>
+        {% if l.recommendation %}
+        <p class="text-xs text-muted" style="margin-top:2px"><strong>Recommendation:</strong> {{ l.recommendation }}</p>
+        {% endif %}
+      </div>
+      {% else %}
+      <p class="text-sm text-muted">No lessons captured yet.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,62 @@
+{% if columns|length == 0 %}
+  <p class="text-sm text-muted">No columns available for this source.</p>
+{% else %}
+  <form method="post" action="/exports/download" class="space-y-4">
+    <input type="hidden" name="well_id" value="{{ well_id }}" />
+    <input type="hidden" name="dataset_id" value="{{ dataset_id }}" />
+
+    <div class="flex items-center justify-between gap-4">
+      <div class="w-full max-w-sm">
+        <input type="text" class="form-input" placeholder="Search columns..." oninput="window.__filterExportColumns(this.value)" />
+      </div>
+      <div class="flex items-center gap-4">
+        {% if case_type == "processed" %}
+          <label class="flex items-center gap-2 text-sm" style="cursor: pointer; color: var(--color-text); white-space: nowrap;">
+            <input type="checkbox" name="include_outliers" value="true" style="accent-color: var(--color-primary);" />
+            Include outliers
+          </label>
+        {% endif %}
+        <label class="flex items-center gap-2 text-sm" style="cursor: pointer; color: var(--color-text); white-space: nowrap;">
+          <input type="checkbox" name="include_all_columns" value="true" checked
+                 onchange="window.__toggleAllExportColumns(this.checked)" id="export-select-all" />
+          Select all ({{ columns|length }})
+        </label>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 overflow-y-auto" style="max-height: 420px;" id="export-columns-grid">
+      {% for col in columns %}
+        <label class="export-column-row flex items-center justify-between gap-2 text-sm px-3 py-2 rounded-md"
+               data-label="{{ col.label|lower }}"
+               style="border: 1px solid var(--color-border); cursor: pointer; color: var(--color-text);">
+          <span class="truncate" title="{{ col.label }}">{{ col.label }}</span>
+          <input type="checkbox" name="columns" value="{{ col.key }}" checked
+                 onchange="window.__onExportColumnChange()" style="accent-color: var(--color-primary);" />
+        </label>
+      {% endfor %}
+    </div>
+
+    <div class="flex justify-end pt-2">
+      <button type="submit" class="btn btn-primary">Download XLSX</button>
+    </div>
+  </form>
+
+  <script>
+    window.__toggleAllExportColumns = function (allSelected) {
+      document.querySelectorAll('#export-columns-grid input[name="columns"]').forEach(function (cb) {
+        cb.checked = allSelected;
+      });
+    };
+    window.__onExportColumnChange = function () {
+      var boxes = document.querySelectorAll('#export-columns-grid input[name="columns"]');
+      var allChecked = Array.from(boxes).every(function (cb) { return cb.checked; });
+      document.getElementById('export-select-all').checked = allChecked;
+    };
+    window.__filterExportColumns = function (query) {
+      var q = query.toLowerCase();
+      document.querySelectorAll('.export-column-row').forEach(function (row) {
+        row.style.display = row.getAttribute('data-label').indexOf(q) === -1 ? 'none' : 'flex';
+      });
+    };
+  </script>
+{% endif %}

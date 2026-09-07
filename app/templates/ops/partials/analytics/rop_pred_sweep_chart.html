@@ -1,0 +1,50 @@
+{% if not result or not result.series or not result.x %}
+  <p class="text-sm text-muted">No data.</p>
+{% else %}
+  <div id="rop-sweep-chart-inner" class="chart-container"></div>
+  {% if result.founder %}
+  <p class="text-sm" style="margin-top:8px;">
+    Founder point ≈ <strong>{{ result.founder.x|fmt_number(2) }}</strong> — predicted ROP peaks around
+    <strong>{{ result.founder.y|fmt_number(2) }} ft/hr</strong> there; more {{ feature_label|lower }} beyond this
+    point does not improve (and may hurt) the predicted rate.
+  </p>
+  {% endif %}
+  <p class="text-sm text-muted" style="margin-top:4px;">Shaded band = the model's prediction interval at each point (same conformal half-width used throughout Validation) — not a certain value.</p>
+  <script>
+  (function () {
+    function boot() {
+      if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+      var xs = {{ result.x|tojson }};
+      var series = {{ result.series|tojson }};
+      var compareLabel = {{ compare_label|tojson }};
+      var palette = ['#3B82F6', '#F59E0B', '#22c55e', '#EF4444', '#a855f7'];
+      var data = xs.map(function (x, i) {
+        var row = { x: x };
+        series.forEach(function (s, si) {
+          row['s' + si] = s.y[i];
+          if (s.y_lo) row['s' + si + '_lo'] = s.y_lo[i];
+          if (s.y_hi) row['s' + si + '_hi'] = s.y_hi[i];
+        });
+        return row;
+      });
+      DrillingCharts.renderLineChart('rop-sweep-chart-inner', {
+        data: data, xKey: 'x', xLabel: {{ feature_label|tojson }},
+        series: series.map(function (s, si) {
+          return {
+            key: 's' + si, color: palette[si % palette.length],
+            label: s.value === null ? {{ feature_label|tojson }} : (compareLabel + ' = ' + s.value.toFixed(1)),
+            bandLoKey: s.y_lo ? 's' + si + '_lo' : undefined,
+            bandHiKey: s.y_hi ? 's' + si + '_hi' : undefined,
+          };
+        }),
+        yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left', tickFormat: 'decimal2' }],
+        xTickFormat: 'decimal',
+        legend: series.length > 1,
+        brush: false,
+        height: 360,
+      });
+    }
+    boot();
+  })();
+  </script>
+{% endif %}

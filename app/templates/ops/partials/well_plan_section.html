@@ -1,0 +1,111 @@
+{% import "macros/ops.html" as ops %}
+{% macro fact(label, value, unit="", money=false) %}
+  <div><dt class="text-muted">{{ label }}</dt><dd style="color: var(--color-text);">{{ (value|money) if money else (value if value is not none and value != "" else "—") }}{{ (" " ~ unit) if value is not none and value != "" and unit and not money else "" }}</dd></div>
+{% endmacro %}
+<div id="well-plan-section">
+  <div class="subsection-toolbar">
+    <p class="text-sm text-muted">Header of the well program — objectives, targets, trajectory intent, rig, schedule and the AFE cost summary. Detailed programs are in the other tabs.</p>
+    {{ ops.new_button("well-plan-modal", "Edit AFE / Summary" if plan else "+ New AFE / Summary") }}
+  </div>
+
+  {% if plan %}
+    <div class="card p-4 mb-4">
+      <div class="card-header"><h3 class="card-title">AFE &amp; Approval</h3></div>
+      <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        {{ fact("AFE No.", plan.afe_number) }}
+        {{ fact("Status", plan.status) }}
+        {{ fact("Engineer", plan.engineer) }}
+        {{ fact("Authorized date", plan.authorized_date) }}
+        {{ fact("Currency", plan.currency) }}
+        {{ fact("Dry-hole cost", plan.dry_hole_cost, money=true) }}
+        {{ fact("Completion cost", plan.completion_cost, money=true) }}
+        {{ fact("Contingency", plan.contingency_pct, "%") }}
+        {{ fact("Budget total", plan.budget_total, money=true) }}
+      </dl>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <div class="card-header"><h3 class="card-title">Objectives &amp; Geology</h3></div>
+      <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        {{ fact("Primary objective", plan.objective_primary) }}
+        {{ fact("Secondary objective", plan.objective_secondary) }}
+        {{ fact("Target formation", plan.target_formation) }}
+        {{ fact("Geology prognosis", plan.geology_prognosis) }}
+      </dl>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <div class="card-header"><h3 class="card-title">Design Targets &amp; Trajectory</h3></div>
+      <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        {{ fact("Authorized MD", plan.authorized_md, "ft") }}
+        {{ fact("Authorized TVD", plan.authorized_tvd, "ft") }}
+        {{ fact("KOP", plan.kop_md, "ft") }}
+        {{ fact("Max inclination", plan.max_inclination, "°") }}
+        {{ fact("Target azimuth", plan.target_azimuth, "°") }}
+        {{ fact("Surface location", plan.surface_location) }}
+        {{ fact("Northing", plan.surface_northing) }}
+        {{ fact("Easting", plan.surface_easting) }}
+      </dl>
+    </div>
+
+    <div class="card p-4">
+      <div class="card-header"><h3 class="card-title">Rig &amp; Schedule</h3></div>
+      <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        {{ fact("Rig", plan.rig_name) }}
+        {{ fact("Rig type", plan.rig_type) }}
+        {{ fact("Planned spud", plan.planned_spud_date) }}
+        {{ fact("Est. days", plan.est_days) }}
+        <div class="md:col-span-4">{{ fact("Description", plan.description) }}</div>
+      </dl>
+    </div>
+  {% else %}
+    <p class="text-sm text-muted">No AFE / plan header created yet for this event.</p>
+  {% endif %}
+
+  {% call ops.modal("well-plan-modal", "Well Planning / AFE — Summary", size="modal-xl") %}
+    <form hx-post="/planning/events/{{ event.id }}/plan" hx-target="#well-plan-section" hx-swap="outerHTML" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% set p = plan %}
+      {# Status/approver are NOT editable here — they're exclusively driven by
+         the Submit → Approve → Reopen workflow (see plan_status.html), which
+         also locks the plan and records a real approver + timestamp. This
+         form used to expose a free "Approved" option that bypassed all of
+         that (no lock, no approver, no timestamp) — a real permission gap,
+         not just a UI inconsistency. Shown here read-only for context. #}
+      <div><label class="form-label">AFE No.</label><input type="text" name="afe_number" class="form-input" value="{{ p.afe_number if p else '' }}" /></div>
+      <div><label class="form-label">Status</label><input type="text" class="form-input" value="{{ p.status if p and p.status else 'Draft' }}" disabled title="Controlled by the Submit / Approve workflow below" /></div>
+      <div><label class="form-label">Engineer</label><input type="text" name="engineer" class="form-input" value="{{ p.engineer if p else '' }}" /></div>
+      <div><label class="form-label">Authorized date</label><input type="date" name="authorized_date" class="form-input" value="{{ p.authorized_date if p else '' }}" /></div>
+      <div><label class="form-label">Currency</label><input type="text" name="currency" class="form-input" placeholder="USD" value="{{ p.currency if p else '' }}" /></div>
+
+      <div><label class="form-label">Target formation</label><input type="text" name="target_formation" class="form-input" value="{{ p.target_formation if p else '' }}" /></div>
+      <div><label class="form-label">Rig</label><input type="text" name="rig_name" class="form-input" value="{{ p.rig_name if p else '' }}" /></div>
+      <div><label class="form-label">Rig type</label><input type="text" name="rig_type" class="form-input" value="{{ p.rig_type if p else '' }}" /></div>
+      <div><label class="form-label">Planned spud</label><input type="date" name="planned_spud_date" class="form-input" value="{{ p.planned_spud_date if p else '' }}" /></div>
+      <div><label class="form-label">Est. days</label><input type="number" step="any" name="est_days" class="form-input" value="{{ p.est_days if p and p.est_days is not none else '' }}" /></div>
+      <div><label class="form-label">Surface location</label><input type="text" name="surface_location" class="form-input" value="{{ p.surface_location if p else '' }}" /></div>
+
+      <div><label class="form-label">Authorized MD (ft)</label><input type="number" step="any" name="authorized_md" class="form-input" value="{{ p.authorized_md if p and p.authorized_md is not none else '' }}" /></div>
+      <div><label class="form-label">Authorized TVD (ft)</label><input type="number" step="any" name="authorized_tvd" class="form-input" value="{{ p.authorized_tvd if p and p.authorized_tvd is not none else '' }}" /></div>
+      <div><label class="form-label">KOP MD (ft)</label><input type="number" step="any" name="kop_md" class="form-input" value="{{ p.kop_md if p and p.kop_md is not none else '' }}" /></div>
+      <div><label class="form-label">Max inclination (°)</label><input type="number" step="any" name="max_inclination" class="form-input" value="{{ p.max_inclination if p and p.max_inclination is not none else '' }}" /></div>
+      <div><label class="form-label">Target azimuth (°)</label><input type="number" step="any" name="target_azimuth" class="form-input" value="{{ p.target_azimuth if p and p.target_azimuth is not none else '' }}" /></div>
+      <div><label class="form-label">Surface Northing</label><input type="number" step="any" name="surface_northing" class="form-input" value="{{ p.surface_northing if p and p.surface_northing is not none else '' }}" /></div>
+      <div><label class="form-label">Surface Easting</label><input type="number" step="any" name="surface_easting" class="form-input" value="{{ p.surface_easting if p and p.surface_easting is not none else '' }}" /></div>
+
+      <div><label class="form-label">Dry-hole cost</label><input type="number" step="any" name="dry_hole_cost" class="form-input" value="{{ p.dry_hole_cost if p and p.dry_hole_cost is not none else '' }}" /></div>
+      <div><label class="form-label">Completion cost</label><input type="number" step="any" name="completion_cost" class="form-input" value="{{ p.completion_cost if p and p.completion_cost is not none else '' }}" /></div>
+      <div><label class="form-label">Contingency (%)</label><input type="number" step="any" name="contingency_pct" class="form-input" value="{{ p.contingency_pct if p and p.contingency_pct is not none else '' }}" /></div>
+      <div><label class="form-label">Budget total</label><input type="number" step="any" name="budget_total" class="form-input" value="{{ p.budget_total if p and p.budget_total is not none else '' }}" /></div>
+
+      <div class="md:col-span-2 lg:col-span-3"><label class="form-label">Primary objective</label><textarea name="objective_primary" class="form-input" rows="2">{{ p.objective_primary if p else '' }}</textarea></div>
+      <div class="md:col-span-2 lg:col-span-3"><label class="form-label">Secondary objective</label><textarea name="objective_secondary" class="form-input" rows="2">{{ p.objective_secondary if p else '' }}</textarea></div>
+      <div class="md:col-span-2 lg:col-span-3"><label class="form-label">Geology prognosis</label><textarea name="geology_prognosis" class="form-input" rows="2">{{ p.geology_prognosis if p else '' }}</textarea></div>
+      <div class="md:col-span-2 lg:col-span-3"><label class="form-label">Description</label><textarea name="description" class="form-input" rows="2">{{ p.description if p else '' }}</textarea></div>
+
+      <div class="md:col-span-2 lg:col-span-3 flex justify-end gap-2 mt-2">
+        <button type="button" class="btn btn-ghost" data-close-modal>Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  {% endcall %}
+</div>

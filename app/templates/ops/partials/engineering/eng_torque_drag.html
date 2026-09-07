@@ -1,0 +1,65 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Torque &amp; Drag — results</h3>
+{% if r.error %}
+  {# This is always a blocking prerequisite (no directional plan yet), not a
+     routine "nothing entered" empty state — styled as a distinct warning so
+     it doesn't read the same as ordinary muted placeholder text. #}
+  <div class="card p-3" style="border-color: var(--color-warning);">
+    <p class="text-sm text-warning">{{ r.error }}</p>
+  </div>
+{% else %}
+{% set s = r.summary %}
+<p class="text-xs mb-3 text-muted">Soft-string model along the planned trajectory. {{ r.df_note }}. Casing shoe {{ "{:,}".format(s.shoe) }} {{ depth_unit or "ft" }}, TD {{ "{:,}".format(s.td) }} {{ depth_unit or "ft" }}.</p>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">Hookload POOH</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ s.hookload_pooh }} <span class="text-xs">klbf</span></p><p class="text-xs text-muted">margin {{ s.pickup_margin }} klbf</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Hookload RIH</p><p style="font-size:20px;font-weight:600;color:{{ 'var(--color-danger)' if not s.slackoff_ok else 'var(--color-text)' }};">{{ s.hookload_rih }} <span class="text-xs">klbf</span></p><p class="text-xs text-muted">{{ "in tension" if s.slackoff_ok else "SLACK — string in compression" }}</p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Rotating weight</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ s.hookload_rot }} <span class="text-xs">klbf</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Surface torque (drilling)</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ "{:,}".format(s.surface_torque_drill) }}</p><p class="text-xs text-muted">ft-lbf · side {{ s.max_side_force }} lbf/ft</p></div>
+</div>
+
+<div class="card p-3 mb-3">
+  <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Soft-string vs stiff-string</h4>
+  <div class="overflow-x-auto">
+    <table class="w-full text-xs">
+      <thead><tr class="border-b">
+        <th class="text-left py-2 px-3 text-muted">Model</th>
+        <th class="text-left py-2 px-3 text-muted">Hookload POOH (klbf)</th>
+        <th class="text-left py-2 px-3 text-muted">Hookload RIH (klbf)</th>
+        <th class="text-left py-2 px-3 text-muted">Surface torque (ft-lbf)</th>
+      </tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--color-border);"><td class="py-2 px-3" style="color:var(--color-text);">Soft-string</td><td class="py-2 px-3">{{ s.hookload_pooh }}</td><td class="py-2 px-3">{{ s.hookload_rih }}</td><td class="py-2 px-3">{{ "{:,}".format(s.surface_torque_drill) }}</td></tr>
+        <tr><td class="py-2 px-3" style="color:var(--color-text);">Stiff-string</td><td class="py-2 px-3">{{ s.hookload_pooh_stiff }} <span class="text-muted">(+{{ s.pct_drag_stiff }}%)</span></td><td class="py-2 px-3">{{ s.hookload_rih_stiff }}</td><td class="py-2 px-3">{{ "{:,}".format(s.surface_torque_drill_stiff) }} <span class="text-muted">(+{{ s.pct_torque_stiff }}%)</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="text-xs mt-2 text-muted">{{ r.stiff_note }}</p>
+</div>
+
+{% if s.buckling != "none" %}
+  <div class="card p-3 mb-3" style="border-left:4px solid var(--color-danger);"><span class="badge badge-danger">Buckling</span> <span class="text-sm">{{ s.buckling }} buckling predicted in compression zones — reduce WOB or add HWDP.</span></div>
+{% endif %}
+
+<div class="card p-4">
+  <div class="card-header"><h3 class="card-title">Axial load vs depth</h3></div>
+  <div id="eng-td-profile" class="chart-container"></div>
+</div>
+
+<script id="eng-td-data" type="application/json">{{ r.profile|tojson }}</script>
+<script>
+  (function boot() {
+    if (!window.EngCharts || !window.d3) { setTimeout(boot, 40); return; }
+    var d = JSON.parse(document.getElementById("eng-td-data").textContent);
+    window.EngCharts.depthPlot("eng-td-profile", {
+      yLabel: "Measured depth ({{ depth_unit or 'ft' }})", xLabel: "Axial load (klbf)", height: 440,
+      series: [
+        { name: "POOH (soft)", color: "#EF4444", points: d.map(function (p) { return { x: p.pooh, y: p.md }; }) },
+        { name: "POOH (stiff)", color: "#F59E0B", dashed: true, points: d.map(function (p) { return { x: p.pooh_stiff, y: p.md }; }) },
+        { name: "Rotating", color: "#10B981", points: d.map(function (p) { return { x: p.rot, y: p.md }; }) },
+        { name: "RIH (slack-off)", color: "#3B82F6", points: d.map(function (p) { return { x: p.rih, y: p.md }; }) },
+      ],
+    });
+  })();
+</script>
+{% endif %}

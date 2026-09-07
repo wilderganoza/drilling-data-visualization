@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% import "macros/ops.html" as ops %}
+{% block title %}{{ company.name }} — Master Data{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/master-data/companies" class="text-sm" style="color: var(--color-primary);">&larr; All companies</a>
+  {{ ui.page_header(company.name, "Company") }}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Projects</h3>
+      {% if can_edit %}{{ ops.new_button("project-new-modal", "+ New Project") }}{% endif %}
+    </div>
+    {% include "ops/partials/project_section.html" %}
+  </div>
+</div>
+{% endblock %}

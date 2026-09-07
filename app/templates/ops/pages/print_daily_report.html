@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}DDR {{ report.report_date }} — {{ well.legal_well_name if well else "" }}{% endblock %}
+{% macro f(label, value, unit="") %}
+  <div><dt>{{ label }}</dt><dd>{{ value if value is not none and value != "" else "—" }}{{ (" " ~ unit) if value is not none and value != "" and unit else "" }}</dd></div>
+{% endmacro %}
+{% block content %}
+<div class="doc-toolbar">
+  <a href="/ops/reports/{{ report.id }}" class="btn btn-secondary btn-sm">&larr; Back</a>
+  <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">🖨️ Print / Save PDF</button>
+</div>
+<div class="doc">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div>
+      <h1>Daily Drilling Report</h1>
+      <p class="text-muted" style="font-size: 13px">{{ well.legal_well_name if well else "" }} · {{ wellbore.name if wellbore else "" }} · {{ event.event_code if event else "" }}</p>
+    </div>
+    <div style="text-align:right; font-size: 13px;">
+      <div style="font-weight:600;">Report No. {{ report.report_no or "—" }}</div>
+      <div class="text-muted">{{ report.report_date }}</div>
+    </div>
+  </div>
+
+  <h2>General</h2>
+  <dl class="facts">
+    {{ f("Supervisor", report.supervisor) }}{{ f("Engineer", report.engineer) }}{{ f("Geologist", report.geologist) }}{{ f("DOL / DFS", (report.dol|string if report.dol is not none else "—") ~ " / " ~ (report.dfs|string if report.dfs is not none else "—")) }}
+    {{ f("Previous MD", report.previous_md, "ft") }}{{ f("Current MD", report.md, "ft") }}{{ f("TVD", report.tvd, "ft") }}{{ f("Progress", report.progress, "ft") }}
+    {{ f("Hole size", report.hole_size, "in") }}{{ f("Rotating hrs", report.rotating_hrs) }}{{ f("Sliding hrs", report.sliding_hrs) }}{{ f("Formation", report.formation) }}
+  </dl>
+  <div style="margin-top:10px; font-size:12px;">
+    <p><strong>Current status:</strong> {{ report.current_status or "—" }}</p>
+    <p><strong>24 hr summary:</strong> {{ report.summary_24hr or "—" }}</p>
+    <p><strong>24 hr forecast:</strong> {{ report.forecast_24hr or "—" }}</p>
+  </div>
+
+  {% if time_summary %}
+    <h2>Time Summary <span class="text-muted" style="font-weight:400">— total {{ "%.2f"|format(ts_total) }} h</span></h2>
+    <table>
+      <thead><tr><th>From</th><th>To</th><th>Hrs</th><th>Phase</th><th>Class</th><th>Operation</th></tr></thead>
+      <tbody>
+        {% for row, dur in time_summary %}
+          <tr><td>{{ row.time_from or "—" }}</td><td>{{ row.time_to or "—" }}</td><td>{{ "%.2f"|format(dur) if dur is not none else "—" }}</td><td>{{ row.phase or "—" }}</td><td>{{ row.op_class or "P" }}</td><td>{{ row.operation_detail or "—" }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if npt_rows %}
+    <h2>NPT</h2>
+    <table>
+      <thead><tr><th>Type</th><th>Title</th><th>Hrs</th><th>Cause</th><th>Contractor</th></tr></thead>
+      <tbody>
+        {% for e in npt_rows %}
+          <tr><td>{{ e.npt_type or "—" }}</td><td>{{ e.title or "—" }}</td><td>{{ e.gross_hours if e.gross_hours is not none else "—" }}</td><td>{{ e.cause or "—" }}</td><td>{{ e.contractor_name or "—" }}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% for sub in subsections %}
+    <h2>{{ sub.title }}</h2>
+    <table>
+      <thead><tr>{% for c in sub.columns %}<th>{{ c.label }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in sub.rows %}
+          <tr>{% for c in sub.columns %}<td>{% set v = row[c.name] %}{{ v if v is not none and v != "" else "—" }}</td>{% endfor %}</tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+</div>
+{% endblock %}

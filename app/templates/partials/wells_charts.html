@@ -1,0 +1,123 @@
+{% if not has_data %}
+  <div class="card p-4">
+    <div class="py-12 text-center">
+      <p class="text-muted">No data available for this well</p>
+    </div>
+  </div>
+{% else %}
+<div class="space-y-6">
+  <div class="card p-4">
+    <div class="card-header"><h3 class="card-title">Data Statistics</h3></div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div>
+        <p class="text-sm text-gray-400" title="Capped at a 50,000-row sample per well; a well with more rows shows this cap, not its true row count.">Data Points{{ '*' if payload.total_records == 50000 }}</p>
+        <p class="text-2xl font-bold text-blue-500">{{ '{:,}'.format(payload.total_records) }}</p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-400">Avg ROP</p>
+        <p class="text-2xl font-bold text-green-500">{{ (payload.avg_rop|fmt_number(2) ~ ' ft/hr') if payload.avg_rop is not none else 'N/A' }}</p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-400">Max Depth</p>
+        <p class="text-2xl font-bold text-purple-500">{{ (payload.max_depth|fmt_number(0) ~ ' ft') if payload.max_depth is not none else 'N/A' }}</p>
+      </div>
+      <div>
+        <p class="text-sm text-gray-400">Start Date</p>
+        <p class="text-2xl font-bold text-orange-500">{{ payload.start_date if payload.start_date else 'N/A' }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Rate of Penetration vs {{ 'Time' if payload.is_time else 'Depth' }}</h3>
+      <button type="button" id="rop-export-btn" class="btn btn-secondary btn-sm">Export CSV</button>
+    </div>
+    <div id="rop-chart-container" class="chart-container"></div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Drilling Progress - Depth vs Time</h3>
+      <button type="button" id="depth-time-export-btn" class="btn btn-secondary btn-sm">Export CSV</button>
+    </div>
+    <div id="depth-time-chart-container" class="chart-container"></div>
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Drilling Parameters vs {{ 'Time' if payload.is_time else 'Depth' }}</h3>
+      <button type="button" id="multi-param-export-btn" class="btn btn-secondary btn-sm">Export CSV</button>
+    </div>
+    <div id="multi-param-chart-container" class="chart-container"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  function boot() {
+    if (!window.DrillingCharts) { setTimeout(boot, 30); return; }
+
+    var xLabel = {{ payload.x_label|tojson }};
+
+    DrillingCharts.renderLineChart('rop-chart-container', {
+      data: {{ payload.rop_data|tojson }},
+      xKey: 'x',
+      xType: 'number',
+      xTickFormat: 'number',
+      xLabel: xLabel,
+      height: 460,
+      legend: true,
+      series: [{ key: 'rop', label: 'ROP (ft/hr)', color: '#3B82F6', yAxisId: 'default' }],
+      yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left' }],
+      csvFilename: 'rop_data',
+      csvColumns: ['x', 'rop'],
+      exportButtonId: 'rop-export-btn',
+    });
+
+    DrillingCharts.renderLineChart('depth-time-chart-container', {
+      data: {{ payload.depth_time_data|tojson }},
+      xKey: {{ ('x' if payload.is_time else 'time')|tojson }},
+      xType: {{ ('number' if payload.is_time else 'point')|tojson }},
+      xTickFormat: {{ ('number' if payload.is_time else 'date')|tojson }},
+      xLabel: {{ ('Elapsed Time (hr)' if payload.is_time else 'Time')|tojson }},
+      xAxisTop: true,
+      reverseY: true,
+      height: 460,
+      legend: false,
+      series: [{ key: 'depth', label: 'Bit Depth (ft)', color: '#10B981', yAxisId: 'default' }],
+      yAxes: [{ id: 'default', color: 'var(--color-chart-axis)', orientation: 'left' }],
+      csvFilename: 'depth_time_data',
+      csvColumns: [{{ ('x' if payload.is_time else 'time')|tojson }}, 'depth'],
+      exportButtonId: 'depth-time-export-btn',
+    });
+
+    DrillingCharts.renderLineChart('multi-param-chart-container', {
+      data: {{ payload.multi_param_data|tojson }},
+      xKey: 'x',
+      xType: 'number',
+      xTickFormat: 'number',
+      xLabel: xLabel,
+      height: 460,
+      legend: true,
+      series: [
+        { key: 'wob', label: 'Weight on Bit (klbs)', color: '#3B82F6', yAxisId: 'wob' },
+        { key: 'rpm', label: 'Rotary RPM', color: '#10B981', yAxisId: 'rpm' },
+        { key: 'pressure', label: 'Standpipe Pressure (psi)', color: '#F59E0B', yAxisId: 'pressure' },
+        { key: 'hookload', label: 'Hook Load (klbs)', color: '#EF4444', yAxisId: 'hookload' },
+      ],
+      yAxes: [
+        { id: 'wob', color: '#3B82F6', orientation: 'left' },
+        { id: 'hookload', color: '#EF4444', orientation: 'left' },
+        { id: 'rpm', color: '#10B981', orientation: 'right' },
+        { id: 'pressure', color: '#F59E0B', orientation: 'right' },
+      ],
+      csvFilename: 'multi_parameter_data',
+      csvColumns: ['x', 'wob', 'rpm', 'pressure', 'hookload'],
+      exportButtonId: 'multi-param-export-btn',
+    });
+  }
+  boot();
+})();
+</script>
+{% endif %}

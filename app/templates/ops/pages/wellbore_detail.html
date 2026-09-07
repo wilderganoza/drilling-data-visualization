@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% import "macros/ui.html" as ui %}
+{% block title %}{{ wellbore.name }} — Master Data{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <a href="/master-data/wells/{{ wellbore.well_id }}" class="text-sm" style="color: var(--color-primary);">&larr; {{ well.legal_well_name }}</a>
+  {{ ui.page_header(wellbore.name, "Wellbore" + (" — sidetrack " + wellbore.sidetrack_no if wellbore.sidetrack_no else "")) }}
+  <div class="card p-4">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+      <div><span class="text-muted">Trajectory</span><br>{{ wellbore.trajectory_type or "—" }}</div>
+      <div><span class="text-muted">API-12</span><br>{{ wellbore.api12 or "—" }}</div>
+      <div><span class="text-muted">ARCH No.</span><br>{{ wellbore.arch_no or "—" }}</div>
+      <div><span class="text-muted">Start date</span><br>{{ wellbore.start_date or "—" }}</div>
+      <div><span class="text-muted">VS Azimuth</span><br>{{ wellbore.vs_azimuth if wellbore.vs_azimuth is not none else "—" }}&deg;</div>
+      <div><span class="text-muted">Max angle est.</span><br>{{ wellbore.max_angle_est if wellbore.max_angle_est is not none else "—" }}&deg;</div>
+      <div><span class="text-muted">Kick off top MD</span><br>{{ wellbore.kick_off_top_md if wellbore.kick_off_top_md is not none else "—" }} ft</div>
+      <div><span class="text-muted">Kick off top TVD</span><br>{{ wellbore.kick_off_top_tvd if wellbore.kick_off_top_tvd is not none else "—" }} ft</div>
+    </div>
+  </div>
+  <div class="card p-4">
+    <p class="text-sm text-muted">
+      Events (drilling/workover/completion campaigns) aren't master data — they're created when planning a new
+      operation on this wellbore. Open it in <a href="/planning/wellbores/{{ wellbore.id }}" style="color: var(--color-primary);">Planning</a>
+      to create one, or in <a href="/ops/wellbores/{{ wellbore.id }}" style="color: var(--color-primary);">Daily Operations</a> to see existing ones.
+    </p>
+  </div>
+</div>
+{% endblock %}

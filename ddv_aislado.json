@@ -1,0 +1,410 @@
+{
+  "/": [
+    "ok",
+    8516
+  ],
+  "/admin/ops": [
+    "ok",
+    11156
+  ],
+  "/admin/ops/audit": [
+    "ok",
+    36328
+  ],
+  "/admin/ops/roles": [
+    "ok",
+    11156
+  ],
+  "/admin/ops/step-catalog": [
+    "ok",
+    121597
+  ],
+  "/admin/ops/users": [
+    "ok",
+    16127
+  ],
+  "/admin/ops/validation-rules": [
+    "ok",
+    29130
+  ],
+  "/analytics": [
+    "ok",
+    7502
+  ],
+  "/analytics/cases": [
+    "ok",
+    14166
+  ],
+  "/analytics/cleaning": [
+    "ok",
+    46378
+  ],
+  "/analytics/dysfunction": [
+    "ok",
+    93473
+  ],
+  "/analytics/forecast": [
+    "ok",
+    94721
+  ],
+  "/analytics/learning": [
+    "lenta",
+    "mas de 420 s"
+  ],
+  "/analytics/npt": [
+    "ok",
+    12313
+  ],
+  "/analytics/rop": [
+    "ok",
+    101175
+  ],
+  "/analytics/rop-prediction": [
+    "ok",
+    1509849
+  ],
+  "/analytics/rop-prediction/experiments": [
+    "ok",
+    8350
+  ],
+  "/analytics/rop-prediction/experiments/12/load": [
+    "ok",
+    315190
+  ],
+  "/analytics/rop-prediction/experiments/12/logview": [
+    "ok",
+    8760
+  ],
+  "/analytics/rop-prediction/experiments/12/logview/wells": [
+    "ok",
+    1169
+  ],
+  "/analytics/rop-prediction/experiments/12/predict": [
+    "ok",
+    41770
+  ],
+  "/analytics/rop-prediction/experiments/12/whatif": [
+    "ok",
+    64
+  ],
+  "/cases": [
+    "ok",
+    14166
+  ],
+  "/comparison": [
+    "ok",
+    191837
+  ],
+  "/comparison/datasets": [
+    "fallo",
+    "422"
+  ],
+  "/crossplots": [
+    "ok",
+    51454
+  ],
+  "/crossplots/datasets": [
+    "fallo",
+    "422"
+  ],
+  "/health": [
+    "ok",
+    33
+  ],
+  "/login": [
+    "ok",
+    2580
+  ],
+  "/logs": [
+    "ok",
+    43979
+  ],
+  "/logs/datasets": [
+    "fallo",
+    "422"
+  ],
+  "/master-data/": [
+    "ok",
+    8372
+  ],
+  "/master-data/companies": [
+    "ok",
+    8372
+  ],
+  "/master-data/companies/2828157d-fc7d-4f88-a1aa-5f9e52762c4e": [
+    "ok",
+    7594
+  ],
+  "/master-data/projects/4bee78bc-c232-4a1f-b6ed-0ba002700784": [
+    "ok",
+    8047
+  ],
+  "/master-data/rigs": [
+    "ok",
+    7401
+  ],
+  "/master-data/sites/3a42f377-328d-4cd4-b5a6-b05da2efec5f": [
+    "ok",
+    237415
+  ],
+  "/master-data/tree": [
+    "ok",
+    921
+  ],
+  "/master-data/tree/companies/2828157d-fc7d-4f88-a1aa-5f9e52762c4e/children": [
+    "ok",
+    476
+  ],
+  "/master-data/tree/projects/4bee78bc-c232-4a1f-b6ed-0ba002700784/children": [
+    "ok",
+    467
+  ],
+  "/master-data/tree/sites/3a42f377-328d-4cd4-b5a6-b05da2efec5f/children": [
+    "ok",
+    91837
+  ],
+  "/master-data/tree/wells/00cefa2e-1136-4dba-acc6-4cedcfae4273/children": [
+    "ok",
+    187
+  ],
+  "/master-data/wellbores/01ba8f45-4a30-4bbd-9bc2-4deb9d605b24": [
+    "ok",
+    6594
+  ],
+  "/master-data/wells/00cefa2e-1136-4dba-acc6-4cedcfae4273": [
+    "ok",
+    10444
+  ],
+  "/ops": [
+    "ok",
+    5040
+  ],
+  "/ops/benchmark": [
+    "lenta",
+    "mas de 420 s"
+  ],
+  "/ops/companies/2828157d-fc7d-4f88-a1aa-5f9e52762c4e": [
+    "ok",
+    6091
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d": [
+    "ok",
+    7395
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d/dashboard": [
+    "ok",
+    9637
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d/end-of-well": [
+    "ok",
+    4775
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d/realtime": [
+    "ok",
+    461
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d/registers": [
+    "ok",
+    7096
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d/registers/general": [
+    "fallo",
+    "404"
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d/reports": [
+    "ok",
+    7064
+  ],
+  "/ops/events/00136267-2202-492f-9f51-bd9cf677256d/variance": [
+    "ok",
+    8482
+  ],
+  "/ops/projects/4bee78bc-c232-4a1f-b6ed-0ba002700784": [
+    "ok",
+    6538
+  ],
+  "/ops/reports/047d3032-9e0e-4b41-9257-3471383b93ae": [
+    "ok",
+    13816
+  ],
+  "/ops/reports/047d3032-9e0e-4b41-9257-3471383b93ae/capture/general": [
+    "fallo",
+    "404"
+  ],
+  "/ops/reports/047d3032-9e0e-4b41-9257-3471383b93ae/general": [
+    "ok",
+    3391
+  ],
+  "/ops/reports/047d3032-9e0e-4b41-9257-3471383b93ae/npt": [
+    "ok",
+    3761
+  ],
+  "/ops/reports/047d3032-9e0e-4b41-9257-3471383b93ae/print": [
+    "ok",
+    10830
+  ],
+  "/ops/reports/047d3032-9e0e-4b41-9257-3471383b93ae/status": [
+    "ok",
+    763
+  ],
+  "/ops/reports/047d3032-9e0e-4b41-9257-3471383b93ae/time-summary": [
+    "ok",
+    65133
+  ],
+  "/ops/search": [
+    "ok",
+    5417
+  ],
+  "/ops/sites/3a42f377-328d-4cd4-b5a6-b05da2efec5f": [
+    "ok",
+    137813
+  ],
+  "/ops/tree": [
+    "ok",
+    889
+  ],
+  "/ops/tree/companies/2828157d-fc7d-4f88-a1aa-5f9e52762c4e/children": [
+    "ok",
+    460
+  ],
+  "/ops/tree/projects/4bee78bc-c232-4a1f-b6ed-0ba002700784/children": [
+    "ok",
+    451
+  ],
+  "/ops/tree/sites/3a42f377-328d-4cd4-b5a6-b05da2efec5f/children": [
+    "ok",
+    88637
+  ],
+  "/ops/tree/wellbores/01ba8f45-4a30-4bbd-9bc2-4deb9d605b24/children": [
+    "ok",
+    179
+  ],
+  "/ops/tree/wells/00cefa2e-1136-4dba-acc6-4cedcfae4273/children": [
+    "ok",
+    452
+  ],
+  "/ops/wellbores/01ba8f45-4a30-4bbd-9bc2-4deb9d605b24": [
+    "ok",
+    6658
+  ],
+  "/ops/wells/00cefa2e-1136-4dba-acc6-4cedcfae4273": [
+    "ok",
+    6875
+  ],
+  "/outliers": [
+    "ok",
+    46378
+  ],
+  "/outliers/case-options": [
+    "fallo",
+    "422"
+  ],
+  "/planning": [
+    "ok",
+    5007
+  ],
+  "/planning/companies/2828157d-fc7d-4f88-a1aa-5f9e52762c4e": [
+    "ok",
+    6085
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d": [
+    "ok",
+    20243
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d/design-report": [
+    "lenta",
+    "mas de 420 s"
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d/engineering": [
+    "ok",
+    4001
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d/engineering/general": [
+    "fallo",
+    "404"
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d/plan/status": [
+    "ok",
+    570
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d/plan/general": [
+    "fallo",
+    "404"
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d/summary": [
+    "ok",
+    5173
+  ],
+  "/planning/events/00136267-2202-492f-9f51-bd9cf677256d/validation": [
+    "ok",
+    2568
+  ],
+  "/planning/projects/4bee78bc-c232-4a1f-b6ed-0ba002700784": [
+    "ok",
+    6537
+  ],
+  "/planning/sites/3a42f377-328d-4cd4-b5a6-b05da2efec5f": [
+    "ok",
+    138807
+  ],
+  "/planning/tree": [
+    "ok",
+    909
+  ],
+  "/planning/tree/companies/2828157d-fc7d-4f88-a1aa-5f9e52762c4e/children": [
+    "ok",
+    470
+  ],
+  "/planning/tree/projects/4bee78bc-c232-4a1f-b6ed-0ba002700784/children": [
+    "ok",
+    461
+  ],
+  "/planning/tree/sites/3a42f377-328d-4cd4-b5a6-b05da2efec5f/children": [
+    "ok",
+    90637
+  ],
+  "/planning/tree/wellbores/01ba8f45-4a30-4bbd-9bc2-4deb9d605b24/children": [
+    "ok",
+    184
+  ],
+  "/planning/tree/wells/00cefa2e-1136-4dba-acc6-4cedcfae4273/children": [
+    "ok",
+    462
+  ],
+  "/planning/wellbores/01ba8f45-4a30-4bbd-9bc2-4deb9d605b24": [
+    "ok",
+    9453
+  ],
+  "/planning/wells/00cefa2e-1136-4dba-acc6-4cedcfae4273": [
+    "ok",
+    6874
+  ],
+  "/quality": [
+    "ok",
+    44685
+  ],
+  "/quality/datasets": [
+    "fallo",
+    "422"
+  ],
+  "/quality/well-options": [
+    "ok",
+    35352
+  ],
+  "/users": [
+    "ok",
+    16127
+  ],
+  "/wells": [
+    "ok",
+    44621
+  ],
+  "/wells/datasets": [
+    "fallo",
+    "422"
+  ],
+  "/wells/well-options": [
+    "ok",
+    35352
+  ]
+}

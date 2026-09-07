@@ -1,0 +1,37 @@
+{% set r = res %}
+<h3 class="card-title mb-1">Temperature profile — results</h3>
+<p class="text-xs mb-3 text-muted">
+  {% if r.uses_measured %}Static profile from the measured geopressure temperature data (effective gradient {{ r.geo_grad_eff }} °F/100ft).{% else %}Static profile from the input geothermal gradient ({{ r.geo_grad_eff }} °F/100ft).{% endif %}
+</p>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+  <div class="card p-3"><p class="text-xs text-muted">BHST (static)</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ r.bhst }} <span class="text-xs">°F</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">BHCT (circulating)</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ r.bhct }} <span class="text-xs">°F</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Effective gradient</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ r.geo_grad_eff }} <span class="text-xs">°F/100ft</span></p></div>
+  <div class="card p-3"><p class="text-xs text-muted">Cement thickening temp</p><p style="font-size:20px;font-weight:600;color:var(--color-text);">{{ r.cement_thickening_temp }} <span class="text-xs">°F</span></p></div>
+</div>
+
+<p class="text-xs mb-3 text-muted">
+  Scope: simplified static-chart circulating-temperature correlation (API RP 10B-2 style) for cement slurry thickening-time and tool ratings — not a transient wellbore thermal simulator. {{ r.tool_rating_note }}
+</p>
+
+<div class="card p-3">
+  <h4 class="text-sm font-medium mb-2" style="color:var(--color-text);">Static &amp; circulating temperature vs depth</h4>
+  <div id="eng-temp-profile" class="chart-container"></div>
+</div>
+
+<script id="eng-temp-data" type="application/json">{{ r.profile|tojson }}</script>
+<script>
+  (function boot() {
+    if (!window.EngCharts || !window.d3) { setTimeout(boot, 40); return; }
+    var d = JSON.parse(document.getElementById("eng-temp-data").textContent);
+    if (!d.length) return;
+    window.EngCharts.depthPlot("eng-temp-profile", {
+      yLabel: "TVD ({{ depth_unit or 'ft' }})", xLabel: "Temperature (°F)", height: 380,
+      series: [
+        { name: "Static", color: "#EF4444", points: d.map(function (p) { return { x: p.static, y: p.tvd }; }) },
+        { name: "Circulating", color: "#3B82F6", points: d.map(function (p) { return { x: p.circulating, y: p.tvd }; }) },
+      ],
+    });
+  })();
+</script>

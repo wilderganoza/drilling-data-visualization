@@ -1,0 +1,207 @@
+{% import "ops/partials/analytics/rop_pred_hidden.html" as h %}
+{# ONE form wraps the wells table AND the features section below, so Apply and Next
+   always post the LIVE selection of both (no duplicated hidden state to go stale). #}
+<form id="rop-main-form" hx-post="/analytics/rop-prediction/step/split" hx-target="#rop-pred-content" hx-swap="innerHTML" class="space-y-4">
+  {% if error %}<div class="card p-4"><p class="text-sm" style="color:var(--color-danger,#ef4444);">{{ error }}</p></div>{% endif %}
+  {{ h.hidden_state(state, skip=['well_ids', 'features', 'log_target', 'depth_from', 'depth_to', 'date_from', 'date_to', 'var_completeness_min', 'target_completeness_min', 'field', 'bit_sizes', 'dist_done', 'corr_done']) }}
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Bit diameter</h3>
+      <span class="text-sm text-muted">Filters the training data to rows drilled with these hole sizes — mixing very different diameters (e.g. 8.5&Prime; and 17.5&Prime;) conflates different ROP mechanics, and the model is only valid for the sizes it trained on. Leave all unchecked to use every size.</span>
+    </div>
+    {% if bit_size_options %}
+      <div class="flex flex-wrap items-center gap-3 mt-2 mb-3">
+        {% for b in bit_size_options %}
+          <label class="check-label check-chip">
+            <input type="checkbox" class="rop-bitsize-cb" name="bit_sizes" value="{{ b }}" {{ 'checked' if b in (state.bit_sizes or []) else '' }}>
+            {{ '%g'|format(b) }}&Prime;
+          </label>
+        {% endfor %}
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <button type="button" class="btn btn-secondary" onclick="ropBitSize(true)">Select all</button>
+        <button type="button" class="btn btn-secondary" onclick="ropBitSize(false)">Clear</button>
+        <div id="rop-bitsize-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Updating…</span></div>
+        <button type="button" class="btn btn-primary" title="Refresh the well list below with this diameter filter"
+                hx-post="/analytics/rop-prediction/wells/refresh" hx-target="#rop-wells-tbody" hx-swap="innerHTML"
+                hx-include="#rop-main-form" hx-indicator="#rop-bitsize-ind">Apply to well list</button>
+      </div>
+    {% else %}
+      <p class="text-sm text-muted" style="margin-top:6px">No bit diameters found in the data.</p>
+    {% endif %}
+  </div>
+
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Select wells</h3>
+      <span class="text-sm text-muted">Pick the offset wells whose sensor data the model will learn from — completeness columns show how much usable data each well has for the selected variables and for ROP itself.</span>
+    </div>
+    <div class="mt-3 mb-3">
+      <input type="text" id="rop-well-search" class="form-input" placeholder="Search wells…" oninput="ropFilterWells(this.value)" autocomplete="off"
+             onkeydown="if (event.key === 'Enter') { event.preventDefault(); }">
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4" style="margin-bottom:12px;">
+      <div>
+        <label class="form-label">Final depth range (ft)</label>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="number" name="depth_from" class="form-input rop-range-input" placeholder="From" step="any"
+                 value="{{ state.depth_from if state.depth_from is not none else '' }}" style="flex:1;"
+                 onkeydown="if (event.key === 'Enter') { event.preventDefault(); document.getElementById('rop-range-apply').click(); }">
+          <span class="text-muted">–</span>
+          <input type="number" name="depth_to" class="form-input rop-range-input" placeholder="To" step="any"
+                 value="{{ state.depth_to if state.depth_to is not none else '' }}" style="flex:1;"
+                 onkeydown="if (event.key === 'Enter') { event.preventDefault(); document.getElementById('rop-range-apply').click(); }">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Start date range (year)</label>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <input type="number" name="date_from" class="form-input rop-range-input" placeholder="From" step="1" min="1990" max="2100"
+                 value="{{ state.date_from if state.date_from is not none else '' }}" style="flex:1;"
+                 onkeydown="if (event.key === 'Enter') { event.preventDefault(); document.getElementById('rop-range-apply').click(); }">
+          <span class="text-muted">–</span>
+          <input type="number" name="date_to" class="form-input rop-range-input" placeholder="To" step="1" min="1990" max="2100"
+                 value="{{ state.date_to if state.date_to is not none else '' }}" style="flex:1;"
+                 onkeydown="if (event.key === 'Enter') { event.preventDefault(); document.getElementById('rop-range-apply').click(); }">
+        </div>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" style="margin-bottom:10px;">
+      <div>
+        <label class="form-label">Field</label>
+        <select name="field" class="form-select rop-range-input">
+          <option value="">All fields</option>
+          {% for f in field_options or [] %}
+            <option value="{{ f }}" {{ 'selected' if state.field == f }}>{{ f }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Variable completeness ≥ (%)</label>
+        <input type="number" name="var_completeness_min" class="form-input rop-range-input" placeholder="e.g. 50" step="any" min="0" max="100"
+               value="{{ state.var_completeness_min if state.var_completeness_min is not none else '' }}"
+               onkeydown="if (event.key === 'Enter') { event.preventDefault(); document.getElementById('rop-range-apply').click(); }">
+      </div>
+      <div>
+        <label class="form-label">ROP (target) completeness ≥ (%)</label>
+        <input type="number" name="target_completeness_min" class="form-input rop-range-input" placeholder="e.g. 50" step="any" min="0" max="100"
+               value="{{ state.target_completeness_min if state.target_completeness_min is not none else '' }}"
+               onkeydown="if (event.key === 'Enter') { event.preventDefault(); document.getElementById('rop-range-apply').click(); }">
+      </div>
+    </div>
+    <div class="flex items-center gap-3" style="margin-bottom:12px;">
+      <button type="button" id="rop-range-apply" class="btn btn-secondary"
+              hx-post="/analytics/rop-prediction/wells/refresh" hx-target="#rop-wells-tbody" hx-swap="innerHTML"
+              hx-include="#rop-main-form" hx-indicator="#rop-range-ind">Apply filters</button>
+      <div id="rop-range-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Updating…</span></div>
+    </div>
+    <div style="overflow-x:auto; max-height:440px; overflow-y:auto;">
+      <table class="w-full" style="border-collapse:collapse; font-size:13px;">
+        <thead>
+          <tr class="text-muted" style="text-align:left; border-bottom:1px solid var(--color-border); position:sticky; top:0; background:var(--color-bg); z-index:1">
+            <th style="padding:8px 10px; width:36px;"><input type="checkbox" id="rop-select-all" onclick="ropToggleAll(this)" title="Select all visible"></th>
+            <th class="rop-sort" style="padding:8px 10px; cursor:pointer;" onclick="ropSort(this,1,'text')">Well <span class="rop-arr"></span></th>
+            <th class="rop-sort" style="padding:8px 10px; cursor:pointer;" onclick="ropSort(this,2,'text')">Field <span class="rop-arr"></span></th>
+            <th class="rop-sort" style="padding:8px 10px; min-width:160px; cursor:pointer;" onclick="ropSort(this,3,'num')">Variable completeness <span class="rop-arr"></span></th>
+            <th class="rop-sort" style="padding:8px 10px; min-width:140px; cursor:pointer;" onclick="ropSort(this,4,'num')">ROP (target) completeness <span class="rop-arr"></span></th>
+            <th class="rop-sort" style="padding:8px 10px; text-align:right; cursor:pointer;" onclick="ropSort(this,5,'num')">Rows <span class="rop-arr"></span></th>
+            <th class="rop-sort" style="padding:8px 10px; cursor:pointer;" onclick="ropSort(this,6,'text')">Start date <span class="rop-arr"></span></th>
+            <th class="rop-sort" style="padding:8px 10px; text-align:right; cursor:pointer;" onclick="ropSort(this,7,'num')">Start depth (ft) <span class="rop-arr"></span></th>
+            <th class="rop-sort" style="padding:8px 10px; text-align:right; cursor:pointer;" onclick="ropSort(this,8,'num')">Final depth (ft) <span class="rop-arr"></span></th>
+          </tr>
+        </thead>
+        <tbody id="rop-wells-tbody">
+          {% include "ops/partials/analytics/rop_pred_wells_tbody.html" %}
+        </tbody>
+      </table>
+    </div>
+    <div class="flex items-center justify-end gap-3" style="margin-top:12px;">
+      <span id="rop-sel-count" class="text-sm text-muted">0 wells selected</span>
+      <div id="rop-apply-ind" class="htmx-indicator inline-loader"><span class="spinner-el"></span><span>Updating features…</span></div>
+      <button type="button" class="btn btn-primary" title="Build the feature configuration below from the checked wells"
+              hx-post="/analytics/rop-prediction/step/features" hx-target="#rop-feat-section" hx-swap="innerHTML"
+              hx-include="#rop-main-form" hx-indicator="#rop-apply-ind">Use selected wells &darr;</button>
+    </div>
+  </div>
+
+  {# Placed after well selection, not as the wizard's very first card — it's a
+     modelling choice, not the starting point of the journey. #}
+  <div class="card p-4">
+    <div class="card-header">
+      <h3 class="card-title">Target</h3>
+      <span class="text-sm text-muted">ROP is usually right-skewed (many slow intervals, few very fast ones); training on log(ROP) stabilizes that. All reported metrics stay in ft/hr either way — predictions are converted back automatically.</span>
+    </div>
+    <label class="check-label mt-2">
+      <input type="checkbox" name="log_target" value="true" {{ 'checked' if state.log_target }}>
+      <span>Train on <strong>log(ROP)</strong> instead of raw ROP</span>
+    </label>
+  </div>
+
+  <div id="rop-feat-section">
+    {% if show_features %}
+      {% include "ops/partials/analytics/rop_pred_features.html" %}
+    {% else %}
+      <div class="card p-4"><p class="text-sm text-muted">Select wells above and click "Use selected wells" to configure features.</p></div>
+    {% endif %}
+  </div>
+</form>
+
+<script>
+  function ropBitSize(v) { document.querySelectorAll('.rop-bitsize-cb').forEach(function (cb) { cb.checked = v; }); }
+  function ropUpdateCount() {
+    var n = document.querySelectorAll('.rop-well-cb:checked').length;
+    var el = document.getElementById('rop-sel-count');
+    if (el) el.textContent = n + (n === 1 ? ' well selected' : ' wells selected');
+  }
+  function ropToggleAll(m) {
+    document.querySelectorAll('#rop-wells-tbody tr').forEach(function (tr) {
+      if (tr.style.display === 'none') return;  // only the rows visible under the current search
+      var cb = tr.querySelector('.rop-well-cb');
+      if (cb) cb.checked = m.checked;
+    });
+    ropUpdateCount();
+  }
+  function ropFilterWells(q) {
+    q = (q || '').toLowerCase();
+    document.querySelectorAll('#rop-wells-tbody tr').forEach(function (tr) {
+      var name = tr.cells[1] ? tr.cells[1].textContent.toLowerCase() : '';
+      tr.style.display = name.indexOf(q) !== -1 ? '' : 'none';
+    });
+  }
+  function ropSort(th, col, type) {
+    var tbody = th.closest('table').tBodies[0];
+    var dir = th.getAttribute('data-dir') === 'asc' ? 'desc' : 'asc';
+    th.closest('tr').querySelectorAll('.rop-sort').forEach(function (h) { h.removeAttribute('data-dir'); var a = h.querySelector('.rop-arr'); if (a) a.textContent = ''; });
+    th.setAttribute('data-dir', dir);
+    var arr = th.querySelector('.rop-arr'); if (arr) arr.textContent = dir === 'asc' ? ' ▲' : ' ▼';
+    var rows = Array.prototype.slice.call(tbody.rows);
+    rows.sort(function (a, b) {
+      var av = a.cells[col].getAttribute('data-sort') || '', bv = b.cells[col].getAttribute('data-sort') || '';
+      var r;
+      if (type === 'num') { r = (parseFloat(av) || 0) - (parseFloat(bv) || 0); }
+      else { r = av.localeCompare(bv); }
+      return dir === 'asc' ? r : -r;
+    });
+    rows.forEach(function (row) { tbody.appendChild(row); });
+  }
+  if (!window.__ropWellsChangeBound) {  // bind once — scripts re-run on every htmx swap
+    window.__ropWellsChangeBound = true;
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.classList && e.target.classList.contains('rop-well-cb')) ropUpdateCount();
+    });
+  }
+  // Guarded so revisiting this step (re-rendering this whole script block each
+  // time) doesn't stack up duplicate listeners on the long-lived document.body.
+  if (!window.__ropWellsAfterSwapBound) {
+    window.__ropWellsAfterSwapBound = true;
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.target && e.target.id === 'rop-wells-tbody') {
+        var q = document.getElementById('rop-well-search');
+        if (q) ropFilterWells(q.value);
+        ropUpdateCount();
+      }
+    });
+  }
+  ropUpdateCount();
+</script>
